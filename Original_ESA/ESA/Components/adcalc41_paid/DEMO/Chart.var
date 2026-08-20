@@ -1,0 +1,4 @@
+MinX=X;                   'Initial value
+C=10;                       'Coefficient
+Interval=C*2;            'Range of increase
+Resolution=80;         'Amount of pixels

@@ -1,0 +1,57 @@
+[Cylinders]
+Name=China Bora Inlet # Inl 058 J # Exh 06B B
+NoCyls=4
+Bore=81.0
+Stroke=77.4
+CR=9.72
+ConrodLength=149
+[HeatTransfer]
+TempFile=C:\CAEEng\ChinaBora98.cwt
+CWoshini=150
+[Inlet]
+AreaFile=C:\CAEEng\Variable_Inlet_Diameter\A3TumbleInlet_M770_36.maf
+FPlenumP=(99000)
+InletGrid=((1.0293E-19*N^6 - 0.0000000000000024888*N^5 + 0.000000000024186*N^4 - 0.00000012043*N^3 + 0.00032229*N^2 - 0.42783*N + 236.51)*L/0.758)
+IVRFn=(-0.275)
+IVFFn=(0.660)
+IVFRFn=(-0.044)
+[Exhaust]
+AreaFile=C:\CAEEng\A2ChinaExhaust_M.maf
+ExhBackFile=C:\CAEEng\ChinaBora98.exh
+ExhaustGrid=((1.0533E-16*N^5 - 0.0000000000020345*N^4 + 0.000000014859*N^3 - 0.000050586*N^2 + 0.08287*N - 41.659)*L/1)
+EVRFn=(-0.600)
+EVFFn=(0.410)
+EVFRFn=(-0.715)
+[Cams]
+IVO=24
+IVC=78
+EVO=58
+EVC=37
+IVLift=8.8
+EVLift=9.8
+IVProfile=C:\CAEEng\Camshafts\InletProfile_058109113K.cam
+EVProfile=C:\CAEEng\Camshafts\ExhProfile_078109114.cam
+[Valves]
+IVNo=3
+EVNo=2
+IVDiam=27
+EVDiam=30
+CdIVIn=C:\CAEEng\Camshafts\ChinaBora IVIn.vcd
+CdEVIn=C:\CAEEng\Camshafts\ChinaBora IVIn.vcd
+CdIVOut=C:\CAEEng\Camshafts\ChinaBora IVOut.vcd
+CdEVOut=C:\CAEEng\Camshafts\ChinaBora IVOut.vcd
+[Fuel]
+BurnAngle=55.0
+SparkAngle=C:\CAEEng\ChinaBora98.spk
+AFRatio=14.5
+TFuel=25.0
+QFuel=43
+Lambda=1
+[Conditions]
+TAtm=25
+PAtm=101.325
+vOil=100
+[Calculation]
+VariableGamma=1
+SaveManfData=0
+Integrator=0

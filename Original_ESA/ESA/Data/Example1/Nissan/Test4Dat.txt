@@ -1,0 +1,2 @@
+Speed  IMEP     PMEP    FMEP   BMEP   MEff  VEff   ThEff  Torque  Power    mf    SFC  TMass  MassIn  MassOut  Lambda  Spark  BackP  QHeat  QWork  QExht  QPump  QFric
+4000  11.189  -0.428   2.798   8.819  78.8  85.6  30.6  167.66  70.228  19.19  273.3  691.11  650.71  651.39   1.05   26.0   17.8   25.3   30.6   35.9   -1.5    9.7

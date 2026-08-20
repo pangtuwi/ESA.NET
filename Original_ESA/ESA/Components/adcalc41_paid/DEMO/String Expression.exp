@@ -1,0 +1,2 @@
+'Funct. "IfStr" is determined in Demo code
+IfStr(10>5,StrVar1,StrVar2)

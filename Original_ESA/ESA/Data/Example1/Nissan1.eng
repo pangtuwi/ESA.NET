@@ -1,0 +1,81 @@
+[Cylinders]
+Name=Nissan Test 1
+NoCyls=4
+Bore=89.0
+Stroke=96.0
+CR=9.8
+THead=180
+TPiston=260
+TULiner=180
+TLLiner=130
+FireOrder=1
+ConrodLength=165
+
+[InManifold]
+InsertL=0
+InsertAt=0
+AreaFile=C:\CAEEng1z\NissanTesis\490Inlet.maf
+PlenumP=94.0
+
+[ExManifold]
+InsertL=0
+InsertAt=0
+AreaFile=C:\CAEEng1z\NissanTesis\900SingleExh.maf
+ExhBackP=40.0
+ExhT=950
+
+[Cams]
+IVO=2
+IVC=50
+EVO=40
+EVC=20
+IVLift=9.5
+EVLift=9.5
+IVProfile=C:\CAEEng\A2China Inlet Profile.cam
+EVProfile=C:\CAEEng\A2China Exhaust Profile.cam
+
+[Valves]
+IVNo=1
+EVNo=1
+IVDiam=42
+EVDiam=38
+IVMinA=100
+EVMinA=100
+CdIVIn=C:\CAEEng\A2China IVIn.vcd
+CdEVIn=C:\CAEEng\A2China IVIn.vcd
+CdIVOut=C:\CAEEng\A2China IVOut.vcd
+CdEVOut=C:\CAEEng\A2China IVOut.vcd
+
+[Fuel]
+BurnAngle=55.0
+SparkAngle=C:\CAEEng\A2ChinaVar.spk
+AFRatio=14.5
+TFuel=20.0
+QFuel=43
+Lambda=1
+
+[Conditions]
+TAtm=25
+PAtm=101.325
+vOil=100
+[HeatTransfer]
+TempFile=C:\CAEEng\A2China.cwt
+CWoshini=150
+[Inlet]
+AreaFile=C:\CAEEng\NissanTesis\290Inlet.maf
+FPlenumP=99000
+InletGrid=(0.0096*N+4.703)*L/0.8
+IVRFn=-0.23
+IVFFn=0.61
+IVFRFn=-0.044
+[Exhaust]
+AreaFile=C:\CAEEng\NissanTesis\900SingleExh.maf
+ExhBackFile=C:\CAEEng\A2China.exh
+ExhaustGrid=(0.0048*N+1.5)*L/1
+EVRFn=-0.6
+EVFFn=0.41
+EVFRFn=-0.715
+[Calculation]
+VariableGamma=1
+SaveManfData=0
+Integrator=0

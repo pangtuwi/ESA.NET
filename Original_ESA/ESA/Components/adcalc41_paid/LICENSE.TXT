@@ -1,0 +1,71 @@
+Advanced Calculator v4.1 for Delphi
+-----------------------------------
+Copyright by George Barbakadze
+http://adcalc.homepage.com
+e-mail: giga@fnmail.com
+
+
+LICENSE
+
+This software, including documentation, object code and/or additional
+materials is owned by George Barbakadze.
+This Agreement does not provide you with title or ownership of Product,
+but only a right of limited use as outlined in this license agreement.
+
+
+SHAREWARE VERSION
+
+You may use shareware version for 30 days (TRIAL period). After that
+period has ended, to continue using this product you have to purchase the
+Registered version.
+
+
+REGISTERED VERSION
+
+One registered copy of this software may either be used by for any
+commercial objectives by a single developer who uses the software
+personally on one or more computers, or installed on a single workstation
+used nonsimultaneously by multiple developers, but not both.
+The registered version includes a source code. Any modifications in the
+source code are allowed only with the agreement of author.
+
+REDISTRIBUTION RIGHTS
+
+You are granted a non-exclusive, royalty-free right to reproduce and
+redistribute executable files created using the Software
+(the "Executable Code") in conjunction with software products that you
+develop and/or market (the  Applications").
+
+
+RESTRICTIONS
+
+You may NOT:
+- rent or lease the Software.
+- sell any portion of the Software on its own, without integrating it
+into your Applications as Executable Code.
+
+
+LIMITED WARRANTY
+
+THE AUTHOR DO NOT WARRANT THAT THE FUNCTIONS CONTAINED IN THE SOFTWARE
+WILL MEET YOUR REQUIREMENTS OR THAT THE OPERATION OF THE SOFTWARE WILL
+BE UNINTERRUPTED OR ERROR FREE.
+In this case, user can inform to the author about error and to
+require within one week the corrected version.
+
+
+LIMITATION OF REMEDIES AND LIABILITY.
+
+IN NO EVENT SHALL THE AUTHOR, OR ANY OTHER PARTY WHO MAY HAVE DISTRIBUTED
+THE SOFTWARE, BE LIABLE FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL,
+INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY
+TO USE THE SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA
+BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER PRODUCTS), EVEN IF SUCH
+HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+
+TECHNICAL SUPPORT
+
+User can will address to the author with any questions for technical
+support through e-mail.

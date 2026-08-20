@@ -1,0 +1,79 @@
+[Cylinders]
+Name=Nissan 3: 490mm Inlet
+NoCyls=4
+Bore=89.0
+Stroke=96.0
+CR=9.8
+THead=180
+TPiston=260
+TULiner=180
+TLLiner=130
+FireOrder=1
+ConrodLength=165
+[InManifold]
+InsertL=0
+InsertAt=0
+AreaFile=C:\CAEEng\NissanTesis\290Inlet.maf
+PlenumP=97.0
+[ExManifold]
+InsertL=0
+InsertAt=0
+AreaFile=c:\CAEEng\NissanTesis\900SingleExh.maf
+ExhBackP=35.0
+ExhT=400
+[Cams]
+IVO=2
+IVC=50
+EVO=40
+EVC=20
+IVLift=9.5
+EVLift=9.5
+IVProfile=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan Inlet Profile.cam
+EVProfile=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan Exhaust Profile.cam
+[Valves]
+IVNo=1
+EVNo=1
+IVDiam=42
+EVDiam=38
+IVMinA=100
+EVMinA=100
+CdIVIn=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan IVIn.vcd
+CdEVIn=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan IVIn.vcd
+CdIVOut=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan IVOut.vcd
+CdEVOut=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan IVOut.vcd
+[Fuel]
+BurnAngle=55.0
+SparkAngle=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan.spk
+AFRatio=14.5
+TFuel=25.0
+QFuel=43
+Lambda=1
+[Conditions]
+TAtm=25
+PAtm=101.325
+vOil=100
+
+[HeatTransfer]
+TempFile=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan.cwt
+CWoshini=150
+
+[Inlet]
+AreaFile=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\490Inlet.maf
+FPlenumP=(99000)
+InletGrid=((1.0293E-19*N^6 - 0.0000000000000024888*N^5 + 0.000000000024186*N^4 - 0.00000012043*N^3 + 0.00032229*N^2 - 0.42783*N + 236.51)*L/0.758)
+IVRFn=(-0.245)
+IVFFn=(0.645)
+IVFRFn=(-0.044)
+
+[Exhaust]
+AreaFile=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\900SingleExh.maf
+ExhBackFile=E:\MastersThesis\ESA_Final\ESA2z1z\NissanTesis\Nissan.exh
+ExhaustGrid=((1.0533E-16*N^5 - 0.0000000000020345*N^4 + 0.000000014859*N^3 - 0.000050586*N^2 + 0.08287*N - 41.659)*L/1)
+EVRFn=(-0.6)
+EVFFn=(0.41)
+EVFRFn=(-0.715)
+
+[Calculation]
+VariableGamma=1
+SaveManfData=0
+Integrator=0

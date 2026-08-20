@@ -1,0 +1,58 @@
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+// DoubleFunc : Engine Simulation and Analysis (ESA)
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+unit DoubleFunc;
+
+interface
+
+uses
+ SysUtils, Dialogs, Controls, AdCalc, Classes, StdCtrls;
+
+type
+ TDoubFunc = Class (TObject)
+  functionString : string;
+  MyEdit : TEdit;
+  Func : TAdCalc;
+  function Result(N : Double): Double; // N = Engine rpm
+  constructor create;
+  Destructor Destroy; Override;
+ end; //TDoubFunc
+
+implementation
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+Constructor TDoubFunc.Create;
+begin
+ inherited create;
+ Func := TAdCalc.Create(MyEdit);  //Needed
+end; // Create;
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+function TDoubFunc.Result (N : Double) : Double;
+var
+ FRes : Extended;
+ FuncStrings : String;
+begin
+//  FuncStrings := TStringList.Create;
+//  FuncStrings.Clear;
+  FuncStrings :=functionString;
+  Func.RegVariable('N', EtExtended, 'EngineSpeed');
+  Func.SetExtendedVarValue('N',N);
+  Func.GetExtendedResult(FuncStrings,FRes,1);
+  Result := FRes;
+//  FuncStrings.Free;
+end; //TDoubFunc.Result
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+Destructor TDoubFunc.Destroy;
+begin
+  Func.Free;
+  inherited Destroy;
+end;  //TDoubFunc.Destroy
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+end.

@@ -1,0 +1,7 @@
+1
+35
+N*6/(-0.006532*N+726)*L
+L/(((0.0348*N-8.8)+360)/2+360)*6*N/dCA+L/(360+360)*6*N/dCA)/2)-1
+st := Round((Manifold.EManf.Length/(((0.056*N+24)+ 640)/2
+                         + 640)*6*N/dCA
+                         + Manifold.EManf.Length/(640+640)*6*N/dCA)/2);

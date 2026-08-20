@@ -1,0 +1,193 @@
+[MainWindow]
+Create=1
+Visible=1
+State=2
+Left=0
+Top=0
+Width=800
+Height=106
+MaxLeft=-4
+MaxTop=-4
+MaxWidth=808
+MaxHeight=106
+ClientWidth=800
+ClientHeight=60
+
+[ProjectManager]
+LargeButtons=1
+Column0Width=75
+Column1Width=125
+Column2Width=125
+
+[PropertyInspector]
+Create=1
+Visible=1
+State=0
+Left=0
+Top=99
+Width=190
+Height=497
+MaxLeft=-1
+MaxTop=-1
+ClientWidth=182
+ClientHeight=473
+SplitPos=84
+
+[HistoryLists\hiEvalExpression]
+Count=32
+H0=ICd
+H1=EV.FlowCoeff(300, 5, True)
+H2=EV.FlowCoeff(300, 2.2, True)
+H3=EV.FlowCoeff(300, 2, True)
+H4=EV.FlowCoeff(300, 3, True)
+H5=EV.FlowCoeff(340, 3, True)
+H6=EV.FlowCoeff(340, 2, True)
+H7=EV.FlowCoeff(330, 2, True)
+H8=EV.FlowCoeff(320, 2, True)
+H9=EV.FlowCoeff(310, 2, True)
+H10=EV.FlowCoeff(-200, 2, True)
+H11=IV.FlowCoeff(-200, 2, True)
+H12=IV.FlowCoeff(-100, 2, True)
+H13=IV.FlowCoeff(300, 2, True)
+H14=IV.FlowCoeff(200, 2, True)
+H15=IV.FlowCoeff(100, 2, True)
+H16=IV.FlowCoeff(10, 2, True)
+H17=Manifold.IV.FlowCoeff(10, 2, True)
+H18=Manifold.IV.FlowCoeff(10, 1, True)
+H19=Manifold.IV.FlowCoeff(0, 1, True)
+H20=CdCurr.Cell[7,8]
+H21=CdCurr.Cell[8,8]
+H22=CdCurr.Cell[9,8]
+H23=CdCurr.Cell[9,9]
+H24=CdCurr.Cell[9,10]
+H25=CdCurr.Cell[10,10]
+H26=CdCurr.Cell[1,1]
+H27=Series1.Numxvalues
+H28=Series1
+H29=PerformanceData.Point[8]
+H30=PerformanceData.Point[7]
+H31=PerformanceData.Point[6]
+
+[HistoryLists\hiOpenFile]
+Count=30
+H0=e:\caeeng_paul\main.pas
+H1=e:\caeeng_paul\manifolds.pas
+H2=c:\caeeng\valves.pas
+H3=c:\caeeng\ipoltab.pas
+H4=c:\caeeng\profiles.pas
+H5=c:\caeeng\icengine.pas
+H6=c:\caeeng\manifolds.pas
+H7=c:\caeeng\main.pas
+H8=c:\caeeng\calist.pas
+H9=c:\caeeng\torquecurve.pas
+H10=c:\caeeng\tcurveoptions.pas
+H11=c:\caeeng\edit.pas
+H12=c:\caeeng\mathdpm.pas
+H13=c:\caeeng\multirun.pas
+H14=c:\caeeng\perfdata.pas
+H15=c:\caeeng\pvtdataform.pas
+H16=c:\caeeng\formsimul.pas
+H17=c:\caeeng\inivalues.pas
+H18=c:\caeeng\engine.dpr
+H19=c:\caeeng\pipemain.pas
+H20=c:\caeeng\graphoptions.pas
+H21=c:\caeeng\gasses.pas
+H22=c:\caeeng\gasprops.pas
+H23=c:\caeeng\fuel.pas
+H24=c:\caeeng\fgscale.pas
+H25=c:\caeeng\errorlog.pas
+H26=c:\caeeng\eqbm.pas
+H27=c:\caeeng\aboutboxunit.pas
+H28=d:\caeeng1\aboutboxunit.pas
+H29=d:\caeeng1\manifolds.pas
+
+[HistoryLists\hiFindError]
+Count=1
+H0=0046334B
+
+[HistoryLists\hiUnitAlias]
+Count=1
+H0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+
+[HistoryLists\hiLibUnitAliases]
+Count=1
+H0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+
+[HistoryLists\hiSearchMasks]
+Count=0
+
+[Closed Files]
+File_0=SourceModule,'C:\CAEEng\Engine.dpr',0,1,1,1,1,0,0
+File_1=SourceModule,'E:\CAEEng_Paul\Main.pas',0,1,568,1,575,0,0
+File_2=SourceModule,'E:\CAEEng_Paul\ICEngine.pas',0,1,1,1,1,0,0
+File_3=SourceModule,'E:\CAEEng_Paul\Manifolds.pas',0,1,960,39,968,0,0
+File_4=SourceModule,'C:\CAEEng\IPolTab.pas',0,1,115,20,122,1,1
+File_5=SourceModule,'C:\CAEEng\Valves.pas',0,1,46,20,56,0,0
+File_6=SourceModule,'C:\CAEEng\FManfA.pas',0,1,79,13,83,1,0
+File_7=SourceModule,'C:\CAEEng\Edit.pas',0,1,370,24,375,1,0
+File_8=SourceModule,'C:\CAEEng\Pipes.pas',0,1,13,12,27,0,0
+File_9=SourceModule,'C:\CAEEng\Manifolds.pas',0,1,3064,16,3124,0,0
+
+[Modules]
+Module0=E:\CAEEng_Paul\Valves.pas
+Count=1
+EditWindowCount=1
+
+[E:\CAEEng_Paul\Valves.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[EditWindow0]
+Create=1
+Visible=1
+State=0
+Left=105
+Top=123
+Width=683
+Height=421
+MaxLeft=-1
+MaxTop=-1
+ClientWidth=675
+ClientHeight=394
+SplitPos=-1
+MessagePane=0
+ViewCount=1
+CurrentView=0
+View0=0
+
+[View0]
+Module=E:\CAEEng_Paul\Valves.pas
+CursorX=1
+CursorY=1
+TopLine=33
+LeftCol=1
+
+[Watches]
+Count=0
+
+[Breakpoints]
+Count=0
+
+[PVCS Browser]
+Left=175
+Top=106
+Width=625
+Height=393
+State=0
+Visible=0
+
+[PVCS VDiff]
+Left=209
+Top=0
+Width=591
+Height=600
+Layout=1
+Orientation=1
+State=0
+Visible=0
+File1Color=16711680
+File2Color=255
+SpaceColor=16776960
+TextColor=0
+

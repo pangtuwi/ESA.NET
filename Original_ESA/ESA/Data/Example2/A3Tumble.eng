@@ -1,0 +1,57 @@
+[Cylinders]
+Name=Audi A3 Inlet on Tumble Head # A2 China Base
+NoCyls=4
+Bore=81.0
+Stroke=77.4
+CR=9.2
+ConrodLength=149
+[HeatTransfer]
+TempFile=C:\CAEEng\A2China.cwt
+CWoshini=150
+[Inlet]
+AreaFile=C:\CAEEng\Variable_Inlet_Diameter\A3TumbleInlet_M755_37.MAF
+FPlenumP=99000
+InletGrid=(0.00766*N + 6.171696)
+IVRFn=-0.245
+IVFFn=0.645
+IVFRFn=-0.044
+[Exhaust]
+AreaFile=C:\CAEEng\A2ChinaExhaust_M.maf
+ExhBackFile=C:\CAEEng\A2China.exh
+ExhaustGrid=(0.003525*N + 1.768936)
+EVRFn=-0.6
+EVFFn=0.41
+EVFRFn=-0.715
+[Cams]
+IVO=19
+IVC=80
+EVO=64
+EVC=37
+IVLift=8.62
+EVLift=10.4
+IVProfile=C:\CAEEng\A2China Inlet Profile.cam
+EVProfile=C:\CAEEng\A2China Exhaust Profile.cam
+[Valves]
+IVNo=3
+EVNo=2
+IVDiam=27
+EVDiam=30
+CdIVIn=C:\CAEEng\A2China IVIn.vcd
+CdEVIn=C:\CAEEng\A2China IVIn.vcd
+CdIVOut=C:\CAEEng\A2China IVOut.vcd
+CdEVOut=C:\CAEEng\A2China IVOut.vcd
+[Fuel]
+BurnAngle=55.0
+SparkAngle=C:\CAEEng\A2ChinaVar.spk
+AFRatio=14.5
+TFuel=25.0
+QFuel=43
+Lambda=1
+[Conditions]
+TAtm=25
+PAtm=101.325
+vOil=100
+[Calculation]
+VariableGamma=1
+SaveManfData=0
+Integrator=0

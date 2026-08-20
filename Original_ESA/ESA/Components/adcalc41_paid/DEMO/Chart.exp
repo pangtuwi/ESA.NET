@@ -1,0 +1,3 @@
+'Custom expression
+if(X-MinX<Interval/2,
+MyFunction(X),X/MinX)/C
