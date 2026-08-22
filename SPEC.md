@@ -1,167 +1,91 @@
-<!-- Superseded by SPEC2.md. Retained unchanged as the original reverse-engineering snapshot. -->
+# ESA Legacy Application Specification (Revision 3)
 
-# ESA Legacy Application Specification
-
-This document describes the Delphi application in `Original_ESA/ESA`. It is a reverse-engineering record for a compatible .NET implementation. The legacy source and forms were not modified.
+This document supersedes `archive/SPEC2.md` for the .NET port. It incorporates the answers in `archive/answers2.md`. The Delphi source and forms remain unchanged.
 
 ## 1. Form inventory
 
-### `Main.pas` / `Main.dfm` — `TFMain`
+### `Main.pas` / `Main.dfm` - `TFMain`
 
-The main window owns application startup, simulation execution, result display, and menus. Its layout contains a main menu, status bar, memo, three TeeChart charts, and a large collection of labels/panels for engine and performance results.
+The main form owns startup, simulation execution, result display, and menus. It contains a main menu, status bar, memo, three TeeChart charts, and labels/panels for engine and performance results.
 
-Charts and displayed data:
-
-- `Chart1`: manifold gas-flow traces, including pressure, velocity, and mass-related series.
-- `Chart2`: cylinder pressure and P-V traces.
+- `Chart1`: manifold gas-flow traces.
+- `Chart2`: cylinder pressure and P-V diagram.
 - `Chart3`: in-cylinder properties.
-- Status panels show file/engine name, run time, cycle count, mass balance, speed, torque, power, volumetric efficiency, fuel consumption, SFC, cylinder mass, work, heat loss, pumping work, friction, exhaust/fuel energy, IMEP/BMEP/FMEP/PMEP, and valve event crank angles.
+- Status fields: file/engine name, run time, cycle count, mass balance, speed, torque, power, volumetric efficiency, fuel consumption, SFC, cylinder mass, work, heat loss, pumping work, friction, exhaust/fuel energy, IMEP/BMEP/FMEP/PMEP, and valve event crank angles.
 
 Important handlers:
 
-- `FormCreate`: initializes application state and reads INI settings through `IniValues`.
-- `FormShow`: displays `FWelcome`; the welcome form closes automatically after its timer interval.
-- `FormResize`: recalculates the display layout.
-- `FormClose`: performs application shutdown/cleanup.
-- `SinglePointSimulation1Click`: displays `FSimulateOptions`; after acceptance, calls the simulation routine.
-- `MultiPointSimulation1Click`: displays `FMultiRun`, then runs each accepted grid row and adds results to `PerformanceData`.
-- `QuickRunClick`: runs using the current/default settings without the options dialog.
-- `STOP1Click`: sets `Running := FALSE`; the simulation loop observes this flag.
-- `Pause1Click`: toggles `Paused`. While paused, the message loop continues but the engine step is skipped.
-- `Load1Click`, `SaveAs1Click`, and `LoadDefault1Click`: load/save `.eng` engine definitions using INI text files.
-- `Edit1Click`: displays `FEdit`.
-- `PVTTrace1Click`: displays `FPVTData`.
-- `Options1Click`: displays `FGraphOptions`.
-- `ShowTorqueCurve1Click`: displays `FTorqueCurve`.
-- `ValveOpening1Click`: displays `FValveLift`.
-- `HeatLoss1Click`: displays `FEnergyBalance`.
-- `Timer1Timer`: refreshes status, charts, and performance labels.
-- `Chart2Zoom`: adjusts P-V chart scaling.
+- `FormCreate` initializes application state and reads INI settings through `IniValues`.
+- `FormShow` displays `FWelcome`; its timer closes the splash screen.
+- `FormResize` recalculates the display layout.
+- `FormClose` performs shutdown/cleanup.
+- `SinglePointSimulation1Click` displays `FSimulateOptions` and starts a simulation after acceptance.
+- `MultiPointSimulation1Click` displays `FMultiRun`, then processes accepted rows.
+- `QuickRunClick` starts a simulation with current settings.
+- `STOP1Click` sets `Running := FALSE`; the simulation loop observes this flag.
+- `Pause1Click` toggles `Paused`; message processing continues while engine steps are skipped.
+- `Load1Click`, `SaveAs1Click`, and `LoadDefault1Click` load/save `.eng` INI text files.
+- `Edit1Click`, `PVTTrace1Click`, `Options1Click`, `ShowTorqueCurve1Click`, `ValveOpening1Click`, and `HeatLoss1Click` show their child forms.
+- `Timer1Timer` refreshes status, charts, and result labels.
+- `Chart2Zoom` adjusts P-V chart scaling.
 
-The central simulation loop is effectively:
+The run advances crank angle in steps, processes UI messages, invokes `Engine2z.Run`, captures PVT data, and checks mass balance between cycles. One-zone/two-zone switching occurs after `No1zCycles` when two-zone mode is selected. The run may terminate early when mass-balance error is below the configured tolerance. Three cycles is a valid minimum.
 
-```pascal
-for i := 1 to NoCycles do
-  with Engine2z do
-  begin
-    if (i >= No1zCycles + 1) and (FEdit.RB2Zone.Checked = TRUE) then
-      NoZones := 2
-    else
-      NoZones := 1;
+### `Edit.pas` / `Edit.dfm` - `TFEdit`
 
-    if abs(TotalMInIV-TotalMOutEV)*1e6 < MassBalance then
-      NoCycles := i;
-      Running := FALSE;
+The editor contains tabs for cylinder geometry, exhaust, cams, valves, heat transfer/model settings, manifold files/functions, and calculation settings. It edits engine name, cylinder count, bore, stroke, compression ratio, connecting-rod length, manifold area and grid functions, valve timing/lift/profile files, valve counts/diameters, discharge-coefficient tables, wall temperatures, Woshini coefficient, fuel data, atmospheric/oil conditions, variable-gamma, manifold-save, integrator, and performance-output settings.
 
-    CA := Manifold.IV.C;
-    repeat
-      Application.ProcessMessages;
-      if not Paused then
-      begin
-        Engine2z.Run;
-        CurrCAList.UpdateCAPoint;
-        if (abs(round(CA)) mod 5) < 1 then
-          UpdateGraphs(CA);
-        FPVTData.UpDateList(CA);
-        CA := CA + dCA;
-        if CA > 360 then CA := CA - 720;
-      end;
-    until Abs(CA-Manifold.IV.C) < dCA;
-  end;
-```
+- `FormCreate` initializes controls.
+- `FormShow` loads the current engine definition through `LoadTextFile`.
+- `BOKClick` calls `ReadFromEdits` and applies validated values to `Engine2z`.
+- `BLoadClick` and `BSaveClick` load/save INI-format engine files.
+- `ECCChanged` recalculates capacity as `Cyl * Pi/4 * Bore^2 * Stroke / 1000` in the editor's displayed units.
+- Browse/edit buttons open profile, manifold-area, discharge-coefficient, wall-temperature, and exhaust-data editors or dialogs.
 
-The exact statement grouping and formatting must be checked against the source when porting; the important behavior is the cycle loop, message processing, pause/stop flags, mass-balance convergence test, zone switch, and crank-angle traversal.
-
-### `Edit.pas` / `Edit.dfm` — `TFEdit`
-
-The engine-definition editor is organized into tabs for general cylinder geometry, exhaust, cams, valves, heat transfer/model settings, manifold files/functions, and calculation settings.
-
-Controls represent:
-
-- engine name, cylinder count, bore, stroke, compression ratio, and connecting-rod length;
-- inlet/exhaust manifold area files and grid functions;
-- IVO, IVC, EVO, EVC, lift values, and cam profile files;
-- valve counts, diameters, and four discharge-coefficient tables;
-- wall-temperature file and Woshini heat-transfer coefficient;
-- fuel burn angle, spark schedule, AFR, fuel temperature, fuel energy, and lambda;
-- atmospheric/oil conditions;
-- variable-gamma, manifold-save, integrator, and performance-output options.
-
-Handlers:
-
-- `FormCreate`: initializes controls.
-- `FormShow`: loads the current engine definition through `LoadTextFile`.
-- `BOKClick`: calls `ReadFromEdits`, validating and applying values to `Engine2z`.
-- `BLoadClick` and `BSaveClick`: load/save INI-format engine files.
-- `ECCChanged`: recalculates capacity using `Cyl * Pi/4 * Bore^2 * Stroke / 1000`.
-- Browse/edit buttons open profile, manifold-area, discharge-coefficient, wall-temperature, and exhaust-data editors or file dialogs.
-
-Conversions and validation are performed in the editor before values reach the engine model. `BOKClick` contains a conversion exception handler that swallows `EConvertError` without presenting a corrective message.
-
-### `formsimul.pas` / `formsimul.dfm` — `FSimulateOptions`
-
-The simulation-options dialog edits RPM, cycle count, mass-balance tolerance, and graph selections. It enforces an RPM range of approximately 1250-7000 and a minimum cycle count of 3. Radio options support all graphs on, all off, or individual selection. On close/accept it updates `NoCycles`, `MassBalance`, and `Engine2z.Nrpm`.
-
-### `MultiRun.pas` / `MultiRun.dfm` — `FMultiRun`
-
-A `TStringGrid` (`SG1`) stores up to 100 parameter rows. The columns are:
-
-`No`, `Speed`, `Iters`, `IManfFile`, `EManfFile`, `ICamFile`, `ECamFile`, `IVO`, `IVC`, `EVO`, `EVC`, `IValveLift`, `EValveLift`, `Spark °BTDC`, and `Burn Angle`.
-
-`GetMultiRunVar` and `GetMultiRunStr` interpret cells, with `-` acting as a null value. `SaveGrid` and `LoadGrid` persist the grid as delimited text. `BOkClick` finds the first row containing `-`, sets `NoRuns`, and enables the multi-run operation through `OkToMultiRun`.
-
-### `PVTDataForm.pas` / `PVTDataForm.dfm` — `FPVTData`
-
-Displays a 29-column `TStringGrid`: crank angle plus the 28 values maintained by `TCAList`. `BSaveAsClick` exports the current cycle through `CurrCAList.SendToFile()`.
-
-Columns 1-28 are: cylinder volume, cylinder pressure, cylinder mass, burnt mass, unburnt mass, inlet mass, outlet mass, burnt volume, unburnt volume, burnt temperature, unburnt temperature, burnt heat, unburnt heat, gamma, fuel mass, inlet-valve area, exhaust-valve area, inlet velocity, exhaust velocity, inlet pressure, exhaust pressure, work, pump work, CO, NO, CO2, HC, and heat loss.
+`BOKClick` catches `EConvertError` without displaying a corrective message.
 
 ### Other forms
 
-- `AboutBoxUnit.pas` / `.dfm` — `TAboutBox`: static product/version/about information.
-- `Welcome.pas` / `.dfm` — `TFWelcome`: splash screen; timer closes it after approximately three seconds.
-- `TorqueCurve.pas` / `.dfm` — `FTorqueCurve`: plots torque, power, and volumetric efficiency against RPM from `PerformanceData`.
-- `TCurveOptions.pas` / `.dfm` — `FTorqCurveOptions`: edits RPM, torque/power, and efficiency axis limits.
-- `FflowGraphOptions.pas` / `.dfm` — `TFGraphOptions`: selects manifold pressure/velocity/mass mode, P-V display mode, and in-cylinder display mode, with optional Y-axis limits.
-- `Flowgraph.pas` / `.dfm` — `TFFlowGraph`: displays valve discharge coefficient as a 3D surface over pressure ratio and lift ratio.
-- `FManfA.pas` / `.dfm` — `TFManfArea`: edits and plots a one-dimensional manifold area-versus-length table, up to 50 points.
-- `IPolTab.pas` / `.dfm` — `TFIpol`: edits a two-dimensional discharge-coefficient table, up to 20 by 20 points, and uses bilinear interpolation.
-- `GHeatLoss.pas` / `.dfm` — `TFEnergyBalance`: plots heat loss, work, and pump work against crank angle.
-- `GValveLift.pas` / `.dfm` — `TFValveLift`: plots inlet and exhaust lift profiles using `TValve.Lift()`.
+- `formsimul.pas` / `.dfm` - `FSimulateOptions`: RPM, cycle count, mass-balance tolerance, and graph selection. RPM is approximately 1250-7000; minimum cycle count is 3.
+- `MultiRun.pas` / `.dfm` - `FMultiRun`: 15-column `TStringGrid` for speed, iterations, file names, valve timing/lift, spark, and burn angle. It supports up to 100 rows and uses `-` for missing values.
+- `PVTDataForm.pas` / `.dfm` - `FPVTData`: 29-column grid containing crank angle plus 28 captured quantities; saves through `TCAList.SendToFile`.
+- `AboutBoxUnit.pas` / `.dfm` - static about dialog.
+- `Welcome.pas` / `.dfm` - timed splash screen.
+- `TorqueCurve.pas` / `.dfm` - torque, power, and volumetric-efficiency charts from `PerformanceData`.
+- `TCurveOptions.pas` / `.dfm` - torque-curve axis limits.
+- `FflowGraphOptions.pas` / `.dfm` - manifold pressure/velocity/mass mode, P-V mode, in-cylinder mode, and Y-axis limits.
+- `Flowgraph.pas` / `.dfm` - discharge-coefficient surface plot.
+- `FManfA.pas` / `.dfm` - one-dimensional manifold area-versus-length table, up to 50 points.
+- `IPolTab.pas` / `.dfm` - two-dimensional discharge-coefficient table, up to 20 by 20, with bilinear interpolation.
+- `GHeatLoss.pas` / `.dfm` - heat loss, work, and pump-work chart.
+- `GValveLift.pas` / `.dfm` - inlet and exhaust valve-lift charts.
 
 ## 2. Data structures
 
-No `packed record` or `file of record` declaration was identified in the application units reviewed. The important types are classes, arrays, pointer-linked records, and text-file tables.
+No `packed record` or `file of record` declaration was identified. Runtime data uses Delphi objects, arrays, and pointer-linked records; these must not be serialized by copying object memory.
 
-### Engine and thermodynamic classes
+### Engine and thermodynamic model
 
-`TEngine2z` in `ICEngine2Z.pas` derives from `TRKF` and owns the simulation state. Its fields include:
+`TEngine2z` in `ICEngine2Z.pas` derives from `TRKF`. Important fields include:
 
-- `Name: ShortString`;
-- `NoZones`, `State`, `OldState`, `NCyl`, `NEqns`, `NCycles: Integer`;
-- `INIT2Z`, `TWOZOVERLAP`, `SAVEMANFDATA`, `VariableGamma: Boolean`;
-- crank state: `CA`, `dCA`, `Nrpm`, `wcrank`;
-- geometry: `Bore`, `Stroke`, `CR`, `ConrodLength`;
-- cylinder-at-IVC values: `PCylIVC`, `TCylIVC`, `VCylIVC`;
-- gas objects: `Plenum`, `Exh`, `Cyl`, `Atm: TGas2z`;
-- `Manifold: TManifolds`, `WallTemp: TWallTemps`, `SparkAngle: TVarSpeedList`, `FireOrder: ShortString`;
-- flow/mass values including `MIn`, `Mout`, `dPMass`, inlet/exhaust pressure and velocity;
+- `Name: ShortString`, `FireOrder: ShortString`;
+- `NoZones`, `State`, `OldState`, `NCyl`, `NEqns`, `NCycles`, and `tstep`;
+- `INIT2Z`, `TWOZOVERLAP`, `SAVEMANFDATA`, and `VariableGamma`;
+- `CA`, `dCA`, `Nrpm`, `wcrank`;
+- `Bore`, `Stroke`, `CR`, `ConrodLength`, and `Vd`;
+- gas objects `Plenum`, `Exh`, `Cyl`, and `Atm: TGas2z`;
+- `Manifold: TManifolds`, `WallTemp: TWallTemps`, and `SparkAngle: TVarSpeedList`;
+- pressure, temperature, mass, flow, EGR, and valve-pressure state;
 - `Emmissions: EqSpecArray`;
-- performance values including `FMEP`, `IMEP`, `PMEP`, `BMEP`, torque, power, SFC, efficiencies, peak pressure/temperature, and energy-balance values;
-- convergence values `TotalMInIV`, `TotalMOutEV`, `TotalMass`, and `ResidialFraction`;
-- inherited integration state `y: yarray` and `fn: array[1..MaxN] of dxdyFunction`.
+- work, MEP, torque, power, SFC, efficiency, peak, and energy-balance fields;
+- `TotalMInIV`, `TotalMOutEV`, `TotalMass`, `MbOutInlet`, `MuOutExhaust`, and `ResidialFraction`;
+- inherited `y: yarray` and four ODE function pointers.
 
-`TGas2Z` in `Gasses2Z.pas` contains pressure, mass, burnt/unburnt fractions and masses, volumes, volume derivative, temperatures, energies, gas constant, mass derivatives, enthalpy, gamma, fuel, burnt/unburnt property objects, derivatives, and spark angle.
+`TGas2Z` stores pressure, mass, burnt/unburnt mass and volume, temperatures, energies, gas constants, mass derivatives, enthalpy, gamma, fuel, property calculators, and spark angle. `TFuel` stores `Q`, `T`, `AFRatio`, `Lambda`, `BurnAngle`, and `m` as `Double`, with elemental composition `C`, `H`, `O`, and `N` as `Integer`.
 
-`TFuel` in `Fuel.pas` contains `Q`, `T`, `AFRatio`, `Lambda`, `BurnAngle`, and `m` as `Double`, plus elemental composition `C`, `H`, `O`, and `N` as `Integer`.
-
-`TProp` in `GASPROPS.PAS` owns an equilibrium calculator and species arrays, fuel composition/type fields, and thermodynamic lookup/calculation state.
-
-`TEqbm` in `Eqbm.pas` contains species fractions and derivatives as `EqSpecArray`, an error code, frozen flag, and equilibrium coefficient tables. `EqSpecArray` is `array[1..12] of Extended`, ordered as H, O, N, H2, OH, CO, NO, O2, H2O, CO2, N2, and Ar.
+`TEqbm` stores 12-species arrays and derivatives. `EqSpecArray` is `array[1..12] of Extended`, ordered H, O, N, H2, OH, CO, NO, O2, H2O, CO2, N2, Ar. `TProp` owns equilibrium and thermodynamic property state.
 
 ### Integration
-
-`TRKF` in `RKf5.pas` defines:
 
 ```pascal
 type
@@ -169,13 +93,13 @@ type
   dxdyFunction = function(x: Double; y: yarray): Double;
 ```
 
-It stores `NEqns`, `Integrator`, `x`, `dx`, `y`, and four function pointers. Integrator 0 is RKF5; integrator 1 is Euler.
+`TRKF` stores `NEqns`, `Integrator`, `x`, `dx`, `y`, and four function pointers. Integrator 0 is RKF5 and integrator 1 is Euler.
 
 ### Valves, profiles, pipes, and manifolds
 
 `TValve` contains valve count, open/close crank angles, diameter, maximum lift, a `TProfile`, and forward/reverse `TCdValve` tables.
 
-`TPoint` in `Profiles.pas` is a pointer-linked record:
+`TPoint` in `Profiles.pas` is:
 
 ```pascal
 type
@@ -186,110 +110,47 @@ type
   end;
 ```
 
-`TProfile` stores point count, spacing/lift/duration, linked-list pointers (`First`, `Current`, `OldFirst`, `OldCurrent`), status flags, bounds, and filename. This is heap-linked runtime state, not a stable serialized layout.
+`TProfile` stores point count, spacing, linked-list pointers (`First`, `Current`, `OldFirst`, `OldCurrent`), status flags, limits, lift, duration, and filename. `AddPoint` allocates nodes with `New`. `Clear` disposes the complete list, `Destroy` calls `Clear`, and `LoadText` calls `Clear` before loading a replacement profile. Old profile lists are therefore intended to be released when definitions are reloaded.
 
-`TAManf` stores `Cell` and `Index` arrays sized `[1..maxx]`, a point count, and filename. `TCdValve` stores `Cell`, `xIndex`, `yIndex`, counts, and filename; the table capacity is `[1..maxxy, 1..maxxy]` with `maxxy = 20`.
+`TAManf` stores position and area arrays up to `maxx` points. `TCdValve` stores a two-dimensional table and axes up to `maxxy = 20`. `TPipe` owns an area-versus-length table and insertion values.
 
-`TPipe` owns an area table and insertion position/length values. `TManifolds` owns inlet/exhaust valves and pipes, exhaust pressure/temperature data, a plenum-pressure function, inlet/exhaust grid functions, flow functions, and fixed-capacity calculation arrays. The source constants are `NI = 68` and `NE = 38`.
+`TManifolds` owns inlet/exhaust valves and pipes, exhaust pressure/temperature data, a plenum-pressure function, grid functions, valve-flow functions, throat values, and fixed-capacity flow arrays:
 
-### Captured cycle data
+```pascal
+const
+  NI = 68;
+  NE = 38;
 
-`TCAPoint` contains `Value: array[1..28] of Double` and exposes properties for the tracked quantities. `TCAList` contains `CaVar: array[-359..360] of TCAPoint`, plus column names, decimal counts, and display scale factors. This represents 720 crank-angle positions in memory.
-
-### Lookup and performance classes
-
-`TWallTemps`, `TExhaustPandT`, and `TVarSpeedList` use dynamic arrays of doubles and linear interpolation. The first stores RPM, head, piston, upper-liner, and lower-liner temperatures. The second stores RPM, exhaust pressure, exhaust temperature, and `PAtm`. The third stores RPM/value pairs.
-
-`TPerfPoint` stores speed, torque, power, and volumetric efficiency. `TPerfData` stores up to `MaxNoPoints = 100` points.
-
-`TDoubFunc` and `TGridSize` store expression strings, an `TAdCalc` expression evaluator, and the controls/function state required to evaluate user-defined functions.
-
-### On-disk compatibility flags
-
-- `ShortString` is length-prefixed in Delphi: one length byte followed by up to 255 characters. It is used for engine name/fire-order fields, but the engine definition itself is text INI, not a raw object dump.
-- The pointer-linked `TPoint` records, dynamic arrays, Delphi objects, and `Extended` values are runtime representations and must not be serialized by copying memory.
-- No binary record layout was found in the reviewed application source. The `SAVEMANFDATA` path needs confirmation because its complete writer was not established.
-
-## 3. Persistence
-
-### Engine definitions
-
-`.eng` files are text INI files read and written with `TIniFile`-style sections. The source uses sections equivalent to:
-
-```ini
-[Cylinders]
-Name=...
-NoCyls=...
-Bore=...
-Stroke=...
-CR=...
-ConrodLength=...
-
-[HeatTransfer]
-TempFile=...
-CWoshini=...
-
-[Inlet]
-AreaFile=...
-FPlenumP=...
-InletGrid=...
-IVRFn=...
-IVFFn=...
-IVFRFn=...
-
-[Exhaust]
-AreaFile=...
-ExhBackFile=...
-ExhaustGrid=...
-EVRFn=...
-EVFFn=...
-EVFRFn=...
-
-[Cams]
-IVO=...
-IVC=...
-EVO=...
-EVC=...
-IVLift=...
-EVLift=...
-IVProfile=...
-EVProfile=...
-
-[Valves]
-IVNo=...
-EVNo=...
-IVDiam=...
-EVDiam=...
-CdIVIn=...
-CdIVOut=...
-CdEVIn=...
-CdEVOut=...
-
-[Fuel]
-BurnAngle=...
-SparkAngle=...
-AFRatio=...
-TFuel=...
-QFuel=...
-Lambda=...
-
-[Conditions]
-TAtm=...
-PAtm=...
-vOil=...
-
-[Calculation]
-VariableGamma=...
-SaveManfData=...
-Integrator=...
-PerfDataSave=...
+type
+  TInletCalcArray = array[1..NI] of Double;
+  TExhaustCalcArray = array[1..NE] of Double;
 ```
 
-Values are stored as text. There is no packed-record byte layout for `.eng` files.
+It stores X, velocity `u`, pressure `P`, density `R`, speed of sound `c`, and temperature arrays for both pipes, plus inlet/exhaust gamma, boundary temperatures, discharge coefficients, and throat velocity/speed-of-sound/density values.
 
-### Application INI
+Configured grid functions calculate active counts `QI` and `QE` at the first timestep. Counts above 68 or 38 raise `ECFDError`. These fixed capacities are intentional legacy design limits retained for the new software, although variable capacities would be preferable in a future redesign.
 
-`ESA.ini` stores application defaults and simulation settings. The observed keys include:
+### Captured and performance data
+
+`TCAPoint` contains `Value: array[1..28] of Double`. `TCAList` contains `CaVar: array[-359..360] of TCAPoint`, column names, decimal counts, and display scale factors.
+
+`TPerfPoint` stores speed, torque, power, and volumetric efficiency. `TPerfData` has `MaxNoPoints = 100`. `AddDataPoint` refuses additional points after 100 and displays `Max No Of Stored Datapoints reached... This point will not be stored.`
+
+`TWallTemps`, `TExhaustPandT`, and `TVarSpeedList` store dynamic arrays of doubles and use RPM-keyed linear interpolation. `TDoubFunc` and `TGridSize` own an `TAdCalc` evaluator and expression strings.
+
+### Compatibility flags
+
+- Delphi `ShortString` is length-prefixed: one length byte followed by up to 255 characters. This is runtime/string compatibility information, not the layout of `.eng` files.
+- Pointer-linked records, dynamic arrays, Delphi objects, and `Extended` values are runtime layouts and must not be persisted by raw memory copy.
+- No packed records or binary file-of-record formats were identified.
+
+## 3. Persistence and file formats
+
+### Engine and application INI files
+
+`.eng` files are text INI files with sections equivalent to `[Cylinders]`, `[HeatTransfer]`, `[Inlet]`, `[Exhaust]`, `[Cams]`, `[Valves]`, `[Fuel]`, `[Conditions]`, and `[Calculation]`. They contain geometry, file names, timing, valve data, fuel/condition data, and calculation flags including `VariableGamma`, `SaveManfData`, `Integrator`, and `PerfDataSave`.
+
+`ESA.ini` contains defaults such as:
 
 ```ini
 [DefaultFiles]
@@ -304,102 +165,88 @@ No1zcycles=1
 MassBalance=1
 ```
 
-`IniValues.SaveIniValues` exists but is empty; settings are primarily written through the relevant form/engine save paths.
+The .NET implementation may standardize `.eng`, INI, and exported text files on UTF-8. ANSI compatibility with Delphi is not required. No BDE, ADO, database, or registry access was identified.
 
-### External data tables
+### Input tables
 
-The following are text files loaded into interpolation structures:
+The sample `.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, and `.exh` files in the data folders are the authoritative format examples.
 
-- `.maf`: manifold position/area points, loaded into `TAManf.Index` and `Cell`, with linear interpolation.
-- `.vcd`: valve discharge-coefficient two-dimensional tables, loaded into `TCdValve` and interpolated bilinearly.
-- `.cam`: cam profile points, loaded into the linked list in `TProfile`.
+- `.maf`: manifold position/area text points, loaded into `TAManf` and linearly interpolated.
+- `.vcd`: discharge-coefficient grids, loaded into `TCdValve` and bilinearly interpolated.
+- `.cam`: two-column profile points, loaded into the `TProfile` linked list.
 - `.spk`: RPM/spark-angle pairs, loaded into `TVarSpeedList`.
 - `.cwt`: RPM and wall-temperature columns, loaded into `TWallTemps`.
-- `.exh`: RPM, exhaust pressure, and exhaust temperature columns, loaded into `TExhaustPandT`.
+- `.exh`: RPM, exhaust pressure, and exhaust-temperature columns, loaded into `TExhaustPandT`.
 
-The exact delimiters and headers should be treated as defined by the individual `Load` routines, rather than inferred from sample data. All indexed tables use linear interpolation between neighboring rows.
+### PVT and multi-run exports
 
-### Runtime exports and logs
+PVT export is delimited text containing crank angle plus the 28 captured values. Multi-run grids are delimited text managed by `SaveGrid` and `LoadGrid`. Error logs are appended text.
 
-- PVT export is delimited text/CSV, with crank angle and 28 columns from `TCAList.SendToFile()`; display scale factors are applied.
-- Multi-run grids are persisted as delimited text by `FMultiRun.SaveGrid` and restored by `LoadGrid`.
-- `ErrorLog.pas` appends textual errors/messages to a log file.
-- No database, BDE, ADO, or registry access was identified.
-- No confirmed binary file-of-record format was identified.
+### Manifold output
+
+`TManifolds.Main_Prog` honors `SaveManifoldData`. On the final cycle it creates and writes:
+
+- `Inlet.txt`: crank angle, inlet pressure/velocity at pipe start, midpoint, and valve end;
+- `Exhaust.txt`: corresponding exhaust values at pipe end, midpoint, and valve end;
+- `Pcyl.txt`: crank angle and cylinder pressure;
+- `Tcyl.txt`: crank angle, cylinder temperature, and cylinder volume;
+- `MassFlow.txt`: crank angle, inlet mass, and exhaust mass, scaled by $10^6$;
+- `InlPress.m`: one row of inlet pressures per crank-angle output;
+- `InlVel.m`: one row of inlet velocities;
+- `ExhPress.m`: one row of exhaust pressures;
+- `ExhVel.m`: one row of exhaust velocities.
+
+The legacy layout is whitespace-delimited with fixed-width numeric formatting. The .NET implementation should use a standard UTF-8 .NET text-output implementation rather than requiring byte-for-byte MATLAB/Delphi formatting. It should retain the equivalent file names, numeric columns, units, and final-cycle-only behavior. Headers and other standard .NET formatting are permitted, provided downstream consumers and the documented columns are preserved.
 
 ## 4. External dependencies
 
-### Delphi/VCL
+VCL controls map to Windows Forms or WPF. `TStringGrid` maps most directly to `DataGridView`. `TIniFile` and Delphi file I/O map to an INI parser and `System.IO`. The VCL message loop and `Application.ProcessMessages` require an equivalent UI-dispatch strategy.
 
-The application uses standard Delphi VCL forms and controls: `TForm`, panels, labels, edits, memos, buttons, menus, grids, timers, dialogs, radio groups, and checkboxes. Direct .NET equivalents are Windows Forms or WPF controls; `TStringGrid` maps most directly to `DataGridView`.
+TeeChart types (`TChart`, `TFastLineSeries`, `TLineSeries`, `TSurfaceSeries`) require a .NET charting replacement such as OxyPlot, LiveCharts, a WinForms chart control, or a surface-capable renderer.
 
-`TIniFile`, Delphi file I/O (`AssignFile`, `Reset`, `Rewrite`), `Application.ProcessMessages`, and the VCL message loop require .NET replacements using an INI parser, `System.IO`, and a UI dispatcher/message-pump-safe design.
-
-### TeeChart
-
-`TChart`, `TFastLineSeries`, `TLineSeries`, and `TSurfaceSeries` are used for the plots. Options for a port include OxyPlot, LiveCharts, the WinForms chart control, or another charting library. The surface chart requires a library with 3D/surface support or a deliberate replacement.
-
-### AdCalc
-
-`Components/adcalc41_paid` supplies `TAdCalc`, used by `TDoubFunc` and `TGridSize` to evaluate expressions involving `N` (engine speed). This proprietary component is a direct third-party dependency and should not be assumed available to a .NET port. It needs a compatible expression parser/evaluator or a licensed wrapper.
-
-### Win32 and system APIs
-
-No explicit Win32 API call was identified. Windows behavior is reached through VCL. `Printers` is imported by `Main.pas`, but no implemented print workflow was found.
-
-### .NET mapping summary
-
-| Delphi dependency | Porting direction |
-|---|---|
-| VCL forms/controls | Windows Forms or WPF |
-| TeeChart | OxyPlot, LiveCharts, WinForms charting, or replacement renderer |
-| AdCalc | Compatible expression parser/evaluator |
-| TIniFile | INI parser or dedicated configuration class |
-| Delphi file I/O | `System.IO` |
-| `Math` routines | `System.Math` |
-| Pointer-linked profile | managed linked objects or list |
-
-## 5. Business rules
-
-### Crank-angle state machine
-
-`TEngine2z.GetState` divides the cycle into six states:
-
-1. Compression
-2. Combustion
-3. Expansion
-4. Exhaust
-5. Overlap
-6. Intake
-
-The source logic is equivalent to:
+`Components/adcalc41_paid/ADCALC.PAS` supplies the proprietary `TAdCalc` expression evaluator used by `TDoubFunc` and `TGridSize`. It supports arithmetic, logical, string, comparison, and function expressions and has both compiled-parser APIs (`CompileText`/`ExecuteExtended`) and immediate APIs (`GetExtendedResult`). ESA uses the immediate API:
 
 ```pascal
-if Theta < Manifold.EV.C then
-  GetState := Overlap
-else if Theta < Manifold.IV.C then
-  GetState := Intake
-else if Theta < Cyl.ThetaSpark then
-  GetState := Compression
-else if Theta < Cyl.ThetaSpark+Cyl.Fuel.Burnangle then
-  GetState := Combustion
-else if Theta < Manifold.EV.O then
-  GetState := Expansion
-else if Theta < Manifold.IV.O then
-  GetState := Exhaust
-else
-  GetState := Overlap;
+Func.RegVariable('N', EtExtended, 'EngineSpeed');
+Func.SetExtendedVarValue('N', N);
+Func.GetExtendedResult(FuncStrings, FRes, 1);
 ```
 
-State changes select different ODE functions and initialize/reset state-specific quantities. Combustion couples burnt and unburnt zone volume, pressure, and temperatures. Expansion treats the charge as burned. Exhaust resets exhaust-flow accumulation. Intake absorbs residual gases. Overlap uses frozen equilibrium and simplified equations.
+`GetExtendedResult` constructs a new parser with `cNo`, evaluates, and destroys it. The .NET replacement is explicitly permitted to compile/cache expressions, provided expression semantics, numerical results, and error behavior remain compatible. `TGridSize.GridSize` may cache its expressions in the same way for `L` and `N`.
 
-### One-zone/two-zone switching
+No explicit Win32 API call was identified. `Printers` is imported but no print workflow was found.
 
-`Main.Simulate` runs the first `No1zCycles` cycles as one-zone when configured, then switches to two-zone for later cycles. The switch is controlled by the editor's one-zone/two-zone radio buttons and the cycle number.
+## 5. Business rules and calculations
 
-### Convergence
+### State machine
 
-The run stops early when:
+The six crank-angle states are Compression, Combustion, Expansion, Exhaust, Overlap, and Intake. `GetState` is equivalent to:
+
+```pascal
+if Theta < Manifold.EV.C then Getstate := Overlap
+else if Theta < Manifold.IV.C then Getstate := Intake
+else if Theta < Cyl.ThetaSpark then Getstate := Compression
+else if Theta < Cyl.ThetaSpark+Cyl.Fuel.Burnangle then Getstate := Combustion
+else if Theta < Manifold.EV.O then Getstate := Expansion
+else if Theta < Manifold.IV.O then Getstate := Exhaust
+else Getstate := Overlap;
+```
+
+For two-zone mode, state transitions select the corresponding ODE functions. Compression initializes the two-zone unburnt model; Combustion uses burnt-zone volume/pressure/temperature equations; Expansion makes the charge burned; Exhaust removes burned mass; Intake adds unburnt mass and carries residual gas state; Overlap uses the simplified frozen-equilibrium single-zone pressure equations. This overlap treatment is intentional and must be retained.
+
+At every step `Cyl.mgas := Cyl.mgas + Min - Mout`. Negative gas mass raises `EEngineError`. State-specific totals are handled as follows:
+
+- intake mass contributes to `TotalMInIV`;
+- exhaust mass contributes to `TotalMOutEV`;
+- overlap tracks burned/unburned reverse flow with `MbOutInlet` and `MuOutExhaust` corrections;
+- at compression initialization, the previous cycle's inlet total becomes `NewAirMass`, then inlet/outlet totals are reset for the new cycle;
+- at exhaust initialization, exhaust total is reset.
+
+The intended cycle-to-cycle behavior is to carry engine end-of-cycle gas values forward as the next cycle's initial condition, while cycle-specific totals and performance accumulators reset at their state initialization. A .NET port should follow the field-level resets in `Run` and `InitVars`, not reset the entire engine object between cycles.
+
+### Convergence and two-zone switching
+
+The main loop stops when:
 
 ```pascal
 if abs(TotalMInIV-TotalMOutEV)*1e6 < MassBalance then
@@ -407,77 +254,66 @@ if abs(TotalMInIV-TotalMOutEV)*1e6 < MassBalance then
   Running := FALSE;
 ```
 
-The intended unit is micrograms after multiplying the kilogram difference by $10^6$. The default INI value is 1. The simulation also supports user stop and pause flags; `Application.ProcessMessages` keeps the UI responsive during calculation.
+The tolerance is expressed in micrograms. Three cycles is a valid minimum. The first `No1zCycles` cycles may establish a one-zone state before a two-zone run.
 
-### ODE integration
+### Manifold solver
 
-The two-zone state vector has four values:
+`Main_Prog` computes `dt := (1/(Speed/60*360))*dCrankA`, initializes fixed-size pipe arrays on `tStep = 0`, and advances both pipes with characteristic-line calculations. Boundary routines are selected by valve status:
 
-- `y[1]`: burnt-zone volume;
-- `y[2]`: cylinder pressure;
-- `y[3]`: burnt-zone temperature;
-- `y[4]`: unburnt-zone temperature.
+- both valves closed: `INFLOW_INLET_PIPE`, `INLET_VALVE_CLOSED`, `EXHAUST_VALVE_CLOSED`, `OUTFLOW_EXHAUST_PIPE`;
+- inlet closed/exhaust open: inlet closed routines plus `EXHAUST_VALVE_OPEN`;
+- both open: `INLET_VALVE_OPEN` and `EXHAUST_VALVE_OPEN`;
+- inlet open/exhaust closed: `INLET_VALVE_OPEN` and `EXHAUST_VALVE_CLOSED`.
 
-RKF5 is the normal integrator, with Euler as an alternate setting. The manifold solver uses fixed-capacity inlet/exhaust arrays (`NI = 68`, `NE = 38`) and user-selected grid functions.
+Internal pipe points use `INTERNAL_PIPE` with characteristic variables, area-gradient terms, Fanning friction, and convergence checks. Valve routines distinguish sonic and subsonic flow and include reverse-flow paths. Negative pressure or density displays an error message; solver iterations stop on configured tolerances or after 1000 iterations.
 
-### Heat transfer
-
-`TEngine2z.hWoshini` uses a state-dependent coefficient and an empirical Woshini-style correlation. The source includes logic equivalent to:
+`MassFlow` calculates:
 
 ```pascal
-case State of
-  Compression, Combustion, Expansion: C1 := 2.28;
-  Exhaust, Overlap, Intake: C1 := 6.18;
-end;
-
-hwoshini := WoshiniCoeff * Pwr(Bore, -0.2)
-  * Pwr(P/101325, 0.8)
-  * Pwr(T, -0.53)
-  * Pwr(w, 0.8);
+MassIn := Iut*IRt*(ICd*IValveArea)*dt;
+MassOut := Eut*ERt*(ECd*EValveArea)*dt;
+dPMass := (sqr(cStag)*MassIn - sqr(cCyl)*MassOut)/CylVol;
 ```
 
-`WoshiniCoeff` is configured through the editor, with the observed default around 131.
+The burnt-volume clamp in `Gasses2Z.pas` is an intentional numerical safeguard and must remain:
 
-### Fuel and combustion
+```pascal
+if Vb > Vgas then Vb := Vgas;
+```
 
-Fuel mass, burn duration, spark timing, AFR, lambda, and elemental composition feed the equilibrium/two-zone model. `TEqbm` calculates a 12-species equilibrium mixture. The implementation contains frozen-equilibrium behavior around low temperature, but the exact active threshold and all call sites must be preserved from the source rather than normalized during a port.
+### Heat transfer and combustion
 
-### Performance and energy
+The Woshini constants `C1 = 2.28` for compression/combustion/expansion and `C1 = 6.18` for exhaust/overlap/intake are empirically validated calibration values.
 
-The application calculates IMEP, FMEP, PMEP, BMEP, torque, brake/indicated power, SFC, mechanical/overall/thermal efficiency, peak pressure/temperature, volumetric efficiency, and heat/work/exhaust/fuel energy values. Cycle traces expose work, pump work, emissions, and heat loss. Multi-run execution stores up to 100 points for the torque curve.
+Fuel mass uses:
 
-### Interpolation and validation
+```pascal
+Cyl.Fuel.M := (1/Cyl.Fuel.Lambda) * TotalMInIV /
+              (Cyl.Fuel.AFRatio + 1);
+```
 
-Manifold areas and RPM-keyed schedules use linear interpolation. Discharge-coefficient tables use bilinear interpolation. The editor recalculates capacity from geometry and validates numeric fields. The multi-run grid uses `-` as a missing-value marker and stops at the first incomplete row.
+The `+ 1` is intentional: AFR is represented as an X:1 air-to-fuel ratio, so total mixture mass is X+1 parts.
 
-## 6. Dead code and suspicious paths
+The equilibrium model calculates 12 species. The Delphi equilibrium behavior is authoritative for the port. The supplied NOx/CO temperature ranges are background engineering information only; do not introduce new separate freeze thresholds in the .NET implementation unless the Delphi behavior is first shown to require it. Preserve the existing `TEqbm` behavior and validate it against the reference cases.
 
-These items should be retained as observations, not silently removed during a compatibility port:
+### Performance
+
+`Performance` computes IMEP, PMEP, friction MEP, BMEP, torque, brake/indicated/heat power, volumetric efficiency, mechanical/thermal efficiency, SFC, and fuel/heat/work/pump/friction/exhaust energy balance. `PerformanceData` stores up to 100 points and explicitly warns and discards additional points.
+
+## 6. Dead code, retained behavior, and validation
 
 - `IniValues.SaveIniValues` is declared but empty and appears unused.
-- `Main.pas` imports `Printers`, but no printing handler/menu workflow was found.
+- `Main.pas` imports `Printers`, but no print workflow exists.
 - `DoubleFunc.pas` contains commented-out string-list allocation/cleanup.
-- `Edit.pas` catches `EConvertError` without displaying a corrective error.
-- The two-zone `Overlap` path contains commented-out gas-exchange ODE assignments and uses simplified equations.
-- `Gasses2Z.pas` contains a suspicious burnt-volume clamp: `if Vb > Vgas then Vb := Vgas`.
-- `TExhaustPandT.PAtm` is used as a pressure baseline but appears not to be assigned by `Load`; this may make the effective baseline zero.
-- The simulation does not visibly reset every cumulative output at the beginning of each cycle; determine which values are intentionally cumulative before porting.
-- Profile points are manually allocated through `New`; repeated profile loads need confirmation that old linked lists are disposed.
-- The editor allows grid settings while manifold arrays have fixed capacities of 68 and 38; confirm whether the configured values are limits, active counts, or a potential mismatch.
+- `Edit.pas` catches conversion errors without a corrective message.
+- The commented gas-exchange overlap ODE assignments are intentionally not restored.
+- `TProfile.LoadText` clears old profile nodes before loading; `TProfile.Destroy` also clears them.
+- Fixed grid capacities of 68 inlet and 38 exhaust points are intentional legacy limits for the new software.
+- Manifold output is enabled by `SAVEMANFDATA`, is written only for the final simulated cycle, and comprises the nine files listed above.
+- AdCalc expressions may be compiled/cached in the .NET implementation, subject to compatibility testing.
 
-## Questions for Paul
+The calibration/reference cases are the two examples in `Original_ESA/ESA/Data/Example1` and `Original_ESA/ESA/Data/Example2`. They should be used to validate the one-zone/two-zone transition, manifold flow, emissions, performance outputs, convergence behavior, and the retained Delphi chemistry. Expected numerical tolerances are not specified in the answers; the test harness should record legacy outputs first and use those as the comparison baseline.
 
-1. Is the burnt-volume clamp in `Gasses2Z.pas` an intended numerical safeguard, or should exceeding cylinder volume be reported as an error?
-2. What operating conditions and expected cycle count normally satisfy the 1 microgram mass-balance tolerance? Is three cycles always a valid minimum?
-3. Is the simplified, frozen-equilibrium overlap model intentional, or should the commented gas-exchange equations be restored in a compatible implementation?
-4. Is the combustion fuel-mass formula's `AFRatio + 1` intentional?
-5. Are the state-specific Woshini constants empirically validated calibration values?
-6. Does AdCalc parse/compile expression strings once or on every evaluation? This affects a .NET replacement's performance design.
-7. Should equilibrium emissions freeze below a particular temperature, and if so what threshold is authoritative?
-8. Which engine values are intended to accumulate across cycles and which should reset each cycle?
-9. Are old `TProfile` linked lists freed when a new engine definition is loaded?
-10. How do user-configured inlet/exhaust grid sizes relate to the fixed capacities 68 and 38?
-11. Can multi-run count exceed `MaxNoPoints = 100`, and what user-visible behavior is expected?
-12. Does `SAVEMANFDATA` produce a file? If so, what filename, encoding, and record/column layout must remain compatible?
-13. Are the sample `.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, and `.exh` files the complete authoritative format examples, or are there additional legacy variants?
-14. Should `.eng` and exported text files remain ANSI-compatible with the original Delphi `TIniFile` and file readers, or may the .NET implementation standardize on UTF-8?
+## Further questions
+
+No original open questions remain. One implementation detail remains for the engineering test plan rather than the legacy specification: the numerical comparison tolerances for `Example1` and `Example2` must be measured from legacy reference runs before automated .NET acceptance tests are finalized.
