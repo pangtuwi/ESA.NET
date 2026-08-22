@@ -1,27 +1,44 @@
-The directory Original_ESA contains a Borland Delphi application I wrote years ago.
-Do not write any new code yet.
+Read SPEC.md in full before doing anything.
 
-There is a user manual for the app in that folder and a subfolder ESA containing all the code.
+Phase 2: build the project skeleton. No business logic, no ported
+forms — that's phase 3. I want a solution that compiles, runs,
+tests, and proves it can read my legacy data.
 
-Read every .pas and .dfm file and produce SPEC.md containing:
+Structure:
 
-1. Form inventory — each form, its controls, layout, and what
-   each event handler actually does. Quote the Pascal where the
-   logic is non-obvious.
-2. Data structures — every record/class type, with exact field
-   layouts. Flag any `packed record`, ShortString, or file-of-record
-   usage, since those define on-disk formats I must stay
-   compatible with.
-3. Persistence — file formats, INI/registry keys, database access
-   (BDE, ADO, direct file I/O). Document the byte layout of any
-   binary format.
-4. External dependencies — third-party VCL components, DLLs,
-   direct Win32 API calls. For each, note whether a .NET
-   equivalent exists or if it needs reimplementing.
-5. Business rules — any calculation, validation, or state machine
-   buried in the UI code. This is the part I care most about
-   preserving.
-6. Dead code — units or handlers that appear unreachable.
+  src/App.Core        — domain models, business rules, interfaces.
+                        No reference to any UI framework. Ever.
+  src/App.Persistence — legacy file/INI readers and writers,
+                        implementing interfaces defined in Core.
+  src/App.Wpf         — WPF app, .NET 10, MVVM. Views and
+                        ViewModels only; no logic beyond binding.
+  tests/App.Tests     — xUnit, referencing Core and Persistence.
+  legacy/             — the original Delphi source, untouched,
+                        as reference material.
 
-Where the intent of the original code is genuinely ambiguous,
-list it under "Questions for Paul" rather than guessing.
+Conventions:
+- Nullable reference types on, warnings as errors.
+- CommunityToolkit.Mvvm for observable properties and commands.
+- Microsoft.Extensions.DependencyInjection with a generic host;
+  ViewModels resolved from the container.
+- No static mutable state.
+
+Deliverables:
+1. The solution above, building clean with zero warnings.
+2. A shell MainWindow that launches to an empty window with the
+   menu structure from SPEC.md section 1 — menu items present but
+   wired to no-op handlers.
+3. Domain model types in Core for every record/class in SPEC.md
+   section 2. Data only, no behaviour yet.
+4. Persistence: a reader for [name the primary data format] with a
+   round-trip test proving it reads legacy/samples/[file] and
+   writes a byte-identical copy. This test must pass before you
+   consider the phase done.
+5. CLAUDE.md at the repo root covering: what the app does, the
+   layering rules above, where the Delphi originals live, naming
+   conventions, how to run build and tests, and the phase plan
+   with phase 2 marked complete.
+
+Then stop and give me a summary of what you built, anything in
+SPEC.md that turned out to be wrong or underspecified, and what
+you'd tackle first in phase 3. Don't start phase 3.
