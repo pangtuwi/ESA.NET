@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:App.Ui.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
+        x:Class="App.Ui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding Title}"
+        Width="900" Height="620">
+
+  <!--
+    Phase 2 shell. The menu reproduces the structure of MainMenu1 on TFMain in
+    Main.dfm, including the original accelerator letters and shortcut captions.
+    Every item is bound to a no-op command; the content area is deliberately empty
+    until the charts, status bar and result panels are ported.
+
+    The shortcut captions are faithful to the original, which assigned Ctrl+Q to
+    both Exit and QuickRun. Avalonia treats MenuItem.InputGesture as display only,
+    so the clash is cosmetic here as it stands.
+  -->
+  <DockPanel>
+    <Menu x:Name="MainMenu" DockPanel.Dock="Top">
+
+      <MenuItem Header="_File">
+        <MenuItem Header="_Load..." Command="{Binding LoadCommand}" />
+        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" />
+        <MenuItem Header="_Edit" InputGesture="Ctrl+E" Command="{Binding EditEngineCommand}" />
+        <MenuItem Header="Load Default" InputGesture="Ctrl+L" Command="{Binding LoadDefaultCommand}" />
+        <Separator />
+        <MenuItem Header="E_xit" InputGesture="Ctrl+Q" Command="{Binding ExitCommand}" />
+      </MenuItem>
+
+      <MenuItem Header="_Run">
+        <MenuItem Header="_Single Point Simulation" InputGesture="Ctrl+R"
+                  Command="{Binding SinglePointSimulationCommand}" />
+        <MenuItem Header="_Multi Point Simulation" InputGesture="Ctrl+M"
+                  Command="{Binding MultiPointSimulationCommand}" />
+        <Separator />
+        <MenuItem Header="_Pause" InputGesture="Ctrl+P" Command="{Binding PauseCommand}" />
+        <MenuItem Header="S_TOP" InputGesture="Ctrl+S" Command="{Binding StopCommand}" />
+        <MenuItem Header="_QuickRun" InputGesture="Ctrl+Q" Command="{Binding QuickRunCommand}" />
+      </MenuItem>
+
+      <MenuItem Header="_Graph">
+        <MenuItem Header="_Run-Time Graph Options" Command="{Binding RunTimeGraphOptionsCommand}" />
+        <Separator />
+        <MenuItem Header="_Torque Curve" Command="{Binding TorqueCurveCommand}" />
+        <MenuItem Header="_Valve Opening" Command="{Binding ValveOpeningCommand}" />
+        <MenuItem Header="_Energy Balance" Command="{Binding EnergyBalanceCommand}" />
+      </MenuItem>
+
+      <MenuItem Header="_Text">
+        <MenuItem Header="PVT_Trace" Command="{Binding PvtTraceCommand}" />
+      </MenuItem>
+
+      <MenuItem Header="_Help">
+        <MenuItem Header="_User Manual" Command="{Binding UserManualCommand}" />
+        <MenuItem Header="_About..." Command="{Binding AboutCommand}" />
+      </MenuItem>
+
+    </Menu>
+
+    <Panel />
+  </DockPanel>
+</Window>

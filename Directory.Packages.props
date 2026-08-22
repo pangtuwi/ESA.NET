@@ -1,0 +1,32 @@
+<Project>
+
+  <ItemGroup Label="UI">
+    <PackageVersion Include="Avalonia" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup Label="Hosting">
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup Label="Test">
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="12.1.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+  <!--
+    Charting for phase 5, pinned here so the decision is recorded. Deliberately
+    not referenced by any project yet: phase 2 draws no charts and an unused
+    dependency would be dead weight. ScottPlot.Avalonia 5.1.59 targets
+    Avalonia 12.0, so it is compatible with the 12.1.1 pins above.
+  -->
+  <ItemGroup Label="Phase 5">
+    <PackageVersion Include="ScottPlot.Avalonia" Version="5.1.59" />
+  </ItemGroup>
+
+</Project>

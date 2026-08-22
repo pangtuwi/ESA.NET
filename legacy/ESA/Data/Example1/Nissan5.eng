@@ -1,0 +1,54 @@
+[Cylinders]
+Name=Nissan2.4L Engine # Z24 Block,NA20 Head # Custom Inlet # NA20 Exh.
+NoCyls=4
+Bore=89
+Stroke=96
+CR=9.8
+THead=180
+TPiston=260
+TULiner=180
+TLLiner=130
+FireOrder=1
+ConrodLength=165
+[InManifold]
+InsertL=0
+InsertAt=0
+AreaFile=c:\CAEEng\NissanTesis\490Inlet.maf
+PlenumP=97.0
+[ExManifold]
+InsertL=0
+InsertAt=0
+AreaFile=c:\CAEEng\NissanTesis\900SingleExh.maf
+ExhBackP=35.0
+ExhT=400
+[Cams]
+IVO=20
+IVC=32
+EVO=58
+EVC=2
+IVLift=9.5
+EVLift=9.5
+IVProfile=c:\CAEEng\VW026109113BUnit.cam
+EVProfile=c:\CAEEng\VW026109113BUnit.cam
+[Valves]
+IVNo=1
+EVNo=1
+IVDiam=42
+EVDiam=38
+IVMinA=100
+EVMinA=100
+CdIVIn=c:\CAEEng\Yamaha 16 valve IVIn.vcd
+CdEVIn=c:\CAEEng\Yamaha 16 valve IVIn.vcd
+CdIVOut=c:\CAEEng\Yamaha 16 valve IVOut.vcd
+CdEVOut=c:\CAEEng\Yamaha 16 valve IVOut.vcd
+[Fuel]
+BurnAngle=55.0
+SparkAngle=10.0
+AFRatio=14.5
+TFuel=20.0
+QFuel=40.0
+Lambda=1
+[Conditions]
+TAtm=20.0
+PAtm=100
+vOil=100

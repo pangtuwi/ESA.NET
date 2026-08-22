@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Layering rule: App.Core must never reference a UI framework. There are no
+    PackageReferences here by design, and LayeringTests enforces it at test time.
+  -->
+  <PropertyGroup>
+    <RootNamespace>App.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>
