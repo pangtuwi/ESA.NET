@@ -124,6 +124,19 @@ headless box, `xvfb-run -a dotnet run --project src/App.Ui` starts the app; the
 `MenuStructureTests` also exercise the window through `Avalonia.Headless` with no
 display at all.
 
+## Verified on
+
+What has actually been run, as opposed to what should work. Worth knowing if you
+hit a difference and want a known-good reference point.
+
+| Platform | Toolchain | Exercised |
+|---|---|---|
+| Windows | VS Code with the C# Dev Kit, .NET 10 SDK | Build and run |
+| Ubuntu 24.04 | .NET SDK 10.0.111, command line | Release build (0 warnings), 31 tests, run under Xvfb |
+
+Not yet exercised anywhere: the `dotnet publish` step, and opening `ESA.NET.slnx`
+in Visual Studio or Rider.
+
 ---
 
 ## Repository layout
