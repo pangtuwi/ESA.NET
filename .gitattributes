@@ -1,0 +1,14 @@
+# Legacy test fixtures: byte-exact round-trip tests depend on these files never
+# being renormalised by git on any platform.
+legacy/samples/** -text -diff
+
+# Delphi build outputs and resources are binary.
+*.dcu binary
+*.dfm binary
+*.exe binary
+*.res binary
+*.dcr binary
+*.ico binary
+*.bmp binary
+*.hlp binary
+*.doc binary
