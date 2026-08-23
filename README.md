@@ -131,7 +131,7 @@ hit a difference and want a known-good reference point.
 
 | Platform | Toolchain | Exercised |
 |---|---|---|
-| Windows | VS Code with the C# Dev Kit, .NET 10 SDK | Build and run |
+| Windows 10 | VS Code with the C# Dev Kit, .NET SDK 10.0.400 | Build and run |
 | Ubuntu 24.04 | .NET SDK 10.0.111, command line | Release build (0 warnings), 31 tests, run under Xvfb |
 
 Not yet exercised anywhere: the `dotnet publish` step, and opening `ESA.NET.slnx`
