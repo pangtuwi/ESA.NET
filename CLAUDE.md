@@ -68,6 +68,15 @@ it, never edit it.
 the reference for what behaviour to port. `archive/` holds the working notes that
 produced it.
 
+`data/baseline/` holds the phase 4 validation baseline: a complete reference run
+of the original Delphi application, captured deliberately with every input and
+output recorded — the engine, its ten side files, screenshots of all eight
+settings tabs and the results screen, and a full-cycle 720-row PVT trace.
+**`BASELINE.md` documents it** and is required reading before any phase 4 work.
+Unlike the output scattered through `legacy/ESA/Data/`, this set carries its own
+provenance. Treat every file in it as read-only: regenerating it means running
+the original application on Windows.
+
 ## Naming conventions
 
 - Namespaces mirror project names: `App.Core`, `App.Persistence`, `App.Ui`,
@@ -163,7 +172,7 @@ pressing OK must not restyle a single byte.
 | 1 | Reverse-engineer the Delphi application into `SPEC.md` | **Complete** |
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | **Complete** |
 | 3 | Remaining file formats (`.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, `.exh`, `ESA.ini`), an expression evaluator to replace `TAdCalc`, and the engine Edit form | **Complete** |
-| 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against Example1 and Example2 | Not started |
+| 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against the `data/baseline/` reference run (see `BASELINE.md`) | Not started |
 | 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | Not started |
 | 6 | Packaging and distribution | Not started |
 

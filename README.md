@@ -32,7 +32,7 @@ phase plan in [CLAUDE.md](CLAUDE.md).
 | 1 | Reverse-engineer the Delphi application into `SPEC.md` | Complete |
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | Complete |
 | 3 | Remaining file formats, an expression evaluator to replace `TAdCalc`, the engine Edit form | Complete |
-| 4 | Simulation core, validated against the two reference engines | Not started |
+| 4 | Simulation core, validated against a captured run of the original app ([BASELINE.md](BASELINE.md)) | Not started |
 | 5 | Charts, the multi-run grid, PVT and manifold text exports | Not started |
 | 6 | Packaging and distribution | Not started |
 
@@ -150,7 +150,9 @@ src/App.Ui            Avalonia views and view models. Binding only, no logic.
 tests/App.Tests       xUnit tests.
 legacy/               The original Delphi source, untouched. Reference material.
 legacy/samples/       Frozen .eng fixtures used by the round-trip test.
+data/baseline/        A captured reference run of the original app, for phase 4.
 SPEC.md               Reverse-engineered specification of the Delphi application.
+BASELINE.md           What the reference run contains and how to validate against it.
 CLAUDE.md             Layering rules, naming conventions, port caveats, phase plan.
 archive/              Working notes that produced SPEC.md.
 ```

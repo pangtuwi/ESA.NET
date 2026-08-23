@@ -2,6 +2,11 @@
 # being renormalised by git on any platform.
 legacy/samples/** -text -diff
 
+# The phase 4 validation baseline (see BASELINE.md) is a captured run of the
+# original Delphi application. Regenerating any of it means running that app on
+# Windows, so it must never be rewritten by git.
+data/baseline/** -text -diff
+
 # Delphi build outputs and resources are binary.
 *.dcu binary
 *.dfm binary

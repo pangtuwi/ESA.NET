@@ -1,7 +1,7 @@
-Read SPEC.md and CLAUDE.md in full before doing anything, and read the
-phase 2 and phase 3 code — the domain models in App.Core, the expression
-evaluator, the table readers, and EngineLoader. Phase 4 runs on top of
-all of it and replaces none of it.
+Read SPEC.md, CLAUDE.md and **BASELINE.md** in full before doing anything,
+and read the phase 2 and phase 3 code — the domain models in App.Core, the
+expression evaluator, the table readers, and EngineLoader. Phase 4 runs on
+top of all of it and replaces none of it.
 
 Phase 4: the simulation core. This is the phase the whole port exists
 for, and the largest by a wide margin. An engine already loads
@@ -30,8 +30,24 @@ finalized". That is still true and it is the first thing to settle. Do
 not write the integrator and hope to check it later; you will have no way
 to tell a porting mistake from a floating-point difference.
 
-Recorded legacy output already sits in the data folders. Survey it before
-you plan anything:
+**The reference run now exists.** `data/baseline/` holds a complete,
+deliberately captured run of the original Delphi application: the
+`A2China.eng` engine, all ten side files it needs, screenshots of all
+eight settings tabs, the results screen, and `A2China.txt` — a full-cycle
+720-row PVT trace. **BASELINE.md documents the whole set**: provenance,
+the run settings, the aggregate results to hit, the trace format and its
+per-column display scale factors, and the one open question about the
+cycle count. Read it before planning anything, and use it as the primary
+acceptance target.
+
+The baseline already loads through the phase 3 code with zero unresolved
+files, despite every path in it being a dead `C:\CAEEng\...` absolute
+path, so you can start comparing numbers immediately.
+
+Older recorded output is also scattered through `legacy/ESA/Data/`. It is
+worth knowing about but is much weaker evidence than the baseline, for
+reasons set out below. Survey it, but do not build acceptance tests on it
+without checking BASELINE.md first:
 
   Lastcyc.txt     A full cycle PVT trace: 720 rows, one per crank angle,
                   29 named columns (CA plus the 28 captured values).
@@ -68,14 +84,22 @@ Four things about this data will bite you if you assume otherwise:
     ChinaBoraVVT1.eng are among them.
 
 So treat the shipped output as corroboration of magnitude and shape, not
-as golden bytes.
+as golden bytes. `data/baseline/` is the set that carries its own
+provenance, and is the one to hold yourself to.
 
-For an authoritative baseline you need to run the original. ESA.exe in
-legacy/ESA is a 32-bit Windows GUI binary; there is no Wine in the Linux
-dev container, but I run Windows 10, so ask me to generate reference runs
-and tell me exactly which engines, speeds, cycle counts and settings you
-want. Getting that list right early is worth more than a week of
-guessing. Propose the list as soon as you know what you need.
+**If you need more reference runs, ask.** ESA.exe in legacy/ESA is a
+32-bit Windows GUI binary; there is no Wine in the Linux dev container,
+but I run Windows 10 and produced the existing baseline that way. A
+second engine, another speed, or a run with SaveManfData set so you get
+the manifold traces are all cheap for me to generate — but I need the
+exact engine, speed, cycle count and settings from you. Propose the list
+as soon as you know what you need, rather than a week later.
+
+One request worth making early: the current baseline was run with
+SaveManfData off, so there are no manifold pressure or velocity traces.
+The CFD solver is the largest and least observable part of phase 4, and a
+run with that box ticked would give you a per-crank-angle view inside the
+pipes. Ask for it before you start the solver, not after it misbehaves.
 
 Decide and tell me the tolerance policy: which quantities are compared,
 at what relative tolerance, and why. A per-crank-angle pressure trace and
@@ -218,8 +242,10 @@ Deliverables
      based on.
   2. The integrator, state machine, gas and equilibrium models, manifold
      solver and performance calculations, ported and unit tested.
-  3. A headless run of Example1 and Example2 reproducing the reference
-     numbers within the agreed tolerance, as an automated test.
+  3. A headless run of `data/baseline/A2China.eng` at 4000 rpm
+     reproducing the trace and the aggregates in BASELINE.md within the
+     agreed tolerance, as an automated test. Example1 and Example2 as
+     further cases if the weaker reference data supports it.
   4. The nine manifold output files, written on the final cycle when
      SaveManfData is set, with the documented columns and units.
   5. CLAUDE.md updated: phase 4 complete, phase 5 next, new caveats
