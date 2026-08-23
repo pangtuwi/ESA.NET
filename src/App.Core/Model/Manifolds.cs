@@ -20,7 +20,7 @@ public sealed class Manifolds
     public Pipe ExhaustPipe { get; } = new();
 
     /// <summary>Exhaust back pressure and temperature, Delphi <c>ExhBack</c>.</summary>
-    public ExhaustBackPressureTable ExhaustBack { get; } = new();
+    public ExhaustBackPressureTable ExhaustBack { get; set; } = new();
 
     /// <summary>Plenum pressure expression, Delphi <c>CleanAirPresFn</c>.</summary>
     public ExpressionFunction PlenumPressureFunction { get; } = new();

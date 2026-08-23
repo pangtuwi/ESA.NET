@@ -1,3 +1,4 @@
+using App.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -7,46 +8,112 @@ namespace App.Ui.ViewModels;
 /// View model for the shell window.
 /// </summary>
 /// <remarks>
-/// Phase 2 is a skeleton: every command is a deliberate no-op so that the menu
-/// structure can be reviewed against the original before any behaviour is ported.
 /// The commands correspond one-to-one with the <c>OnClick</c> handlers on
-/// <c>TFMain</c> in Main.pas.
+/// <c>TFMain</c> in Main.pas. The File menu is live as of phase 3; Run and Graph stay
+/// no-ops until the simulation core and the charts arrive.
 /// </remarks>
 public sealed partial class MainWindowViewModel : ObservableObject
 {
+    private readonly IEngineLoader _engineLoader;
+    private readonly IEngineDefinitionStore _definitions;
+
+    public MainWindowViewModel(IEngineLoader engineLoader, IEngineDefinitionStore definitions)
+    {
+        _engineLoader = engineLoader;
+        _definitions = definitions;
+    }
+
     /// <summary>Window caption. The Delphi original appended a version and build date.</summary>
     public string Title => "Engine Simulation and Analysis (ESA)";
+
+    /// <summary>The engine currently open, or <see langword="null"/> before anything is loaded.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    private EngineLoadResult? _currentEngine;
+
+    /// <summary>The file the current engine came from, shown in the status line.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    private string _currentEngineFile = string.Empty;
+
+    /// <summary>What the Delphi status bar showed: the file and engine name, plus any load problems.</summary>
+    public string StatusText
+    {
+        get
+        {
+            if (CurrentEngine is null)
+            {
+                return "No engine loaded.";
+            }
+
+            var status = $"{Path.GetFileName(CurrentEngineFile)} — {CurrentEngine.Engine.Name}";
+
+            return CurrentEngine.IsComplete
+                ? status
+                : $"{status} ({CurrentEngine.Problems.Count} data file(s) could not be loaded)";
+        }
+    }
+
+    /// <summary>
+    /// Opens an engine file and everything it names. Port of <c>Load1Click</c>.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the original, the side files are read here rather than at simulation-init
+    /// time, so a missing cam profile is reported when the engine is opened instead of
+    /// part-way through a run.
+    /// </remarks>
+    public void LoadEngine(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        CurrentEngine = _engineLoader.Load(path);
+        CurrentEngineFile = path;
+    }
+
+    /// <summary>Saves the current definition. Port of <c>SaveAs1Click</c>.</summary>
+    public void SaveEngineAs(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        if (CurrentEngine is null)
+        {
+            return;
+        }
+
+        _definitions.Write(path, CurrentEngine.Definition);
+        CurrentEngineFile = path;
+    }
 
     // File. Delphi: Load1Click, SaveAs1Click, Edit1Click, LoadDefault1Click, Exit1Click.
 
     [RelayCommand]
-    private static void Load()
+    private void Load()
     {
-        // Phase 3.
+        // The file dialog belongs to the view; the shell wires it to LoadEngine.
     }
 
     [RelayCommand]
-    private static void SaveAs()
+    private void SaveAs()
     {
-        // Phase 3.
+        // The file dialog belongs to the view; the shell wires it to SaveEngineAs.
     }
 
     [RelayCommand]
-    private static void EditEngine()
+    private void EditEngine()
     {
-        // Phase 3.
+        // The window is opened by the view, against CurrentEngine.Definition.
     }
 
     [RelayCommand]
-    private static void LoadDefault()
+    private void LoadDefault()
     {
-        // Phase 3.
+        // Resolved from ESA.ini's [DefaultFiles] Engine entry by the shell.
     }
 
     [RelayCommand]
     private static void Exit()
     {
-        // Phase 3.
+        // The lifetime shutdown belongs to the view.
     }
 
     // Run. Delphi: SinglePointSimulation1Click, MultiPointSimulation1Click,

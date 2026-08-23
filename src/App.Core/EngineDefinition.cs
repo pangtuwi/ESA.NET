@@ -368,4 +368,128 @@ public abstract class EngineDefinition
 
     protected void SetInt32(string section, string key, int value) =>
         SetValue(section, key, value.ToString(CultureInfo.InvariantCulture));
+
+    // ---------------------------------------------------------------------------
+    // Fuel composition.
+    //
+    // The Delphi Edit form has C, H, N and O fields and copies them into the plenum,
+    // cylinder and exhaust gases (Edit.pas lines 475-495), from where they feed the
+    // equilibrium model through TProp.Setup. But no .eng key ever held them, so the
+    // original silently reset the composition to its form defaults on every load —
+    // a real defect, and one that matters because phase 4's chemistry depends on
+    // these numbers.
+    //
+    // The port reads optional [Fuel] keys and falls back to those same defaults. The
+    // keys are written only when a value actually changes, so every existing file
+    // stays byte-identical until someone edits it.
+    // ---------------------------------------------------------------------------
+
+    /// <summary>Carbon atoms per fuel molecule. Delphi form default 7.</summary>
+    public int FuelCarbon
+    {
+        get => GetInt32("Fuel", "C", DefaultFuelCarbon);
+        set => SetInt32("Fuel", "C", value);
+    }
+
+    /// <summary>Hydrogen atoms per fuel molecule. Delphi form default 17.</summary>
+    public int FuelHydrogen
+    {
+        get => GetInt32("Fuel", "H", DefaultFuelHydrogen);
+        set => SetInt32("Fuel", "H", value);
+    }
+
+    /// <summary>Oxygen atoms per fuel molecule. Delphi form default 0.</summary>
+    public int FuelOxygen
+    {
+        get => GetInt32("Fuel", "O", DefaultFuelOxygen);
+        set => SetInt32("Fuel", "O", value);
+    }
+
+    /// <summary>Nitrogen atoms per fuel molecule. Delphi form default 0.</summary>
+    public int FuelNitrogen
+    {
+        get => GetInt32("Fuel", "N", DefaultFuelNitrogen);
+        set => SetInt32("Fuel", "N", value);
+    }
+
+    /// <summary>The composition the Delphi Edit form starts with: a C7H17 petrol surrogate.</summary>
+    public const int DefaultFuelCarbon = 7;
+
+    public const int DefaultFuelHydrogen = 17;
+
+    public const int DefaultFuelOxygen = 0;
+
+    public const int DefaultFuelNitrogen = 0;
+
+    /// <summary>True when the file carries any explicit fuel composition.</summary>
+    public bool HasFuelComposition =>
+        GetValue("Fuel", "C") is not null || GetValue("Fuel", "H") is not null
+        || GetValue("Fuel", "O") is not null || GetValue("Fuel", "N") is not null;
+
+    // ---------------------------------------------------------------------------
+    // The older, undocumented schema.
+    //
+    // Five Example1 engines (Nissan1-5.eng) predate the [Inlet]/[Exhaust] sections
+    // and instead use [InManifold] and [ExManifold], with wall temperatures and
+    // exhaust back pressure written inline rather than in .cwt and .exh files.
+    // SPEC.md section 3 does not mention any of it. These accessors give the loader
+    // and the Edit form a way to see those values; nothing writes them, so the files
+    // keep round-tripping unchanged.
+    // ---------------------------------------------------------------------------
+
+    public double InletInsertLength => GetDouble("InManifold", "InsertL", 0);
+
+    public double InletInsertAt => GetDouble("InManifold", "InsertAt", 0);
+
+    public double ExhaustInsertLength => GetDouble("ExManifold", "InsertL", 0);
+
+    public double ExhaustInsertAt => GetDouble("ExManifold", "InsertAt", 0);
+
+    /// <summary>True when the file lists wall temperatures inline instead of naming a <c>.cwt</c>.</summary>
+    public bool HasInlineWallTemperatures => GetValue("Cylinders", "THead") is not null;
+
+    public double InlineHeadTemperature => GetDouble("Cylinders", "THead", 0);
+
+    public double InlinePistonTemperature => GetDouble("Cylinders", "TPiston", 0);
+
+    public double InlineUpperLinerTemperature => GetDouble("Cylinders", "TULiner", 0);
+
+    public double InlineLowerLinerTemperature => GetDouble("Cylinders", "TLLiner", 0);
+
+    /// <summary>True when the file gives one exhaust back pressure instead of naming an <c>.exh</c>.</summary>
+    public bool HasInlineExhaustBackPressure => GetValue("ExManifold", "ExhBackP") is not null;
+
+    public double InlineExhaustBackPressure => GetDouble("ExManifold", "ExhBackP", 0);
+
+    public double InlineExhaustTemperature => GetDouble("ExManifold", "ExhT", 0);
+
+    /// <summary>
+    /// True when the file uses the older schema. Such files have no <c>[Calculation]</c>
+    /// section either, so the calculation settings fall back to their Delphi defaults.
+    /// </summary>
+    public bool UsesOlderManifoldSchema =>
+        Sections.Any(s => string.Equals(s, "InManifold", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The inlet area file under whichever schema the file uses. The older engines put
+    /// <c>AreaFile</c> under <c>[InManifold]</c> rather than <c>[Inlet]</c>.
+    /// </summary>
+    public string EffectiveInletAreaFile =>
+        GetValue("Inlet", "AreaFile") ?? GetValue("InManifold", "AreaFile") ?? "Default.maf";
+
+    /// <summary>The exhaust area file under whichever schema the file uses.</summary>
+    public string EffectiveExhaustAreaFile =>
+        GetValue("Exhaust", "AreaFile") ?? GetValue("ExManifold", "AreaFile") ?? "Default.maf";
+
+    /// <summary>
+    /// The plenum pressure entry under whichever schema the file uses.
+    /// </summary>
+    /// <remarks>
+    /// The two schemas disagree about units as well as location: the current one writes
+    /// <c>FPlenumP=(99000)</c> in pascals, the older one <c>PlenumP=97.0</c> in
+    /// kilopascals. Callers must not assume a single unit until phase 4 establishes what
+    /// the solver expects.
+    /// </remarks>
+    public string EffectivePlenumPressure =>
+        GetValue("Inlet", "FPlenumP") ?? GetValue("InManifold", "PlenumP") ?? "99.0";
 }

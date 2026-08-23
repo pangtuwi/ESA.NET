@@ -1,5 +1,7 @@
 using App.Core;
+using App.Core.Expressions;
 using App.Persistence;
+using App.Persistence.Tables;
 using App.Ui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,7 +20,23 @@ public static class ServiceRegistration
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IEngineDefinitionStore, EngineDefinitionStore>();
+        services.AddSingleton<ISimulationSettingsStore, SimulationSettingsStore>();
+
+        services.AddSingleton<ICamProfileReader, CamProfileReader>();
+        services.AddSingleton<ISpeedKeyedTableReader, SpeedKeyedTableReader>();
+        services.AddSingleton<IWallTemperatureTableReader, WallTemperatureTableReader>();
+        services.AddSingleton<IExhaustBackPressureTableReader, ExhaustBackPressureTableReader>();
+        services.AddSingleton<IManifoldAreaTableStore, ManifoldAreaTableStore>();
+        services.AddSingleton<IDischargeCoefficientTableStore, DischargeCoefficientTableStore>();
+
+        services.AddSingleton<IEngineLoader, EngineLoader>();
+
+        // Shared so that a parsed expression is reused across the whole session.
+        services.AddSingleton<IExpressionEvaluator, CachingExpressionEvaluator>();
+        services.AddSingleton<GridSizeCalculator>();
+
         services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<EditEngineViewModel>();
 
         return services;
     }

@@ -1,3 +1,4 @@
+using App.Persistence;
 using App.Ui.ViewModels;
 using App.Ui.Views;
 using Avalonia.Controls;
@@ -13,7 +14,7 @@ public sealed class MenuStructureTests
 {
     private static Menu Menu()
     {
-        var window = new MainWindow { DataContext = new MainWindowViewModel() };
+        var window = new MainWindow { DataContext = TestServices.Resolve<MainWindowViewModel>() };
         return window.FindControl<Menu>("MainMenu")
                ?? throw new InvalidOperationException("The shell window has no menu.");
     }
@@ -24,6 +25,23 @@ public sealed class MenuStructureTests
         var topLevel = Menu().Items.OfType<MenuItem>().Select(item => item.Header as string).ToList();
 
         Assert.Equal(["_File", "_Run", "_Graph", "_Text", "_Help"], topLevel);
+    }
+
+    [AvaloniaFact]
+    public void EditWindowBuildsWithEveryTab()
+    {
+        var viewModel = TestServices.Resolve<EditEngineViewModel>();
+        viewModel.Load(new EngineDefinitionStore().Read(Path.Combine(TestPaths.Samples, "Default.eng")));
+
+        var window = new EditEngineWindow { DataContext = viewModel };
+        var tabs = window.FindControl<TabControl>("EditTabs")
+                   ?? throw new InvalidOperationException("The edit window has no tab control.");
+
+        var headers = tabs.Items.OfType<TabItem>().Select(t => t.Header as string).ToList();
+
+        Assert.Equal(
+            ["Cylinders", "Heat Trans", "Inlet", "Exhaust", "Cams", "Valves", "Fuel", "Model"],
+            headers);
     }
 
     [AvaloniaFact]

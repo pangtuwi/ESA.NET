@@ -19,9 +19,9 @@ public sealed class Valve
 
     public string ProfileFile { get; set; } = string.Empty;
 
-    public CamProfile Profile { get; } = new();
+    public CamProfile Profile { get; set; } = new();
 
-    public DischargeCoefficientTable CdForward { get; } = new();
+    public DischargeCoefficientTable CdForward { get; set; } = new();
 
-    public DischargeCoefficientTable CdReverse { get; } = new();
+    public DischargeCoefficientTable CdReverse { get; set; } = new();
 }

@@ -75,9 +75,9 @@ public sealed class Engine
 
     public Manifolds Manifold { get; } = new();
 
-    public WallTemperatureTable WallTemperature { get; } = new();
+    public WallTemperatureTable WallTemperature { get; set; } = new();
 
-    public SpeedKeyedTable SparkAngle { get; } = new();
+    public SpeedKeyedTable SparkAngle { get; set; } = new();
 
     /// <summary>Oil viscosity, Delphi <c>VOil</c>.</summary>
     public double OilViscosity { get; set; }

@@ -97,6 +97,40 @@ produced it.
   reproduces both captions; in Avalonia `MenuItem.InputGesture` is display-only,
   so nothing actually clashes yet. Resolve it when the commands get real
   behaviour.
+- **`^` is left-associative**, so `2^3^2` is 64 and not 512. AdCalc recurses only
+  while the next operator scores *strictly* higher, and `^` following `^` fails
+  that test (`ADCALC.PAS:2555-2620`). Almost every other language disagrees.
+  Unary minus binds looser still, so `-2^2` is `-4`. A sign is legal only at the
+  start of an expression or a bracket: `3*-2` is an error in the original and
+  here, which is why the shipped files write `3*(-2)`.
+- **`^` must not use `Math.Pow`.** Delphi's `Math.Power` routes integer exponents
+  through `IntPower`'s repeated squaring and only falls back to `Exp(y*Ln(x))` for
+  fractional ones. `DelphiMath.Power` reproduces that branching. The paths differ
+  in the last bits, and a grid size is the `Round` of an expression built from
+  `N^6` terms — close enough to a boundary to change an integer point count.
+- `Round` in Delphi is round-half-to-even, which .NET's `Math.Round` matches but a
+  cast or `Floor(x + 0.5)` would not.
+- **`.exh` columns are RPM, temperature, pressure** — temperature first. SPEC.md
+  section 3 has them the other way round and is wrong.
+- **The exhaust valve's Cd tables are crossed.** `ICEngine2Z.pas:998-1005` assigns
+  `EV.CdForward` from `CdEvOut` and `EV.CdReverse` from `CdEvIn`, because forward
+  flow through an exhaust valve is outward. The inlet valve is wired the obvious
+  way. Straightening this out would silently change the physics.
+- `TAManf.GetValue` returns **zero** past the end of the area table, not the last
+  area — a cliff, not a clamp. `TCdValve.GetValue` passes its y arguments in the
+  reverse order to its x ones. Both are reproduced verbatim in
+  `LegacyInterpolation`; the phase 4 reference runs were produced by them.
+- `Manifolds.pas:2739-2742` **ignores the `IVFFn` expression at or below 1000 rpm**,
+  substituting a hard-coded line. Not yet ported; it belongs with the solver.
+- No `.eng` file has ever stored fuel composition, so the Delphi form reset it to
+  C7H17 on every load even though the equilibrium model depends on it. The port
+  reads optional `[Fuel]` `C`/`H`/`O`/`N` keys, defaults to 7/17/0/0, and writes
+  them only when they change, so existing files stay byte-identical.
+- `Inlet.grd` and `Exhaust.grd` in `Example1` are **dead**: no Delphi source
+  references them. They hold Pascal fragments, not data.
+- Side-file paths in `.eng` files mix bare names, backslash-relative paths and
+  absolute paths to drives that no longer exist. `LegacyPathResolver` handles all
+  three; on Linux and macOS nothing resolves without it.
 
 ## Build and test
 
@@ -118,6 +152,9 @@ the app; `MenuStructureTests` also exercises the window through
 `EngRoundTripTests` is the gate that phase 2 was built around: every legacy
 `.eng` file must read and write back byte for byte identically. If it goes red,
 something in the persistence layer has started reformatting user data.
+`TableRoundTripTests` holds the same line for `.maf` and `.vcd`, and
+`EditEngineViewModelTests` for the editor's save path — opening an engine and
+pressing OK must not restyle a single byte.
 
 ## Phase plan
 
@@ -125,7 +162,7 @@ something in the persistence layer has started reformatting user data.
 |---|---|---|
 | 1 | Reverse-engineer the Delphi application into `SPEC.md` | **Complete** |
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | **Complete** |
-| 3 | Remaining file formats (`.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, `.exh`, `ESA.ini`), an expression evaluator to replace `TAdCalc`, and the engine Edit form | Not started |
+| 3 | Remaining file formats (`.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, `.exh`, `ESA.ini`), an expression evaluator to replace `TAdCalc`, and the engine Edit form | **Complete** |
 | 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against Example1 and Example2 | Not started |
 | 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | Not started |
 | 6 | Packaging and distribution | Not started |
@@ -143,4 +180,27 @@ something in the persistence layer has started reformatting user data.
 - `tests/App.Tests` — 31 tests including the byte-exact round trip over all 65
   legacy `.eng` files and the layering guard.
 
-No business logic and no ported forms: that is phase 3 onward.
+No business logic and no ported forms: that was phase 3 onward.
+
+### What phase 3 delivered
+
+- `src/App.Core/Expressions` — the `TAdCalc` replacement. A recursive-descent
+  parser over the dialect the data actually uses (literals, `N`, `L`,
+  `+ - * / ^`, brackets), `DelphiMath.Power`, a caching evaluator, and
+  `GridSizeCalculator` for the `NI`/`NE` limit checks.
+- `src/App.Core/Interpolation` — the legacy lookup behaviour, quirks intact.
+- `src/App.Persistence/Tables` — readers for `.cam`, `.spk`, `.cwt` and `.exh`,
+  and format-preserving stores for `.maf` and `.vcd`, the two the app writes back.
+- `src/App.Persistence` — `EngineLoader`, which assembles a whole `Engine` from a
+  `.eng` and its side files and reports what it could not find rather than
+  failing mid-run; `LegacyPathResolver`; and `SimulationSettingsStore` for
+  `ESA.ini`.
+- `src/App.Ui` — `EditEngineWindow`, the eight-tab engine editor, with live
+  capacity, per-field validation, and writes that touch only changed values.
+- `tests/App.Tests` — 106 tests. The ones that matter most: every expression in
+  every `.eng` file parses and evaluates; every `.maf` and `.vcd` round-trips
+  byte for byte; all 70 engine files load with every side file resolved; and
+  opening an engine in the editor and pressing OK leaves the file untouched.
+
+Still no simulation: the integrator, gas and equilibrium models and the manifold
+solver are phase 4.

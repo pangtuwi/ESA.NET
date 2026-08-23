@@ -1,0 +1,343 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:App.Ui.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="840" d:DesignHeight="580"
+        x:Class="App.Ui.Views.EditEngineWindow"
+        x:DataType="vm:EditEngineViewModel"
+        Title="{Binding Title}"
+        Width="840" Height="580"
+        MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterOwner">
+
+  <!--
+    Port of TFEdit (Edit.dfm). Same eight tabs, same fields, same captions and units as
+    the Delphi original; laid out with Avalonia panels rather than the original's
+    absolute pixel positions.
+
+    The unit captions are carried over verbatim because they are not obvious and
+    getting them wrong is silent: IVO is before top dead centre while IVC is after
+    bottom dead centre, and the exhaust pair is the other way round.
+  -->
+
+  <Window.Styles>
+    <Style Selector="TextBlock.label">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="Margin" Value="0,2" />
+    </Style>
+    <Style Selector="HeaderedContentControl">
+      <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+    <Style Selector="Grid.form">
+      <Setter Property="Margin" Value="12" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+
+    <Border DockPanel.Dock="Bottom" Padding="12" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Content="_Load" />
+        <Button Content="_Save" />
+        <Button Content="_OK" IsDefault="True"
+                Command="{Binding OkCommand}"
+                IsEnabled="{Binding CanSave}" />
+        <Button Content="Cancel" IsCancel="True" />
+      </StackPanel>
+    </Border>
+
+    <TextBlock DockPanel.Dock="Bottom"
+               Margin="12,0,12,0"
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+               IsVisible="{Binding UsesOlderSchema}"
+               Text="{Binding OlderSchemaNotes}" />
+
+    <TabControl x:Name="EditTabs">
+
+      <TabItem Header="Cylinders">
+        <Grid Classes="form" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+          <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Engine Name" />
+          <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding EngineName}" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="No Cylinders" />
+          <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CylinderCount}" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Bore" />
+          <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Bore}" />
+          <TextBlock Grid.Row="2" Grid.Column="2" Classes="label" Text="[mm]" />
+
+          <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Stroke" />
+          <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Stroke}" />
+          <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="[mm]" />
+
+          <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="Conrod Length" />
+          <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ConrodLength}" />
+          <TextBlock Grid.Row="4" Grid.Column="2" Classes="label" Text="[mm]" />
+
+          <TextBlock Grid.Row="5" Grid.Column="0" Classes="label" Text="Compr. Ratio" />
+          <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding CompressionRatio}" />
+          <TextBlock Grid.Row="5" Grid.Column="2" Classes="label" Text=": 1" />
+
+          <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="Capacity" />
+          <TextBlock Grid.Row="6" Grid.Column="1" Classes="label"
+                     Text="{Binding Capacity, StringFormat='{}{0:F1}'}" />
+          <TextBlock Grid.Row="6" Grid.Column="2" Classes="label" Text="[cc]" />
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Heat Trans">
+        <StackPanel Margin="12">
+          <HeaderedContentControl Header="Heat Transfer">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Surface Temperature Data File" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding WallTemperatureFile}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label"
+                         Text="Woshini's Equation Coefficient (usually 131) :" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding WoshiniCoefficient}" />
+            </Grid>
+          </HeaderedContentControl>
+
+          <HeaderedContentControl Header="Spark Angle">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Burn Angle:" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BurnAngle}" />
+              <TextBlock Grid.Row="0" Grid.Column="2" Classes="label" Text="[deg]" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Spark Angle File" />
+              <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding SparkAngleFile}" />
+            </Grid>
+          </HeaderedContentControl>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Inlet">
+        <StackPanel Margin="12">
+          <HeaderedContentControl Header="Data">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="A vs L File :" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding InletAreaFile}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Clean Air Sys Pressure [Pa] f(N)" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PlenumPressureFunction}" />
+            </Grid>
+          </HeaderedContentControl>
+
+          <HeaderedContentControl Header="CFD Model">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Grid Function (L, N)" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding InletGridFunction}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="IV Reverse Threshold Vel : f(N)" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding InletValveReverseFunction}" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="IV Forward Threshold Vel : f(N)" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding InletValveForwardFunction}" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="IV Switch Threshold Vel : f(N)" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding InletValveForwardReverseFunction}" />
+            </Grid>
+          </HeaderedContentControl>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Exhaust">
+        <StackPanel Margin="12">
+          <HeaderedContentControl Header="Data">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="A vs L File :" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ExhaustAreaFile}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Exh Back Pres and Temp File" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ExhaustBackPressureFile}" />
+            </Grid>
+          </HeaderedContentControl>
+
+          <HeaderedContentControl Header="CFD Model">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Grid Function (L,N)" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ExhaustGridFunction}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="EV Reverse Threshold Vel : f(N)" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ExhaustValveReverseFunction}" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="EV Forward Threshold Vel : f(N)" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ExhaustValveForwardFunction}" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="EV Switch Threshold Vel : f(N)" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExhaustValveForwardReverseFunction}" />
+            </Grid>
+          </HeaderedContentControl>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Cams">
+        <StackPanel Margin="12">
+          <HeaderedContentControl Header="Inlet Valve Cam">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Profile" />
+              <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding InletValveProfileFile}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="IVO" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding InletValveOpen}" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Classes="label" Text="[°BTDC]" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="IVC" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding InletValveClose}" />
+              <TextBlock Grid.Row="2" Grid.Column="2" Classes="label" Text="[°ABDC]" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Total Valve Lift" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding InletValveLift}" />
+              <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="[mm]" />
+            </Grid>
+          </HeaderedContentControl>
+
+          <HeaderedContentControl Header="Exhaust Valve Cam">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Profile" />
+              <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding ExhaustValveProfileFile}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="EVO" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ExhaustValveOpen}" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Classes="label" Text="[°BBDC]" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="EVC" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ExhaustValveClose}" />
+              <TextBlock Grid.Row="2" Grid.Column="2" Classes="label" Text="[°ATDC]" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Total Valve Lift" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExhaustValveLift}" />
+              <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="[mm]" />
+            </Grid>
+          </HeaderedContentControl>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Valves">
+        <StackPanel Margin="12">
+          <HeaderedContentControl Header="Inlet">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="No Valves" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding InletValveCount}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Diam" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding InletValveDiameter}" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Classes="label" Text="[mm]" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Forward Flow Cd" />
+              <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding InletValveCdInwardFile}" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Reverse Flow Cd" />
+              <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding InletValveCdOutwardFile}" />
+            </Grid>
+          </HeaderedContentControl>
+
+          <HeaderedContentControl Header="Exhaust">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="No Valves" />
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ExhaustValveCount}" />
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Diam" />
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ExhaustValveDiameter}" />
+              <TextBlock Grid.Row="1" Grid.Column="2" Classes="label" Text="[mm]" />
+
+              <!-- Forward flow through an exhaust valve is outward, so the outward
+                   table is the forward one. ICEngine2Z.pas crosses these deliberately. -->
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Forward Flow Cd" />
+              <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding ExhaustValveCdOutwardFile}" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Reverse Flow Cd" />
+              <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding ExhaustValveCdInwardFile}" />
+            </Grid>
+          </HeaderedContentControl>
+        </StackPanel>
+      </TabItem>
+
+      <TabItem Header="Fuel">
+        <ScrollViewer>
+          <StackPanel Margin="12">
+            <HeaderedContentControl Header="Fueling">
+              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Stoich A/F Ratio" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AirFuelRatio}" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Classes="label" Text="[:1]" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Fuel Energy" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FuelCalorificValue}" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Classes="label" Text="[MJ/kg]" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Fuel Temp" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FuelTemperature}" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Classes="label" Text="[°C]" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Lambda" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Lambda}" />
+              </Grid>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Header="Fuel Composition">
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
+                <TextBlock Classes="label" Text="C" />
+                <TextBox Width="60" Text="{Binding FuelCarbon}" />
+                <TextBlock Classes="label" Text="H" />
+                <TextBox Width="60" Text="{Binding FuelHydrogen}" />
+                <TextBlock Classes="label" Text="N" />
+                <TextBox Width="60" Text="{Binding FuelNitrogen}" />
+                <TextBlock Classes="label" Text="O" />
+                <TextBox Width="60" Text="{Binding FuelOxygen}" />
+              </StackPanel>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Header="Atmospheric Conditions">
+              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Temperature" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding AtmosphericTemperature}" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Classes="label" Text="[°C]" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Pressure" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding AtmosphericPressure}" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Classes="label" Text="[kPa]" />
+              </Grid>
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Header="Oil Viscosity">
+              <TextBox Width="120" HorizontalAlignment="Left" Margin="0,4"
+                       Text="{Binding OilViscosity}" />
+            </HeaderedContentControl>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Model">
+        <StackPanel Margin="12">
+          <HeaderedContentControl Header="Save Data">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto" Margin="0,4">
+              <TextBlock Grid.Column="0" Classes="label" Text="Performance Data File:" />
+              <TextBox Grid.Column="1" Text="{Binding PerformanceDataFile}" />
+            </Grid>
+          </HeaderedContentControl>
+
+          <HeaderedContentControl Header="Integrator">
+            <StackPanel Margin="0,4">
+              <RadioButton GroupName="Integrator" Content="RKF5" IsChecked="{Binding IsRkf5}" />
+              <RadioButton GroupName="Integrator" Content="Euler" IsChecked="{Binding IsEuler}" />
+            </StackPanel>
+          </HeaderedContentControl>
+
+          <HeaderedContentControl Header="Combustion Model">
+            <StackPanel Margin="0,4">
+              <CheckBox Content="Variable Gamma" IsChecked="{Binding VariableGamma}" />
+              <CheckBox Content="Save Manifold Data" IsChecked="{Binding SaveManifoldData}" />
+            </StackPanel>
+          </HeaderedContentControl>
+        </StackPanel>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+</Window>

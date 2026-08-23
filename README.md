@@ -20,16 +20,18 @@ exhaust back pressure (`.exh`).
 
 ## Project status
 
-**Phase 2 of 6 — the project skeleton.** The solution builds, runs and tests, and
-it reads legacy engine files without altering them. There is **no simulation yet**:
-the shell window is empty apart from its menu, and every menu command is a
-deliberate no-op. See the phase plan in [CLAUDE.md](CLAUDE.md).
+**Phase 3 of 6 — file formats and the engine editor.** The solution builds, runs
+and tests. It reads a complete engine — the `.eng` file, all six side-file
+formats, and the expressions embedded in the engine definition — and it edits one
+through an eight-tab form without reformatting a byte the user did not change.
+There is **no simulation yet**: the Run and Graph menus remain no-ops. See the
+phase plan in [CLAUDE.md](CLAUDE.md).
 
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Reverse-engineer the Delphi application into `SPEC.md` | Complete |
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | Complete |
-| 3 | Remaining file formats, an expression evaluator to replace `TAdCalc`, the engine Edit form | Not started |
+| 3 | Remaining file formats, an expression evaluator to replace `TAdCalc`, the engine Edit form | Complete |
 | 4 | Simulation core, validated against the two reference engines | Not started |
 | 5 | Charts, the multi-run grid, PVT and manifold text exports | Not started |
 | 6 | Packaging and distribution | Not started |
@@ -72,7 +74,7 @@ cd ESA.NET
 
 ```powershell
 dotnet build ESA.NET.slnx -c Release    # expect 0 warnings, 0 errors
-dotnet test  ESA.NET.slnx               # expect 31 passed
+dotnet test  ESA.NET.slnx               # expect 106 passed
 dotnet run   --project src\App.Ui       # opens the shell window
 ```
 
@@ -132,7 +134,7 @@ hit a difference and want a known-good reference point.
 | Platform | Toolchain | Exercised |
 |---|---|---|
 | Windows 10 | VS Code with the C# Dev Kit, .NET SDK 10.0.400 | Build and run |
-| Ubuntu 24.04 | .NET SDK 10.0.111, command line | Release build (0 warnings), 31 tests, run under Xvfb |
+| Ubuntu 24.04 | .NET SDK 10.0.111, command line | Release build (0 warnings), 106 tests, run under Xvfb |
 
 Not yet exercised anywhere: the `dotnet publish` step, and opening `ESA.NET.slnx`
 in Visual Studio or Rider.
@@ -159,10 +161,20 @@ The layering table above is enforced, not merely documented:
 
 ## Tests
 
-`dotnet test ESA.NET.slnx` runs 31 tests. The one that matters most is
-`EngRoundTripTests`: every legacy `.eng` file must read and write back **byte for
-byte identically**, across all 65 files in `legacy/`. If that goes red, something
-in the persistence layer has started reformatting user data.
+`dotnet test ESA.NET.slnx` runs 106 tests. The ones that matter most guard user
+data and the ported semantics:
+
+- `EngRoundTripTests`, `TableRoundTripTests`, `EditEngineViewModelTests` — every
+  legacy `.eng`, `.maf` and `.vcd` file must read and write back **byte for byte
+  identically**, and opening an engine in the editor and pressing OK must not
+  restyle a single byte. If any goes red, something has started reformatting
+  user data.
+- `ExpressionCorpusTests` — every expression in every shipped `.eng` file must
+  parse and evaluate.
+- `ExpressionEvaluatorTests` — pins the AdCalc semantics recovered from the
+  Delphi source, notably that `^` is left-associative.
+- `LayeringTests` — `App.Core` and `App.Persistence` must never reference a UI
+  framework.
 
 ## Credits
 
@@ -173,4 +185,5 @@ the author credited as "Arthur" in `legacy/ESA/Eqbm.pas`. The Delphi source in
 
 `legacy/ESA/Components/adcalc41_paid/` contains the third-party AdCalc expression
 evaluator under its own licence; see `LICENSE.TXT` in that directory. It is
-reference material only — phase 3 replaces it with a native implementation.
+reference material only: phase 3 replaced it with a native implementation in
+`src/App.Core/Expressions`, and no AdCalc code is compiled into this port.

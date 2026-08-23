@@ -4,7 +4,7 @@ namespace App.Core.Model;
 public sealed class Pipe
 {
     /// <summary>Area versus length, <c>AvsL</c>.</summary>
-    public ManifoldAreaTable AreaVersusLength { get; } = new();
+    public ManifoldAreaTable AreaVersusLength { get; set; } = new();
 
     /// <summary>Length of the inserted section, <c>InsertL</c>.</summary>
     public double InsertLength { get; set; }
