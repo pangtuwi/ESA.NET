@@ -36,27 +36,42 @@ edits. That is verified — the engine loads with **zero** unresolved files.
 
 ## The run
 
-From `Screen_Capture_Results.JPG`:
+Requested, from the Single Speed Simulation dialog in `A2China_Simulation.JPG`:
 
-| Setting | Value |
+| Input | Value |
+|---|---|
+| Engine speed | 4000 rpm |
+| Total cycles | **6** |
+| Mass balance tolerance | **1 mg** |
+| Graphs | on (gas flow, P-V, in-cylinder) |
+
+Achieved, from `Screen_Capture_Results.JPG`:
+
+| Outcome | Value |
 |---|---|
 | Engine | A2 China Jetta 1.6L 5V Baseline |
-| Speed | 4000 rpm |
 | Cycles | 4 / 4 |
-| Mass balance achieved | 0.3 mg |
+| Mass balance | 0.3 mg |
 | Combustion model | 2 zone |
 | Integrator | Runge-Kutta-Fehlberg (`Integrator=0`) |
 | Variable gamma | on |
 | Save manifold data | off |
 | Run time | 5 s |
 
-**On the cycle count.** The screen reads `4 / 4`, and the achieved mass balance
-of 0.3 mg is below the 0.5 mg tolerance in the shipped `ESA.ini`. The convergence
-rule in `TEngine2z.Run` sets `NoCycles := i` when the balance is met, so a run
-that converged on cycle 4 of a longer request would display exactly this. Whether
-4 cycles were requested or 4 were reached by convergence is therefore ambiguous
-from the screenshot alone. **Confirm with the repository owner before treating
-the cycle count as an input rather than an outcome.**
+**The run converged; it did not run to completion.** Six cycles were requested at
+a 1 mg tolerance, and the mass balance reached 0.3 mg on cycle 4. `TEngine2z.Run`
+sets `NoCycles := i` when the balance is met, and `TFMain.Simulate` renders the
+caption as `i + ' / ' + NoCycles`, so both halves become 4. That is why the screen
+reads `4 / 4` for a six-cycle request.
+
+This matters for phase 4 in two ways. The cycle count is an **outcome, not an
+input**: a correct port must also converge on cycle 4 at this tolerance, which is
+itself a testable behaviour. And the tolerance to use is **1 mg**, not the 0.5 mg
+in the shipped `legacy/ESA/ESA.ini` — the machine that produced this run had a
+different `ESA.ini`.
+
+Note also `if NoCycles < 3 then NoCycles := 3` in `TFMain.Simulate`: three cycles
+is a floor applied silently, matching SPEC.md section 5.
 
 ## Expected results
 
@@ -86,10 +101,41 @@ Energy balance, as percentages of fuel energy:
 | Exhaust | 39.1 % |
 | Fuel | 100 % |
 
-Note that IMEP − FMEP = 14.291 − 2.762 = 11.529, which is *not* BMEP. The
-identity that holds is BMEP = IMEP − PMEP − FMEP. This is worth checking against
-`TEngine2z.Performance`, where `FMEP := TFMEP - PMEP` makes PMEP cancel
-algebraically; the reported FMEP is the intermediate, not `TFMEP`.
+### Every one of those numbers derives from the trace
+
+The trace and the results screen form a closed chain. Each link can be checked
+independently, so a phase 4 failure can be localised without running the physics
+end to end.
+
+Start from the geometry the trace itself carries: `Vcyl` runs 48.64 to 447.48 cc,
+so the swept volume is **Vd = 398.84 cc per cylinder**.
+
+The accumulators `WWork`, `PWork` and `htLoss` all reset to zero at **CA −100**,
+which is inlet valve closing (IVC = 80 °ABDC, so −180 + 80). The cycle-complete
+values are therefore the ones at **CA −101**, immediately before that reset — not
+the ones on the trace's last row. Sampling the wrong point is an easy mistake and
+makes PMEP appear to be out by a factor of four.
+
+| Step | From | Value | Screen |
+|---|---|---|---|
+| IMEP | `WWork(−101)` 570.0 J ÷ Vd | 14.291 bar | 14.291 |
+| PMEP | `PWork(−101)` −15.615 J ÷ Vd | −0.392 bar | −0.392 |
+| TFMEP | `1e5(0.97 + 0.15N/1000 + 0.05(N/1000)²)` at 4000 | 2.370 bar | not shown |
+| FMEP | TFMEP − PMEP | 2.762 bar | 2.762 |
+| BMEP | IMEP − PMEP − FMEP | 11.921 bar | 11.921 |
+| Torque | BMEP × Vd × NCyl ÷ 4π | 151.3 Nm | 151.3 |
+| Power | Torque × N × 2π ÷ 60 | 63.4 kW | 63.4 |
+
+All seven reproduce the displayed values exactly. `IMEP × Vd` recovers `WWork` to
+three parts in a million, which independently confirms both the swept volume and
+the trace's volume scaling.
+
+Note that IMEP − FMEP = 11.529 bar, which is *not* BMEP. The identity that holds
+is BMEP = IMEP − PMEP − FMEP. Algebraically that collapses to IMEP − TFMEP,
+because `FMEP := TFMEP - PMEP` in `TEngine2z.Performance` makes PMEP cancel; the
+reported FMEP is that intermediate, not the raw friction correlation. Both
+readings give 11.921 bar here, so the odd-looking formula is confirmed rather
+than merely tolerated.
 
 ## Files
 
@@ -116,14 +162,54 @@ algebraically; the reported FMEP is the intermediate, not `TFMEP`.
 
 ### Screenshots
 
-`A2China_Cylinders.JPG`, `A2China_HeatTrans.JPG`, `A2China_Inlet.JPG`,
-`A2China_Exhaust.JPG`, `A2China_Cams.JPG`, `A2China_Valves.JPG`,
-`A2China_Fuel.JPG`, `A2China_Model.JPG` — the eight Edit Engine Data tabs after
-loading `A2China.eng`.
+**Settings.** `A2China_Cylinders.JPG`, `A2China_HeatTrans.JPG`,
+`A2China_Inlet.JPG`, `A2China_Exhaust.JPG`, `A2China_Cams.JPG`,
+`A2China_Valves.JPG`, `A2China_Fuel.JPG`, `A2China_Model.JPG` — the eight Edit
+Engine Data tabs after loading `A2China.eng`.
 
-`Screen_Capture_Results.JPG` — the main window after the run, showing the result
-panel, the P-V diagram, the gas-flow pressure traces and the in-cylinder
+**The run.** `A2China_Simulation.JPG` — the Single Speed Simulation dialog,
+carrying the requested speed, cycle count and mass balance tolerance.
+
+**Results.** `Screen_Capture_Results.JPG` — the main window after the run: the
+result panel, the P-V diagram, the gas-flow pressure traces and the in-cylinder
 properties chart.
+
+`Screen_Capture_Results_GasVel.JPG` — the same window with the gas-flow panel
+switched to velocities. **The panel title changes but the plot does not**: the
+y-axis still reads Pressure [bar] and the three curves are identical to the
+pressure capture. The mode is read when the display refreshes, and the refresh
+timer has stopped by the time the run ends, so this capture carries no velocity
+data. It is kept as a record of the behaviour, not as reference data. The two
+captures do usefully confirm that the aggregate results are stable across a
+redraw — every displayed number is identical.
+
+**Additional charts**, both reached from the Graph menu after a run:
+
+`Energy_Balance.JPG` — heat loss, work done and pump work against crank angle
+over −360 to 360. The visible discontinuity at −100° is the accumulator reset at
+IVC, and the plateaus agree with the trace: work done settles near 570 J and heat
+loss near −382 J, matching `WWork` and `htLoss`.
+
+`Valve_Profile.JPG` — inlet and exhaust valve lift against crank angle. This is
+the clearest confirmation of how cam data is assembled: the `.cam` files hold a
+shape normalised to 0–1 on both axes, and the chart shows it scaled to the
+`IVLift` 8.62 mm and `EVLift` 10.4 mm peaks and positioned by the timing angles.
+Exhaust spans −244° to +37° (EVO 64 °BBDC to EVC 37 °ATDC, 281° duration), inlet
+spans −19° to +260° (IVO 19 °BTDC to IVC 80 °ABDC, 279° duration), overlapping
+for 56° around gas-exchange TDC.
+
+### Crank angle origins differ between charts
+
+Worth knowing before comparing anything against a chart:
+
+| View | Zero is | Range |
+|---|---|---|
+| `A2China.txt`, in-cylinder, energy balance | firing TDC | −359 … 360 |
+| Valve lift profile | gas-exchange TDC | −360 … 360 |
+| Gas flow | firing TDC | 0 … 720 |
+
+The trace and the energy balance agree: peak cylinder pressure sits at +14° and
+peak burnt temperature at −7°, both around firing TDC.
 
 ## `A2China.txt` format
 
@@ -185,22 +271,57 @@ Two further cross-checks against the charts: peak cylinder pressure in the trace
 is 70.1 bar at 14° ATDC, and the P-V diagram peaks just over 70 bar; peak burnt
 temperature is 3015 K, and the in-cylinder chart tops out near 3000 K.
 
+The valve lift chart adds two more: the cam timing angles place the profiles
+exactly where the conventions say they should, and the normalised `.cam` shape is
+scaled by `IVLift` / `EVLift`, which is how phase 3 read those files.
+
 **A duration field the port does not have.** The Cams tab shows a read-only
 Duration per cam — 279 °CA inlet, 281 °CA exhaust — computed as
 `Open + 180 + Close`. Worth adding to the Edit form.
+
+## Getting the manifold traces
+
+The current baseline was run with manifold output off, so there are no in-pipe
+pressure or velocity traces. The CFD solver is the largest and least observable
+part of phase 4, and having them would be worth a lot.
+
+The switch is on the **Model tab** of the Edit Engine Data window: the *Save Data*
+group, checkbox **Save Manifold Data**. It is visible, unticked, in
+`A2China_Model.JPG`. Ticking it and pressing OK sets `[Calculation] SaveManfData`
+in the `.eng` and `Engine2z.SaveManfData` for the run, after which the nine files
+listed in SPEC.md section 3 — `Inlet.txt`, `Exhaust.txt`, `Pcyl.txt`, `Tcyl.txt`,
+`MassFlow.txt`, `InlPress.m`, `InlVel.m`, `ExhPress.m`, `ExhVel.m` — are written
+**on the final cycle only**, into the application's working directory rather than
+next to the engine file.
+
+Two traps if this is attempted:
+
+- `TFMain.Simulate` reads `FEdit.CBSaveManfData.Checked`, the Edit form's
+  checkbox, not the engine's field. The Edit window has to have been opened at
+  least once in that session for the checkbox to reflect the loaded engine.
+- The same line only ever assigns `TRUE`. Once set in a session the flag latches
+  until the application restarts, so unticking the box does not turn output back
+  off.
 
 ## Using this in phase 4
 
 1. Load `data/baseline/A2China.eng`. It must resolve all ten side files with no
    problems reported.
-2. Run at 4000 rpm, two-zone, RKF5, variable gamma, to a mass balance of 0.5 mg,
-   having first settled the cycle-count question above.
-3. Compare per crank angle against `A2China.txt`, remembering the scale factors.
+2. Run at 4000 rpm, two-zone, RKF5, variable gamma, requesting **6 cycles** at a
+   **1 mg** mass balance tolerance. Convergence on cycle 4 at about 0.3 mg is
+   itself part of the expected result.
+3. Work up the derivation chain before comparing anything else. Vd from the
+   volume column, then `WWork` and `PWork` at CA −101, then IMEP, PMEP, TFMEP,
+   FMEP, BMEP, torque and power. Each link is checkable on its own, so the first
+   one that misses localises the fault.
+4. Compare per crank angle against `A2China.txt`, remembering the scale factors.
    A per-angle trace localises a fault far better than an end-of-run aggregate:
    a pressure trace that diverges at inlet valve closing points somewhere quite
-   different from one that diverges during combustion.
-4. Compare the aggregates against the expected results table.
-5. Agree the tolerances before treating any of this as a pass/fail gate. A
+   different from one that diverges during combustion. Useful landmarks are the
+   accumulator reset at −100°, peak pressure 70.1 bar at +14°, and peak burnt
+   temperature 3015 K at −7°.
+5. Compare the aggregates against the expected results table.
+6. Agree the tolerances before treating any of this as a pass/fail gate. A
    per-crank-angle pressure and an end-of-run SFC do not deserve the same number,
    and the 80-bit `Extended` to `double` narrowing in the equilibrium model
    (CLAUDE.md) makes some divergence expected rather than a defect.

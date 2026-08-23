@@ -167,6 +167,125 @@ public sealed class BaselineDataTests
         Assert.InRange(exhaustPoints, 1, App.Core.EsaLimits.ExhaustGridPoints);
     }
 
+    /// <summary>
+    /// The chain from the trace to every headline number on the results screen, as
+    /// tabulated in BASELINE.md. Each link is checkable on its own, so when phase 4
+    /// starts producing numbers the first failing row localises the fault.
+    /// </summary>
+    [Fact]
+    public void TheReportedPerformanceDerivesFromTheTrace()
+    {
+        RequireBaseline();
+
+        var (header, rows) = ReadTrace();
+
+        double Field(string row, string column) => double.Parse(
+            row.Split(',')[header.IndexOf(column)], CultureInfo.InvariantCulture);
+
+        var volumes = rows.Select(r => Field(r, "Vcyl")).ToList();
+
+        // Swept volume per cylinder, in cubic metres. Vcyl is written in cc.
+        var sweptVolume = (volumes.Max() - volumes.Min()) / 1e6;
+        Assert.Equal(398.84e-6, sweptVolume, 8);
+
+        // The accumulators reset at inlet valve closing, so the cycle-complete
+        // values are the ones immediately before it, not those on the last row.
+        var crankAngles = rows.Select(r => Field(r, "CA")).ToList();
+        var beforeReset = crankAngles.IndexOf(-101);
+        Assert.True(beforeReset >= 0, "The trace should contain crank angle -101.");
+
+        var work = Field(rows[beforeReset], "WWork");
+        var pumpWork = Field(rows[beforeReset], "PWork");
+
+        // Sanity: the row after really is the reset. The accumulator is zeroed and
+        // then immediately accrues that step's own contribution, so it lands near
+        // zero rather than exactly on it.
+        Assert.Equal(-100, Field(rows[beforeReset + 1], "CA"));
+        Assert.True(
+            Math.Abs(Field(rows[beforeReset + 1], "WWork")) < 1,
+            $"Expected WWork to reset at -100, found {Field(rows[beforeReset + 1], "WWork")}.");
+
+        const double Rpm = 4000;
+        const int Cylinders = 4;
+
+        var imep = work / sweptVolume;
+        var pmep = pumpWork / sweptVolume;
+        var totalFmep = 1.0e5 * (0.97 + (0.15 * Rpm / 1000) + (0.05 * Math.Pow(Rpm / 1000, 2)));
+        var fmep = totalFmep - pmep;
+        var bmep = imep - pmep - fmep;
+        var torque = bmep * sweptVolume * Cylinders / (2 * 2 * Math.PI);
+        var power = torque * Rpm * 2 * Math.PI / 60;
+
+        // Against the results screen, at its displayed precision.
+        Assert.Equal(14.291, imep / 1e5, 3);
+        Assert.Equal(-0.392, pmep / 1e5, 3);
+        Assert.Equal(2.370, totalFmep / 1e5, 3);
+        Assert.Equal(2.762, fmep / 1e5, 3);
+        Assert.Equal(11.921, bmep / 1e5, 3);
+        Assert.Equal(151.3, torque, 1);
+        Assert.Equal(63.4, power / 1000, 1);
+
+        // IMEP - FMEP is not BMEP; the PMEP term genuinely participates.
+        Assert.NotEqual(bmep / 1e5, (imep - fmep) / 1e5, 1);
+    }
+
+    [Fact]
+    public void TraceLandmarksMatchTheChartsAndTheValveTiming()
+    {
+        RequireBaseline();
+
+        var (header, rows) = ReadTrace();
+
+        double Field(string row, string column) => double.Parse(
+            row.Split(',')[header.IndexOf(column)], CultureInfo.InvariantCulture);
+
+        var crankAngles = rows.Select(r => Field(r, "CA")).ToList();
+        var pressures = rows.Select(r => Field(r, "PCyl")).ToList();
+        var burntTemperatures = rows.Select(r => Field(r, "Tb")).ToList();
+
+        // Peak pressure just after firing TDC; the P-V diagram peaks a little over
+        // 70 bar and the in-cylinder chart tops out near 3000 K.
+        var peakPressure = pressures.Max();
+        Assert.Equal(70.1, peakPressure / 1e5, 1);
+        Assert.Equal(14, crankAngles[pressures.IndexOf(peakPressure)]);
+
+        var peakTemperature = burntTemperatures.Max();
+        Assert.Equal(3015, peakTemperature, 0);
+        Assert.Equal(-7, crankAngles[burntTemperatures.IndexOf(peakTemperature)]);
+
+        // The accumulator reset sits at inlet valve closing: IVC is 80 degrees after
+        // bottom dead centre, and the trace counts from firing TDC, so -180 + 80.
+        var engine = CreateLoader().Load(File("A2China.eng")).Engine;
+        var expectedReset = -180 + engine.Manifold.InletValve.CloseAngle;
+        Assert.Equal(-100, expectedReset);
+
+        // At the reset each accumulator drops to zero and then picks up that step's
+        // own contribution, so it lands near zero rather than exactly on it.
+        var resetRow = crankAngles.IndexOf(expectedReset);
+
+        foreach (var accumulator in (string[])["WWork", "PWork", "htLoss"])
+        {
+            var atReset = Field(rows[resetRow], accumulator);
+            var before = Field(rows[resetRow - 1], accumulator);
+
+            Assert.True(
+                Math.Abs(atReset) < 1,
+                $"Expected {accumulator} to reset at {expectedReset}, found {atReset}.");
+            Assert.True(
+                Math.Abs(before) > 10,
+                $"Expected {accumulator} to have accumulated before the reset, found {before}.");
+        }
+    }
+
+    private static (List<string> Header, List<string> Rows) ReadTrace()
+    {
+        var lines = System.IO.File.ReadAllLines(File("A2China.txt"))
+            .Where(l => l.Trim().Length > 0)
+            .ToList();
+
+        return (lines[0].Split(',').Select(h => h.Trim()).ToList(), lines.Skip(1).ToList());
+    }
+
     [Fact]
     public void TheReferenceTraceHasTheShapeBaselineMdDescribes()
     {

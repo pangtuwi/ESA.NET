@@ -33,12 +33,26 @@ to tell a porting mistake from a floating-point difference.
 **The reference run now exists.** `data/baseline/` holds a complete,
 deliberately captured run of the original Delphi application: the
 `A2China.eng` engine, all ten side files it needs, screenshots of all
-eight settings tabs, the results screen, and `A2China.txt` — a full-cycle
-720-row PVT trace. **BASELINE.md documents the whole set**: provenance,
-the run settings, the aggregate results to hit, the trace format and its
-per-column display scale factors, and the one open question about the
-cycle count. Read it before planning anything, and use it as the primary
-acceptance target.
+eight settings tabs, the simulation dialog, the results screen, two extra
+result charts, and `A2China.txt` — a full-cycle 720-row PVT trace.
+**BASELINE.md documents the whole set** and is the primary acceptance
+target. Read it before planning anything.
+
+Three things in it will save you real time:
+
+  - **The derivation chain is closed.** Every headline number — IMEP,
+    PMEP, FMEP, BMEP, torque, power — is reproduced from the trace alone
+    in BASELINE.md, each step checkable on its own. When your solver
+    starts producing numbers, the first link that misses tells you where
+    the fault is without bisecting the physics. `BaselineDataTests`
+    already pins that chain against the reference data.
+  - **The accumulators reset at inlet valve closing**, CA −100 for this
+    engine. The cycle-complete `WWork`, `PWork` and `htLoss` are the
+    values just before that, not the ones on the trace's last row.
+    Sampling the wrong point makes PMEP look wrong by a factor of four.
+  - **The run converged rather than completing.** Six cycles were
+    requested at 1 mg; it met 0.3 mg on cycle 4. Converging on cycle 4 is
+    part of the expected result, not an incidental detail.
 
 The baseline already loads through the phase 3 code with zero unresolved
 files, despite every path in it being a dead `C:\CAEEng\...` absolute
@@ -100,6 +114,8 @@ SaveManfData off, so there are no manifold pressure or velocity traces.
 The CFD solver is the largest and least observable part of phase 4, and a
 run with that box ticked would give you a per-crank-angle view inside the
 pipes. Ask for it before you start the solver, not after it misbehaves.
+BASELINE.md has the section "Getting the manifold traces", covering where
+the switch is and the two ways it can appear not to work.
 
 Decide and tell me the tolerance policy: which quantities are compared,
 at what relative tolerance, and why. A per-crank-angle pressure trace and
