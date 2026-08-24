@@ -59,16 +59,33 @@ Achieved, from `Screen_Capture_Results.JPG`:
 | Run time | 5 s |
 
 **The run converged; it did not run to completion.** Six cycles were requested at
-a 1 mg tolerance, and the mass balance reached 0.3 mg on cycle 4. `TEngine2z.Run`
-sets `NoCycles := i` when the balance is met, and `TFMain.Simulate` renders the
+a 1 mg tolerance, and the mass balance reached 0.3 mg at the start of cycle 4.
+`TFMain.Simulate` sets `NoCycles := i` when the balance is met and renders the
 caption as `i + ' / ' + NoCycles`, so both halves become 4. That is why the screen
 reads `4 / 4` for a six-cycle request.
 
+**Only three cycles were actually simulated.** The convergence test sits at the
+top of the `for i := 1 to NoCycles` body, *before* the `repeat` that runs the
+cycle, and exits the procedure outright:
+
+```pascal
+for i := 1 to NoCycles do
+begin
+  ...
+  if abs(TotalMInIV-TotalMOutEV)*1e6 < MassBalance then
+    begin NoCycles := i; Running := FALSE; ShowResults; Exit; end;
+  CA := Manifold.IV.C;
+  repeat  { the cycle itself }
+```
+
+So exiting at `i = 4` means cycles 1 to 3 ran and cycle 4 never did. `A2China.txt`
+and the reported aggregates are the state after **three** simulated cycles.
+
 This matters for phase 4 in two ways. The cycle count is an **outcome, not an
-input**: a correct port must also converge on cycle 4 at this tolerance, which is
-itself a testable behaviour. And the tolerance to use is **1 mg**, not the 0.5 mg
-in the shipped `legacy/ESA/ESA.ini` — the machine that produced this run had a
-different `ESA.ini`.
+input**: a correct port must also meet the tolerance at the top of cycle 4, which
+is itself a testable behaviour. And the tolerance to use is **1 mg**, not the
+0.5 mg in the shipped `legacy/ESA/ESA.ini` — the machine that produced this run
+had a different `ESA.ini`.
 
 Note also `if NoCycles < 3 then NoCycles := 3` in `TFMain.Simulate`: three cycles
 is a floor applied silently, matching SPEC.md section 5.
@@ -349,32 +366,66 @@ listed in SPEC.md section 3 — `Inlet.txt`, `Exhaust.txt`, `Pcyl.txt`, `Tcyl.tx
 **on the final cycle only**, into the application's working directory rather than
 next to the engine file.
 
-Three traps if this is attempted:
+### Ticking the box is not enough
 
-- **The files are written to the working directory, not next to the engine.**
+The write is gated by `Manifolds.pas:3022`:
+
+```pascal
+if (CA = 359) and (tStep = NoCycles-1) and (DataWrite = TRUE) then
+```
+
+`DataWrite` is a copy of the `SaveManifoldData` parameter, so the checkbox only
+satisfies the third condition. The other two are the problem:
+
+- `NoCycles` here is `Engine2z.NCycles`, set once from the **requested** cycle
+  count at `Main.pas:895` and never updated afterwards. Converging does not
+  change it: `TFMain.Simulate` assigns its own local `NoCycles := i`, which drives
+  the caption, while `Engine2z.NCycles` keeps the requested value.
+- `tStep` starts at zero in `InitVars` and increments once per simulated cycle at
+  `CA = IV.C + 360`. During cycle *k* it holds *k−1* when `CA` passes 359.
+
+So the gate resolves to *k = NoCycles*: the files are created during the **final
+requested cycle**, and only then. A run that converges early exits before ever
+reaching it. The baseline run requested six, simulated three, and left `tStep` at
+3 while the gate wanted 5 — which is why no files appeared however the checkbox
+was set.
+
+**To get the files, stop the run converging.** In the Single Speed Simulation
+dialog set **Mass Balance to 0**: `abs(...) * 1e6 < 0` can never be true, so the
+loop runs every requested cycle and the files are written during the last one.
+Six cycles at a 0 mg tolerance reproduces the baseline's request while forcing it
+to completion.
+
+Two smaller traps once that is fixed:
+
+- **The files land in the working directory, not next to the engine.**
   `Manifolds.pas:3024-3041` opens them with bare relative names —
-  `AssignFile(OutI, 'Inlet.txt')` and so on — so they land wherever the process
-  was started from. That is the same place `SimulDat.txt` appears, since
-  `PerfDataSave` is a bare name too, so look for them beside that file rather
-  than beside the `.eng`.
+  `AssignFile(OutI, 'Inlet.txt')` — so they appear wherever the process was
+  started from. That is the same place `SimulDat.txt` appears, since
+  `PerfDataSave` is a bare name too.
 - `TFMain.Simulate` reads `FEdit.CBSaveManfData.Checked`, the Edit form's
-  checkbox, not the engine's field. The Edit window has to have been opened at
-  least once in that session for the checkbox to reflect the loaded engine.
-- The same line only ever assigns `TRUE`. Once set in a session the flag latches
-  until the application restarts, so unticking the box does not turn output back
-  off.
+  checkbox, not the engine's field, and only ever assigns `TRUE`. The Edit window
+  must have been opened at least once in the session, and once set the flag
+  latches until the application restarts.
 
-Note also that the files are written **only on the final simulated cycle**, so a
-run that converges early still produces them, but a run that errors out before
-the last cycle will not.
+All nine files are written, the four `.m` files included: the append block at
+`Manifolds.pas:3052-3105` writes a row per crank angle to each. `Pressure.dat` in
+`Example1` is 721 rows of 21 columns and is almost certainly a renamed
+`InlPress.m`.
+
+A run forced to completion this way is **not** the baseline run — six simulated
+cycles against three — so capture its results screen and `SimulDat.txt` row too,
+and treat it as a second reference case rather than as manifold data belonging to
+the existing one.
 
 ## Using this in phase 4
 
 1. Load `data/baseline/A2China.eng`. It must resolve all ten side files with no
    problems reported.
 2. Run at 4000 rpm, two-zone, RKF5, variable gamma, requesting **6 cycles** at a
-   **1 mg** mass balance tolerance. Convergence on cycle 4 at about 0.3 mg is
-   itself part of the expected result.
+   **1 mg** mass balance tolerance. Meeting the tolerance at the top of cycle 4,
+   at about 0.3 mg, having simulated three cycles, is itself part of the expected
+   result.
 3. Work up the derivation chain before comparing anything else. Vd from the
    volume column, then `WWork` and `PWork` at CA −101, then IMEP, PMEP, TFMEP,
    FMEP, BMEP, torque and power. Each link is checkable on its own, so the first
