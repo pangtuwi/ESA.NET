@@ -140,6 +140,12 @@ the original application on Windows.
 - Side-file paths in `.eng` files mix bare names, backslash-relative paths and
   absolute paths to drives that no longer exist. `LegacyPathResolver` handles all
   three; on Linux and macOS nothing resolves without it.
+- **`mf` and `ThEff` in `TEngine2z.Performance` hard-code four cylinders.** Both
+  use a factor of `2 * Nrpm` where the physics needs `NCyl * Nrpm / 2`; the two
+  agree only at `NCyl == 4`. All 71 shipped engines are `NoCyls=4`, so the
+  original never exercised it. Port verbatim to stay in agreement with
+  `data/baseline/`, but fuel flow, SFC and thermal efficiency are wrong by
+  `4 / NCyl` for any other cylinder count. See `BASELINE.md`.
 
 ## Build and test
 
