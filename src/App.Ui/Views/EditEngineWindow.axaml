@@ -84,8 +84,9 @@
           <TextBlock Grid.Row="5" Grid.Column="2" Classes="label" Text=": 1" />
 
           <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="Capacity" />
+          <!-- The original displays this rounded to whole cc: 1595, not 1595.4. -->
           <TextBlock Grid.Row="6" Grid.Column="1" Classes="label"
-                     Text="{Binding Capacity, StringFormat='{}{0:F1}'}" />
+                     Text="{Binding Capacity, StringFormat='{}{0:F0}'}" />
           <TextBlock Grid.Row="6" Grid.Column="2" Classes="label" Text="[cc]" />
         </Grid>
       </TabItem>
@@ -282,14 +283,15 @@
 
             <HeaderedContentControl Header="Fuel Composition">
               <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
+                <!-- The original orders these C H O N; see data/baseline/A2China_Fuel.JPG. -->
                 <TextBlock Classes="label" Text="C" />
                 <TextBox Width="60" Text="{Binding FuelCarbon}" />
                 <TextBlock Classes="label" Text="H" />
                 <TextBox Width="60" Text="{Binding FuelHydrogen}" />
-                <TextBlock Classes="label" Text="N" />
-                <TextBox Width="60" Text="{Binding FuelNitrogen}" />
                 <TextBlock Classes="label" Text="O" />
                 <TextBox Width="60" Text="{Binding FuelOxygen}" />
+                <TextBlock Classes="label" Text="N" />
+                <TextBox Width="60" Text="{Binding FuelNitrogen}" />
               </StackPanel>
             </HeaderedContentControl>
 

@@ -94,6 +94,11 @@ the original application on Windows.
 
 ## Known port caveats
 
+`ISSUES.md` is the full register: defects in this port, legacy defects reproduced
+on purpose, behaviour that catches out the operator, errors in `SPEC.md`, dead
+data, and open questions. The list below is the subset that affects day-to-day
+work.
+
 - Delphi's 80-bit `Extended` has no .NET equivalent; those values are `double`.
   This affects the equilibrium model and is the first thing to suspect if phase 4
   numbers drift from the legacy reference runs.
@@ -212,7 +217,7 @@ No business logic and no ported forms: that was phase 3 onward.
   `ESA.ini`.
 - `src/App.Ui` — `EditEngineWindow`, the eight-tab engine editor, with live
   capacity, per-field validation, and writes that touch only changed values.
-- `tests/App.Tests` — 106 tests. The ones that matter most: every expression in
+- `tests/App.Tests` — 124 tests. The ones that matter most: every expression in
   every `.eng` file parses and evaluates; every `.maf` and `.vcd` round-trips
   byte for byte; all 70 engine files load with every side file resolved; and
   opening an engine in the editor and pressing OK leaves the file untouched.

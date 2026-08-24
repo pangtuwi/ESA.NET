@@ -74,7 +74,7 @@ cd ESA.NET
 
 ```powershell
 dotnet build ESA.NET.slnx -c Release    # expect 0 warnings, 0 errors
-dotnet test  ESA.NET.slnx               # expect 106 passed
+dotnet test  ESA.NET.slnx               # expect 124 passed
 dotnet run   --project src\App.Ui       # opens the shell window
 ```
 
@@ -134,7 +134,7 @@ hit a difference and want a known-good reference point.
 | Platform | Toolchain | Exercised |
 |---|---|---|
 | Windows 10 | VS Code with the C# Dev Kit, .NET SDK 10.0.400 | Build and run |
-| Ubuntu 24.04 | .NET SDK 10.0.111, command line | Release build (0 warnings), 106 tests, run under Xvfb |
+| Ubuntu 24.04 | .NET SDK 10.0.111, command line | Release build (0 warnings), 124 tests, run under Xvfb |
 
 Not yet exercised anywhere: the `dotnet publish` step, and opening `ESA.NET.slnx`
 in Visual Studio or Rider.
@@ -153,6 +153,7 @@ legacy/samples/       Frozen .eng fixtures used by the round-trip test.
 data/baseline/        A captured reference run of the original app, for phase 4.
 SPEC.md               Reverse-engineered specification of the Delphi application.
 BASELINE.md           What the reference run contains and how to validate against it.
+ISSUES.md             Known issues: port defects, reproduced legacy defects, SPEC errors.
 CLAUDE.md             Layering rules, naming conventions, port caveats, phase plan.
 archive/              Working notes that produced SPEC.md.
 ```
@@ -163,7 +164,7 @@ The layering table above is enforced, not merely documented:
 
 ## Tests
 
-`dotnet test ESA.NET.slnx` runs 106 tests. The ones that matter most guard user
+`dotnet test ESA.NET.slnx` runs 124 tests. The ones that matter most guard user
 data and the ported semantics:
 
 - `EngRoundTripTests`, `TableRoundTripTests`, `EditEngineViewModelTests` — every

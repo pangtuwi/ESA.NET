@@ -37,8 +37,16 @@ public static class EsaLimits
     /// <summary>Stored performance points. <c>MaxNoPoints</c> in PerfData.pas.</summary>
     public const int MaxPerformancePoints = 100;
 
-    /// <summary>ODE system extent. <c>MaxN</c> in RKf5.pas.</summary>
-    public const int MaxEquations = 10;
+    /// <summary>
+    /// ODE system extent. <c>MaxN</c> in RKf5.pas, which is 4, not the 10 this
+    /// constant originally carried.
+    /// </summary>
+    /// <remarks>
+    /// The four equations have fixed meanings, assigned per crank-angle state in
+    /// <c>TEngine2z.Run</c>: <c>y[1]</c> is burnt volume, <c>y[2]</c> pressure,
+    /// <c>y[3]</c> burnt temperature and <c>y[4]</c> unburnt temperature.
+    /// </remarks>
+    public const int MaxEquations = 4;
 
     /// <summary>Species tracked by the equilibrium model. See <see cref="Species"/>.</summary>
     public const int SpeciesCount = 12;
