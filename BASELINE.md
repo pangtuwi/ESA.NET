@@ -199,6 +199,43 @@ than merely tolerated.
 | `A2China.txt` | The detailed results: a full-cycle PVT trace, 720 rows |
 | `SimulDat.txt` | The performance data file, one row per run. Full precision aggregates plus mechanical and thermal efficiency, mass in and out, spark and back pressure, which the results screen does not show. CRLF line endings, last line unterminated. |
 
+### Manifold output
+
+Nine files, obtained by re-running the same engine at the same settings with
+**Total Cycles set to 4** and Save Manifold Data ticked (see below for why the
+cycle count matters). All nine carry **620 rows**, one per crank angle, covering
+CA 360 → 720 then 1 → 259 in the offset convention these files use — that is,
+firing top dead centre round to just before inlet valve closing.
+
+| File | Columns |
+|---|---|
+| `Inlet.txt` | CA, then pressure [bar] and velocity [m/s] at the pipe start, midpoint and valve end |
+| `Exhaust.txt` | CA, then the same three stations along the exhaust, valve end first |
+| `Pcyl.txt` | CA, cylinder pressure [bar] |
+| `Tcyl.txt` | CA, cylinder temperature [K], cylinder volume [m³] |
+| `MassFlow.txt` | CA, mass in, mass out, both ×1e6 |
+| `InlPress.m` | one row per CA, **39 columns** — inlet pressure at every grid point [bar] |
+| `InlVel.m` | one row per CA, 39 columns — inlet velocity [m/s] |
+| `ExhPress.m` | one row per CA, **16 columns** — exhaust pressure [bar] |
+| `ExhVel.m` | one row per CA, 16 columns — exhaust velocity [m/s] |
+
+**The field files validate the phase 3 expression work.** The original writes one
+column per manifold grid point, so their width *is* the grid size it computed:
+39 inlet and 16 exhaust at 4000 rpm. `GridSizeCalculator` computes 39 and 16 from
+the expressions in the `.eng`, exactly. That single check exercises the parser,
+left-associative `^`, `DelphiMath.Power`'s integer path, round-half-to-even, the
+`.maf` reader and the pipe length derived from it — a slip in any one of them
+would almost certainly have shifted the rounded count.
+
+**These come from an adjacent cycle to `A2China.txt`, not the same one.** Through
+the closed period, crank angles 0 to 250, the cylinder pressures in `Pcyl.txt` and
+the PVT trace agree to 0.0001 bar over 251 angles — that stretch is fixed by the
+mass trapped at inlet valve closing, which has converged. Through gas exchange
+they diverge by up to 0.07 bar, because that depends on the manifold wave state,
+which is still settling. 565 of the 620 angles agree to within 0.001 bar; the 55
+that do not are all in the exhaust stroke. Phase 4 must not assume the two files
+describe the same cycle.
+
 ### Screenshots
 
 **Settings.** `A2China_Cylinders.JPG`, `A2China_HeatTrans.JPG`,
@@ -390,11 +427,16 @@ reaching it. The baseline run requested six, simulated three, and left `tStep` a
 3 while the gate wanted 5 — which is why no files appeared however the checkbox
 was set.
 
-**To get the files, stop the run converging.** In the Single Speed Simulation
-dialog set **Mass Balance to 0**: `abs(...) * 1e6 < 0` can never be true, so the
-loop runs every requested cycle and the files are written during the last one.
-Six cycles at a 0 mg tolerance reproduces the baseline's request while forcing it
-to completion.
+**What worked: request 4 cycles instead of 6.** Lowering the requested count
+lowers the `tStep` the gate is waiting for until the run actually reaches it. The
+files in this folder were produced that way — same engine, same speed, same 1 mg
+tolerance, only Total Cycles changed from 6 to 4 — and the resulting closed-period
+pressures match the original baseline exactly, so nothing else about the run
+changed.
+
+Setting Mass Balance to 0 should also work, by making the convergence test
+unsatisfiable so every requested cycle runs, but it has not been tried and would
+produce a genuinely different, longer run.
 
 Two smaller traps once that is fixed:
 
@@ -412,11 +454,6 @@ All nine files are written, the four `.m` files included: the append block at
 `Manifolds.pas:3052-3105` writes a row per crank angle to each. `Pressure.dat` in
 `Example1` is 721 rows of 21 columns and is almost certainly a renamed
 `InlPress.m`.
-
-A run forced to completion this way is **not** the baseline run — six simulated
-cycles against three — so capture its results screen and `SimulDat.txt` row too,
-and treat it as a second reference case rather than as manifold data belonging to
-the existing one.
 
 ## Using this in phase 4
 
@@ -437,7 +474,13 @@ the existing one.
    accumulator reset at −100°, peak pressure 70.1 bar at +14°, and peak burnt
    temperature 3015 K at −7°.
 5. Compare the aggregates against the expected results table.
-6. Agree the tolerances before treating any of this as a pass/fail gate. A
+6. For the manifold solver, compare against the nine manifold files. Check the
+   grid widths first — 39 inlet and 16 exhaust columns — since a wrong grid size
+   makes every field comparison meaningless. Then compare `Pcyl.txt` over the
+   closed period, where it agrees with the PVT trace, before trusting anything in
+   the gas-exchange window, where the two reference files disagree with each
+   other by up to 0.07 bar.
+7. Agree the tolerances before treating any of this as a pass/fail gate. A
    per-crank-angle pressure and an end-of-run SFC do not deserve the same number,
    and the 80-bit `Extended` to `double` narrowing in the equilibrium model
    (CLAUDE.md) makes some divergence expected rather than a defect.

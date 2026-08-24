@@ -394,6 +394,145 @@ public sealed class BaselineDataTests
         Assert.Equal([4], counts);
     }
 
+    /// <summary>
+    /// The strongest validation of the phase 3 expression work available: the
+    /// original wrote one column per manifold grid point, so the width of its own
+    /// output files is the grid size it computed.
+    /// </summary>
+    /// <remarks>
+    /// Matching it exercises the whole chain at once — the parser, left-associative
+    /// <c>^</c>, <c>DelphiMath.Power</c>'s integer fast path, round-half-to-even, the
+    /// <c>.maf</c> reader and the pipe length derived from it. A slip in any one of
+    /// them would very likely shift the rounded point count.
+    /// </remarks>
+    [Theory]
+    [InlineData("InlPress.m", true)]
+    [InlineData("InlVel.m", true)]
+    [InlineData("ExhPress.m", false)]
+    [InlineData("ExhVel.m", false)]
+    public void ManifoldFieldWidthMatchesTheComputedGridSize(string fileName, bool isInlet)
+    {
+        RequireBaseline();
+
+        var engine = CreateLoader().Load(File("A2China.eng")).Engine;
+        var calculator = new GridSizeCalculator(new CachingExpressionEvaluator());
+
+        var areas = isInlet
+            ? engine.Manifold.InletPipe.AreaVersusLength
+            : engine.Manifold.ExhaustPipe.AreaVersusLength;
+
+        var pipeLength = areas.Position[areas.Count - 1] / 1000.0;
+
+        var expected = isInlet
+            ? calculator.InletGridSize(engine.Manifold.InletGrid.Expression, pipeLength, 4000)
+            : calculator.ExhaustGridSize(engine.Manifold.ExhaustGrid.Expression, pipeLength, 4000);
+
+        var columns = System.IO.File.ReadLines(File(fileName))
+            .First()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Length;
+
+        Assert.Equal(expected, columns);
+    }
+
+    /// <summary>
+    /// The manifold output and the PVT trace come from <b>adjacent cycles</b>, not the
+    /// same one.
+    /// </summary>
+    /// <remarks>
+    /// Through the closed period the two agree to the printed precision, because that
+    /// part of the cycle is fixed by the mass trapped at inlet valve closing, which has
+    /// converged. Through gas exchange they diverge by up to about 0.07 bar, because
+    /// that part depends on the manifold wave state, which is still settling from cycle
+    /// to cycle. Phase 4 must not assume the two files describe the same cycle.
+    /// </remarks>
+    [Fact]
+    public void TheManifoldTracesComeFromAnAdjacentCycleToThePvtTrace()
+    {
+        RequireBaseline();
+
+        // Pcyl.txt writes crank angle offset by 360, so its CA 360 is the trace's
+        // firing top dead centre.
+        var cylinderPressures = System.IO.File.ReadLines(File("Pcyl.txt"))
+            .Select(l => l.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .Where(p => p.Length == 2)
+            .ToDictionary(
+                p => (int)double.Parse(p[0], CultureInfo.InvariantCulture),
+                p => double.Parse(p[1], CultureInfo.InvariantCulture));
+
+        var (header, rows) = ReadTrace();
+        var traceIndex = header.IndexOf("PCyl");
+        var tracePressures = rows
+            .Select(r => r.Split(','))
+            .ToDictionary(
+                f => (int)double.Parse(f[0], CultureInfo.InvariantCulture),
+                f => double.Parse(f[traceIndex], CultureInfo.InvariantCulture) / 1e5);
+
+        // 620 crank angles: 360 through 720, then 1 through 259.
+        Assert.Equal(620, cylinderPressures.Count);
+
+        var closedPeriod = new List<double>();
+        var gasExchange = new List<double>();
+
+        foreach (var (manifoldAngle, pressure) in cylinderPressures)
+        {
+            var traceAngle = manifoldAngle - 360;
+
+            if (!tracePressures.TryGetValue(traceAngle, out var expected))
+            {
+                continue;
+            }
+
+            // Exhaust valve opening is 64 degrees before bottom dead centre, so the
+            // cylinder is sealed from firing top dead centre until then.
+            var difference = Math.Abs(expected - pressure);
+            (traceAngle is >= 0 and <= 250 ? closedPeriod : gasExchange).Add(difference);
+        }
+
+        Assert.True(closedPeriod.Count > 200, $"Expected a full closed period, got {closedPeriod.Count}.");
+        Assert.NotEmpty(gasExchange);
+
+        // Through the closed period the two are the same to the printed precision:
+        // the trace writes whole pascals, which is 1e-5 bar.
+        Assert.True(
+            closedPeriod.Max() <= 0.0002,
+            $"Closed period should match; largest difference was {closedPeriod.Max():F4} bar.");
+
+        // Through gas exchange they do not, because the manifold wave state differs
+        // between cycles. This is recorded, not tolerated: if it ever collapses to
+        // zero the two files have started describing the same cycle and the note in
+        // BASELINE.md needs revisiting.
+        Assert.True(
+            gasExchange.Max() > 0.01,
+            $"Expected cycle-to-cycle divergence in gas exchange, largest was {gasExchange.Max():F4} bar.");
+        Assert.True(
+            gasExchange.Max() < 0.5,
+            $"Gas exchange divergence of {gasExchange.Max():F4} bar is larger than a settling manifold explains.");
+    }
+
+    [Fact]
+    public void EveryManifoldOutputFileHasTheSameRowCount()
+    {
+        RequireBaseline();
+
+        string[] outputs =
+        [
+            "Inlet.txt", "Exhaust.txt", "Pcyl.txt", "Tcyl.txt", "MassFlow.txt",
+            "InlPress.m", "InlVel.m", "ExhPress.m", "ExhVel.m",
+        ];
+
+        var missing = outputs.Where(f => !System.IO.File.Exists(File(f))).ToList();
+        Assert.Empty(missing);
+
+        // All nine are written from the same block, one row per crank angle.
+        var rowCounts = outputs
+            .Select(f => System.IO.File.ReadAllLines(File(f)).Count(l => l.Trim().Length > 0))
+            .Distinct()
+            .ToList();
+
+        Assert.Equal([620], rowCounts);
+    }
+
     private static (List<string> Header, List<string[]> Rows) ReadPerformance()
     {
         var lines = System.IO.File.ReadAllLines(File("SimulDat.txt"))
