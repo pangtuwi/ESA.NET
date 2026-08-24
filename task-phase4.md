@@ -168,11 +168,16 @@ it look like defects and must be reproduced anyway:
   - FMEP is TFMEP - PMEP and BMEP is IMEP - PMEP - FMEP, so PMEP cancels
     and BMEP is just IMEP - TFMEP. The intermediate FMEP is still
     reported, so keep both.
-  - mf is `Cyl.Fuel.m * 2 * Nrpm * 60` while ThEff divides by
-    `... * 2 * Nrpm / 60`. One of those is almost certainly wrong, but
-    SFC and ThEff in the reference runs were produced by exactly this.
-    Port it verbatim, add a test that pins the behaviour, and raise it
-    with me rather than fixing it silently.
+  - mf is `Cyl.Fuel.m * 2 * Nrpm * 60` and the ThEff denominator is
+    `Q * m * 2 * Nrpm / 60`. Neither mentions the cylinder count, and
+    both are correct **only for a four-cylinder engine** — the physically
+    right factor is `NCyl * N / 2`, which equals `2 * N` only at
+    `NCyl == 4`. Every one of the 71 shipped engines is `NoCyls=4`, which
+    is why it was never caught. Both reproduce the baseline exactly. Port
+    them verbatim, pin the behaviour in a test, and treat it as a known
+    defect: SFC derives from mf, so fuel flow, SFC and thermal efficiency
+    all go wrong by `4 / NCyl` for any other engine. BASELINE.md has the
+    full derivation.
 
 Friction is a Chen-Flynn style correlation in TFMEP:
 `1.0e5 * (0.97 + 0.15*N/1000 + 0.05*(N/1000)^2)`.

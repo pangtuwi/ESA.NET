@@ -1,5 +1,6 @@
 using System.Globalization;
 using App.Core.Expressions;
+using App.Core.Interpolation;
 using App.Persistence;
 using App.Persistence.Tables;
 
@@ -275,6 +276,139 @@ public sealed class BaselineDataTests
                 Math.Abs(before) > 10,
                 $"Expected {accumulator} to have accumulated before the reset, found {before}.");
         }
+    }
+
+    /// <summary>
+    /// The performance data file the run wrote. It carries more precision than the
+    /// results screen and several quantities the screen never shows.
+    /// </summary>
+    [Fact]
+    public void ThePerformanceFileMatchesTheResultsScreen()
+    {
+        RequireBaseline();
+
+        var (header, rows) = ReadPerformance();
+
+        // One row per run: the original capture and the re-run with manifold output
+        // enabled. Identical to the last digit, so the simulation is deterministic.
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(rows[0], rows[1]);
+
+        double Value(string column) => double.Parse(
+            rows[0][header.IndexOf(column)], CultureInfo.InvariantCulture);
+
+        Assert.Equal(4000, Value("Speed"));
+        Assert.Equal(14.291, Value("IMEP"));
+        Assert.Equal(-0.392, Value("PMEP"));
+        Assert.Equal(2.762, Value("FMEP"));
+        Assert.Equal(11.921, Value("BMEP"));
+        Assert.Equal(151.34, Value("Torque"));
+        Assert.Equal(63.395, Value("Power"));
+        Assert.Equal(273.6, Value("SFC"));
+        Assert.Equal(109.7, Value("VEff"));
+
+        // Mechanical efficiency is BMEP over IMEP.
+        Assert.Equal(Value("BMEP") / Value("IMEP") * 100, Value("MEff"), 1);
+
+        // The 0.3 mg the results screen reports is the gap between the two mass
+        // totals, which is the convergence metric the run stopped on.
+        Assert.Equal(0.27, Math.Abs(Value("MassIn") - Value("MassOut")), 2);
+    }
+
+    /// <summary>
+    /// Speed-keyed lookups, checkable without running any physics: the spark angle
+    /// and exhaust back pressure the run reported are what the tables interpolate to
+    /// at 4000 rpm.
+    /// </summary>
+    [Fact]
+    public void SpeedKeyedLookupsMatchTheReportedValues()
+    {
+        RequireBaseline();
+
+        var (header, rows) = ReadPerformance();
+        double Value(string column) => double.Parse(
+            rows[0][header.IndexOf(column)], CultureInfo.InvariantCulture);
+
+        var engine = CreateLoader().Load(File("A2China.eng")).Engine;
+
+        var spark = LegacyInterpolation.AtSpeed(engine.SparkAngle.Rpm, engine.SparkAngle.Values, 4000);
+        var backPressure = LegacyInterpolation.AtSpeed(
+            engine.Manifold.ExhaustBack.Rpm, engine.Manifold.ExhaustBack.Pressure, 4000);
+
+        Assert.Equal(Value("Spark"), spark, 1);
+        Assert.Equal(Value("BackP"), backPressure, 1);
+    }
+
+    /// <summary>
+    /// Pins the four-cylinder assumption baked into the fuel flow and thermal
+    /// efficiency formulas, so that porting them verbatim in phase 4 is a recorded
+    /// decision rather than an accident.
+    /// </summary>
+    [Fact]
+    public void FuelFlowAndThermalEfficiencyAssumeFourCylinders()
+    {
+        RequireBaseline();
+
+        var (header, rows) = ReadPerformance();
+        double Value(string column) => double.Parse(
+            rows[0][header.IndexOf(column)], CultureInfo.InvariantCulture);
+
+        var definition = new EngineDefinitionStore().Read(File("A2China.eng"));
+
+        const double Rpm = 4000;
+        var massIn = Value("MassIn") / 1e6;                 // mg -> kg
+        var fuelMass = 1 / definition.Lambda * massIn / (definition.AirFuelRatio + 1);
+
+        // Delphi: mf := Cyl.Fuel.m * 2 * Nrpm * 60. No cylinder count anywhere.
+        var delphiFuelFlow = fuelMass * 2 * Rpm * 60;
+
+        // Physically: per-cylinder per-cycle mass, times cylinders, times cycles/hr.
+        var physicalFuelFlow = fuelMass * definition.CylinderCount * (Rpm / 2) * 60;
+
+        Assert.Equal(Value("mf"), delphiFuelFlow, 2);
+
+        // They agree here only because this engine has four cylinders.
+        Assert.Equal(4, definition.CylinderCount);
+        Assert.Equal(physicalFuelFlow, delphiFuelFlow, 6);
+
+        // At any other count the Delphi formula is wrong by 4 / NCyl.
+        foreach (var cylinders in (int[])[3, 6, 8])
+        {
+            var physical = fuelMass * cylinders * (Rpm / 2) * 60;
+            Assert.Equal(4.0 / cylinders, delphiFuelFlow / physical, 6);
+        }
+    }
+
+    [Fact]
+    public void EveryShippedEngineIsFourCylinder()
+    {
+        Assert.SkipWhen(TestPaths.Legacy is null, "Not running from a repository checkout.");
+
+        // Which is why the hard-coded cylinder count above was never caught.
+        var store = new EngineDefinitionStore();
+        var counts = TestPaths.AllLegacyEngineFiles()
+            .Select(path => store.Read(path).CylinderCount)
+            .Distinct()
+            .ToList();
+
+        Assert.Equal([4], counts);
+    }
+
+    private static (List<string> Header, List<string[]> Rows) ReadPerformance()
+    {
+        var lines = System.IO.File.ReadAllLines(File("SimulDat.txt"))
+            .Where(l => l.Trim().Length > 0)
+            .ToList();
+
+        var header = lines[0].Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(h => h.Trim())
+            .ToList();
+
+        var rows = lines.Skip(1)
+            .Select(l => l.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .ToList();
+
+        return (header, rows);
     }
 
     private static (List<string> Header, List<string> Rows) ReadTrace()

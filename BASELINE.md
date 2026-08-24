@@ -75,20 +75,30 @@ is a floor applied silently, matching SPEC.md section 5.
 
 ## Expected results
 
-The numbers a correct port must reproduce at 4000 rpm.
+The numbers a correct port must reproduce at 4000 rpm. These come from
+`SimulDat.txt`, the performance data file the run wrote, which carries more
+precision than the results screen and several quantities the screen never shows.
 
-| Quantity | Value | Unit |
-|---|---|---|
-| Torque | 151.3 | Nm |
-| Power | 63.4 | kW |
-| Volumetric efficiency | 109.7 | % |
-| IMEP | 14.291 | bar |
-| BMEP | 11.921 | bar |
-| FMEP | 2.762 | bar |
-| PMEP | −0.392 | bar |
-| SFC | 273.6 | g/kW.hr |
-| Fuel consumption | 17.3 | kg/hr |
-| Cylinder mass | 580.1 | mg |
+| Quantity | Value | Unit | Screen shows |
+|---|---|---|---|
+| Speed | 4000 | rpm | 4000 |
+| IMEP | 14.291 | bar | 14.291 |
+| PMEP | −0.392 | bar | −0.392 |
+| FMEP | 2.762 | bar | 2.762 |
+| BMEP | 11.921 | bar | 11.921 |
+| Mechanical efficiency | 83.4 | % | — |
+| Volumetric efficiency | 109.7 | % | 109.7 |
+| Thermal efficiency | 30.6 | % | — |
+| Torque | 151.34 | Nm | 151.3 |
+| Power | 63.395 | kW | 63.4 |
+| Fuel flow | 17.35 | kg/hr | 17.3 |
+| SFC | 273.6 | g/kW.hr | 273.6 |
+| Trapped mass | 580.11 | mg | 580.1 |
+| Mass in | 560.11 | mg | — |
+| Mass out | 560.38 | mg | — |
+| Lambda | 1.00 | | — |
+| Spark | 21.0 | °BTDC | — |
+| Exhaust back pressure | 17.8 | kPa | — |
 
 Energy balance, as percentages of fuel energy:
 
@@ -100,6 +110,17 @@ Energy balance, as percentages of fuel energy:
 | Friction | 7.1 % |
 | Exhaust | 39.1 % |
 | Fuel | 100 % |
+
+Two of the new columns are useful checks in their own right. The mass balance the
+screen reports as 0.3 mg is `|MassIn − MassOut|` = |560.11 − 560.38| = 0.27 mg,
+confirming the convergence metric. And `Spark` 21.0 and `BackP` 17.8 are the
+values interpolated out of `A2ChinaVar.spk` and `A2China.exh` at 4000 rpm, so
+they check the speed-keyed table lookups without running any physics.
+
+`SimulDat.txt` also holds **two identical data rows**, one per run — the original
+capture and the re-run with manifold output enabled. Beyond confirming that the
+file accumulates rows across runs, this shows the simulation is deterministic:
+every digit of the two runs agrees.
 
 ### Every one of those numbers derives from the trace
 
@@ -159,6 +180,7 @@ than merely tolerated.
 | File | Role |
 |---|---|
 | `A2China.txt` | The detailed results: a full-cycle PVT trace, 720 rows |
+| `SimulDat.txt` | The performance data file, one row per run. Full precision aggregates plus mechanical and thermal efficiency, mass in and out, spark and back pressure, which the results screen does not show. CRLF line endings, last line unterminated. |
 
 ### Screenshots
 
@@ -279,6 +301,39 @@ scaled by `IVLift` / `EVLift`, which is how phase 3 read those files.
 Duration per cam — 279 °CA inlet, 281 °CA exhaust — computed as
 `Open + 180 + Close`. Worth adding to the Edit form.
 
+## A latent defect the baseline exposed
+
+Reconciling `mf` and `ThEff` against `SimulDat.txt` turned up something that has
+been sitting in the original for over twenty years.
+
+`TEngine2z.Performance` computes fuel flow as:
+
+```pascal
+mf := Cyl.Fuel.m * 2 * Nrpm * 60;
+```
+
+`Cyl.Fuel.M` is the fuel mass for **one cylinder over one cycle**, so the
+physically correct conversion to kg/hr is `m * NCyl * (N/2) * 60`. The two agree
+only when `NCyl * N / 2 == 2 * N`, that is when **`NCyl == 4`**. The cylinder
+count is not in the formula at all; the number 4 is baked into the constant.
+
+`ThEff` has the same structure and the same assumption:
+
+```pascal
+ThEff := BPower / (Cyl.fuel.Q * Cyl.fuel.m * 2 * Nrpm / 60) * 100;
+```
+
+Both reproduce the baseline exactly — 17.35 kg/hr and 30.6 % — because this is a
+four-cylinder engine. And **every one of the 71 engine files shipped with ESA is
+`NoCyls=4`**, which is why nothing ever caught it. `SFC` derives from `mf`, so it
+inherits the same limitation.
+
+Port these verbatim: the baseline was produced by them, and changing them would
+put the port out of agreement with its own reference. But pin the behaviour in a
+test and treat it as a known defect, because the moment anyone models a three or
+six cylinder engine, fuel flow, SFC and thermal efficiency will be silently wrong
+by a factor of `4 / NCyl`.
+
 ## Getting the manifold traces
 
 The current baseline was run with manifold output off, so there are no in-pipe
@@ -294,14 +349,24 @@ listed in SPEC.md section 3 — `Inlet.txt`, `Exhaust.txt`, `Pcyl.txt`, `Tcyl.tx
 **on the final cycle only**, into the application's working directory rather than
 next to the engine file.
 
-Two traps if this is attempted:
+Three traps if this is attempted:
 
+- **The files are written to the working directory, not next to the engine.**
+  `Manifolds.pas:3024-3041` opens them with bare relative names —
+  `AssignFile(OutI, 'Inlet.txt')` and so on — so they land wherever the process
+  was started from. That is the same place `SimulDat.txt` appears, since
+  `PerfDataSave` is a bare name too, so look for them beside that file rather
+  than beside the `.eng`.
 - `TFMain.Simulate` reads `FEdit.CBSaveManfData.Checked`, the Edit form's
   checkbox, not the engine's field. The Edit window has to have been opened at
   least once in that session for the checkbox to reflect the loaded engine.
 - The same line only ever assigns `TRUE`. Once set in a session the flag latches
   until the application restarts, so unticking the box does not turn output back
   off.
+
+Note also that the files are written **only on the final simulated cycle**, so a
+run that converges early still produces them, but a run that errors out before
+the last cycle will not.
 
 ## Using this in phase 4
 
