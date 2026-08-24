@@ -14,11 +14,105 @@ Scope:
   2. The two-zone gas model and the twelve-species equilibrium model.
   3. The one-dimensional manifold CFD solver.
   4. Performance and the energy balance.
-  5. Validation against Example1 and Example2.
+  5. Validation against the `data/baseline/` reference run.
 
 Out of scope: charts, the multi-run grid, the PVT export form. Those are
 phase 5. Write the manifold text output files, because the solver
 produces them and they are the best debugging aid you will have.
+
+--------------------------------------------------------------------
+Three decisions already taken. Do not relitigate them.
+--------------------------------------------------------------------
+
+**1. Build it in two stages, cylinder first.**
+
+This is 5,500 lines of physics and Manifolds.pas is 3,172 of them, so
+nothing is verifiable for a long time if you build it in one pass.
+
+  4a  The in-cylinder side: integrator, gas properties, equilibrium, the
+      four ODEs, the state machine, performance. Drive it from the
+      *recorded* manifold columns in `A2China.txt` — `IV P`, `EV P`,
+      `IV V`, `EV V`, `Min`, `Mout` — through a `RecordedManifoldSource`
+      test fixture. That makes the whole cylinder model testable before a
+      line of CFD exists.
+  4b  Replace the fixture with the real manifold solver, validated
+      against the four `.m` field files.
+
+Define the interface the fixture and the real solver share **first**, so
+4b is a substitution rather than a rewrite. Something along the lines of
+`IManifoldSource.Step(crankAngle, cylinderPressure, cylinderTemperature,
+…)` returning mass flows and boundary pressures.
+
+Each layer has its own reference column, so a wrong number is localised
+rather than hunted:
+
+  integrator          analytic ODEs with known solutions
+  properties/eqbm     the `Gamma` column
+  gas layer           `Tb`, `Tu`, `Vb`, `Vu`, `mb`, `mu`
+  ODEs/state machine  `PCyl`, and the transitions at IVC, spark and EVO
+  performance         `SimulDat.txt`, via BASELINE.md's derivation chain
+
+Valve flow area is checkable before any of this: `IV A` and `EV A` depend
+only on phase 3 code plus `TValve.Lift`.
+
+**2. Tiered tolerances, divergences recorded rather than tuned away.**
+
+  aggregates (IMEP, PMEP, FMEP, BMEP, torque, power, mass in/out)
+        0.1 % relative
+  cylinder pressure per crank angle
+        0.5 % relative, floor 0.005 bar
+  temperatures, volumes, masses per crank angle
+        1 % relative
+  species mole fractions
+        2 % relative, absolute floor 1e-9
+  manifold field pressures and velocities
+        1 % relative
+  grid point counts, valve areas, state transition angles
+        exact
+
+Every non-zero divergence inside tolerance goes in `ISSUES.md` with its
+magnitude and location. Anything outside gets investigated **before** the
+tolerance moves. Never widen a tolerance to make a test pass without
+writing down why.
+
+**3. Write the nine manifold output files as you build 4b.** They are the
+only per-crank-angle view inside the pipes and `data/baseline/` has the
+originals to compare against. Do not reproduce the write-gate defects in
+`ISSUES.md` C1 to C4 — write the files whenever the flag is set.
+
+--------------------------------------------------------------------
+Precision: what actually goes wrong
+--------------------------------------------------------------------
+
+Delphi's 80-bit `Extended` was buying **dynamic range**, not decimal
+places: it let equations mix values of very different magnitude while
+keeping everything in standard SI units. Watch for exactly that — sums
+where one term can swamp another once the mantissa is eleven bits
+shorter.
+
+The concrete case is `Eqbm.pas`. `InitialEstimate` walks `x[8]` down as
+far as `1e-33` hunting a bracket, then runs Newton with **absolute**
+tolerances — `tol < 0.0004`, `abs(fn) < 0.0005` — on a variable spanning
+thirty-odd orders of magnitude, capped at 20 iterations. Species mole
+fractions run from about 0.7 for N₂ down to near zero for the radicals,
+and `fn` sums terms of wildly different size.
+
+So the failure mode is **not** a last-digit difference. A 53-bit mantissa
+changes how many iterations the loop takes, and the answer is whatever
+the loop stopped at — a visible step change, not drift.
+
+  1. Port faithfully in `double` first. Change no orderings: reordering a
+     sum changes the result and puts the port out of agreement with the
+     reference it is being measured against.
+  2. Instrument the iteration counts. Log iterations per call and how
+     often the cap is hit, and keep it as a diagnostic. A shifting
+     distribution is the early warning.
+  3. Record magnitude ratios in `ISSUES.md` wherever disparate terms are
+     summed.
+  4. Only if measurement shows a specific equation breaking, consider a
+     targeted fix — compensated summation, or a two-double accumulator
+     for that one expression. Never pre-emptively, never as a blanket
+     change.
 
 --------------------------------------------------------------------
 Start with validation, not with code
@@ -182,6 +276,47 @@ it look like defects and must be reproduced anyway:
 Friction is a Chen-Flynn style correlation in TFMEP:
 `1.0e5 * (0.97 + 0.15*N/1000 + 0.05*(N/1000)^2)`.
 
+### The ODEs are free functions over a global, and they mutate
+
+`dPdThetaUB`, `dPdThetaB`, `dTbdThetaB` and the rest sit at file scope in
+`ICEngine2Z.pas` (lines 311-520), each opening with `with Engine2z do`.
+That global is what CLAUDE.md forbids, so they become instance methods on
+the solver and `fn[1..4]` becomes delegates bound to that instance.
+
+More importantly, **evaluating a derivative has side effects**. Every one
+of them starts by calling `Cyl.UpdateUB(...)` or `Cyl.UpdateB(...)`,
+which mutates the gas — setting pressure, volumes and masses, then
+calling `TProp.ReturnProps` and `Get_Gamma` to refresh the thermodynamic
+partials — and then reads `dudTu`, `dudPu`, `uu` back off it. RKF5 calls
+each `fn[i]` six times per step with different trial vectors, so the gas
+object is a scratchpad whose contents depend on call order.
+
+Do **not** refactor these into pure functions. The order of mutation is
+part of the answer.
+
+`Gasses2Z.pas` itself is only 201 lines: four `Update*` procedures. The
+`Vb > Vgas` clamp carries the original author's own `//##?? iffy line???`
+comment, and `xb` is clamped to [0.01, 0.99].
+
+### Valve angles are converted on the way in
+
+`Edit.pas:448-451`, not stored as the user typed them:
+
+```pascal
+IV.O := 360 - IVO;      IV.C := -180 + IVC;
+EV.O := 180 - EVO;      EV.C := -360 + EVC;
+```
+
+Lifts and diameters are divided by 1000 into metres. For the baseline
+engine that gives `IV.C = -100`, which is exactly where the trace's
+accumulators reset — three independent confirmations of the same point.
+
+`TValve.Lift` normalises crank angle onto [0,1] across the open period
+and multiplies the profile by `MaxLift`. Note it reads `CNew` on a path
+where that variable is only assigned inside `if O > C`. For any sane cam
+`O > C` holds so the branch is taken, but add it to `ISSUES.md` when you
+port it.
+
 ### The manifold solver is the bulk of the work
 
 Manifolds.pas is 3172 lines, about half the ported physics. Main_Prog
@@ -259,22 +394,38 @@ the solver reaching into a view model.
 Deliverables
 --------------------------------------------------------------------
 
-  1. A tolerance policy, agreed with me, and the reference runs it is
-     based on.
-  2. The integrator, state machine, gas and equilibrium models, manifold
-     solver and performance calculations, ported and unit tested.
+  1. **Stage 4a**: integrator, gas properties, equilibrium, the four
+     ODEs, the state machine and performance, each validated against its
+     own column of the trace, with the cylinder driven from
+     `RecordedManifoldSource`.
+  2. **Stage 4b**: the manifold solver replacing that fixture, validated
+     against the `.m` field files — widths first, then values.
   3. A headless run of `data/baseline/A2China.eng` at 4000 rpm
      reproducing the trace and the aggregates in BASELINE.md within the
-     agreed tolerance, as an automated test. Example1 and Example2 as
-     further cases if the weaker reference data supports it.
+     tolerances above, as an automated test. It must meet the mass
+     balance at the top of cycle 4 having simulated three, exactly as the
+     original did.
   4. The nine manifold output files, written on the final cycle when
      SaveManfData is set, with the documented columns and units.
   5. CLAUDE.md updated: phase 4 complete, phase 5 next, new caveats
      added, and the MaxEquations correction noted.
 
-Work in that order. Items 1 and 2 are independently testable long before
-the solver runs end to end, and if the manifold CFD slips, everything
-else should still land.
+Work in that order. Stage 4a is independently testable long before the
+solver runs end to end, and if 4b slips, 4a still lands as something
+verifiable and useful. That is the whole reason for the split.
+
+Two constraints on how it is built. The solver must run **headless**, with
+no Avalonia window, so tests can drive it — progress reaches the UI
+through an `ISimulationObserver` declared in Core that the shell
+implements, never by the solver reaching into a view model. And the
+Delphi globals `Engine2z`, `Choice`, `QI`, `QE` and `W` become instance
+fields; no static mutable state.
+
+The physics is business rules and does no IO, so it belongs in App.Core:
+`App.Core/Thermo` for the equilibrium and property models,
+`App.Core/Simulation` for the integrator, ODEs, state machine and
+performance, `App.Core/Manifold` for the CFD. Only the nine output files
+are IO, and they go in App.Persistence.
 
 Then stop and give me a summary of what you built, what in SPEC.md turned
 out wrong or underspecified, where the ported numbers diverge from the
