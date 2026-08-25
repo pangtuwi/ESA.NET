@@ -43,8 +43,8 @@ measured against. Each is pinned by a test.
 | B11 | Fewer than three cycles is silently raised to three | `TFMain.Simulate` |
 | B12 | RKF5 here is **fixed-step**: six Fehlberg stages, no error estimate, no adaptive control, despite the name. Do not "improve" it | `RKf5.pas` |
 | B13 | Delphi's 80-bit `Extended` becomes `double`. Unavoidable, and the first thing to suspect if phase 4 numbers drift — it matters most in the equilibrium model's Newton iteration | throughout |
-| B15 | **The equilibrium derivatives use the wrong pressure units.** `go2` builds C1 to C10 from pressure in atmospheres (`p := Pres/101325`, Eqbm.pas:117) but `Partial_dxd` rebuilds their temperature derivatives from pressure in pascals (`p := Pres`, Eqbm.pas:294). Every `dC/dT` is off by `sqrt(101325)` = 318.3, and `dx/dT` lands 260 to 360 times the true derivative. The pressure derivatives escape it, because `dC/dPres = -0.5*C/Pres` holds whatever constant factor sits inside C. These feed `dudT` and so reach the ODEs | `Eqbm.pas:294` |
 | B14 | **The RKF5 tableau carries a transposed digit.** `RKf5.pas:76` reads `854/4104` where Fehlberg published `845/4104`, so the fifth stage's coefficients sum to 455/456 instead of the 1 its node requires. Measured effect: the method converges at **first order, not fifth** — halving the step halves the error rather than dividing it by 32. At 40 steps over a unit interval it is seven orders of magnitude less accurate than the method it claims to be. ESA offers it to the user as "Runga Kutte Felberg (accurate)" against "Euler (fast)" | `RKf5.pas:76` |
+| B15 | **The equilibrium derivatives use the wrong pressure units.** `go2` builds C1 to C10 from pressure in atmospheres (`p := Pres/101325`, Eqbm.pas:117) but `Partial_dxd` rebuilds their temperature derivatives from pressure in pascals (`p := Pres`, Eqbm.pas:294). Every `dC/dT` is off by `sqrt(101325)` = 318.3, and `dx/dT` lands 260 to 360 times the true derivative. The pressure derivatives escape it, because `dC/dPres = -0.5*C/Pres` holds whatever constant factor sits inside C. These feed `dudT` and so reach the ODEs. **Measured consequence**: `ReturnProps` inflates `Cp` and `DuDt` for burnt gas by about 11x at 1800 K, 92x at 2400 K and 164x at 2800 K against the frozen specific heat, which is itself physically sound at 1400 to 1500 J/(kg.K). `Get_gamma` escapes it by passing a zero derivative array, which is why gamma still matches the baseline trace exactly | `Eqbm.pas:294` |
 
 ## C. Legacy behaviour that catches out the operator
 
@@ -141,6 +141,8 @@ Present in the repository, referenced by nothing.
   chain pinned against the original's own output.
 - `tests/App.Tests/EquilibriumSolverTests.cs` — B15, pinned by comparing the
   analytic derivative against a finite difference of the solver itself.
+- `tests/App.Tests/GasPropertyModelTests.cs` — gamma against the baseline trace in
+  both the burnt and unburnt branches, and B15's downstream effect on Cp and DuDt.
 - `tests/App.Tests/Rkf5IntegratorTests.cs` — B12 and B14, including a measured
   order-of-convergence test that fails loudly if the transposed coefficient is
   ever "corrected".

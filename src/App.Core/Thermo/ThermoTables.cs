@@ -61,6 +61,26 @@ internal static class ThermoTables
         { 0, 7.9710, 1.1954e-1, -3.6858e-5, 0, 0, -1.9385e+4, -1.7879 },
     };
 
+    /// <summary>
+    /// Elemental composition of each library fuel, C H O N. Delphi <c>FuelComp</c>.
+    /// Row 0 is the user-specified fuel; row 5 is the C7H17 gasoline surrogate every
+    /// shipped engine runs on.
+    /// </summary>
+    public static readonly double[,] FuelComposition =
+    {
+        { 0, 0, 0, 0, 0 },
+        { 0, 1, 3, 2, 1 },
+        { 0, 1, 4, 0, 0 },
+        { 0, 1, 4, 1, 0 },
+        { 0, 6, 6, 0, 0 },
+        { 0, 7, 17, 0, 0 },
+        { 0, 14.4, 24.9, 0, 0 },
+    };
+
+    /// <summary>Molecular weight of each library fuel. Delphi <c>FuelMolWt</c>.</summary>
+    public static readonly double[] FuelMolecularWeight =
+        [0, 61.0407, 16.0432, 32.0426, 78.1152, 101.2144, 198.06];
+
     /// <summary>Species molecular weights. Delphi <c>MolWt</c>.</summary>
     public static readonly double[] MolecularWeight =
         [0, 1.0080, 15.9994, 14.0067, 2.0160, 17.0074, 28.0106, 30.0061, 31.9988, 18.0154, 44.0100, 28.0134, 39.948];
