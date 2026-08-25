@@ -43,6 +43,7 @@ measured against. Each is pinned by a test.
 | B11 | Fewer than three cycles is silently raised to three | `TFMain.Simulate` |
 | B12 | RKF5 here is **fixed-step**: six Fehlberg stages, no error estimate, no adaptive control, despite the name. Do not "improve" it | `RKf5.pas` |
 | B13 | Delphi's 80-bit `Extended` becomes `double`. Unavoidable, and the first thing to suspect if phase 4 numbers drift — it matters most in the equilibrium model's Newton iteration | throughout |
+| B14 | **The RKF5 tableau carries a transposed digit.** `RKf5.pas:76` reads `854/4104` where Fehlberg published `845/4104`, so the fifth stage's coefficients sum to 455/456 instead of the 1 its node requires. Measured effect: the method converges at **first order, not fifth** — halving the step halves the error rather than dividing it by 32. At 40 steps over a unit interval it is seven orders of magnitude less accurate than the method it claims to be. ESA offers it to the user as "Runga Kutte Felberg (accurate)" against "Euler (fast)" | `RKf5.pas:76` |
 
 ## C. Legacy behaviour that catches out the operator
 
@@ -137,3 +138,6 @@ Present in the repository, referenced by nothing.
 - `task-phase4.md` — what phase 4 must do about all of it.
 - `tests/App.Tests/BaselineDataTests.cs` — B1, B2, B7, B8, B9 and the grid-size
   chain pinned against the original's own output.
+- `tests/App.Tests/Rkf5IntegratorTests.cs` — B12 and B14, including a measured
+  order-of-convergence test that fails loudly if the transposed coefficient is
+  ever "corrected".

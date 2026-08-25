@@ -134,6 +134,14 @@ work.
   area — a cliff, not a clamp. `TCdValve.GetValue` passes its y arguments in the
   reverse order to its x ones. Both are reproduced verbatim in
   `LegacyInterpolation`; the phase 4 reference runs were produced by them.
+- **The RKF5 tableau has a transposed digit.** `RKf5.pas:76` reads `854/4104`
+  where Fehlberg published `845/4104`. The fifth stage's row then sums to 455/456
+  rather than 1, and the method converges at **first order, not fifth** — no
+  better than the Euler alternative it is offered against. Ported verbatim
+  because `data/baseline/` was produced by it; `Rkf5IntegratorTests` fails if it
+  is ever "fixed". Practical consequence: results are far more sensitive to the
+  crank-angle step than a fifth-order method would be, so phase 4 must match the
+  original's `dCA` exactly.
 - `Manifolds.pas:2739-2742` **ignores the `IVFFn` expression at or below 1000 rpm**,
   substituting a hard-coded line. Not yet ported; it belongs with the solver.
 - No `.eng` file has ever stored fuel composition, so the Delphi form reset it to
