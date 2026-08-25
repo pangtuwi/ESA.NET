@@ -8,4 +8,11 @@
     <RootNamespace>App.Core</RootNamespace>
   </PropertyGroup>
 
+
+  <ItemGroup>
+    <!-- The coefficient tables are implementation detail, but they are worth pinning
+         against the Delphi declarations they were transcribed from. -->
+    <InternalsVisibleTo Include="App.Tests" />
+  </ItemGroup>
+
 </Project>
