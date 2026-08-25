@@ -134,6 +134,12 @@ work.
   area — a cliff, not a clamp. `TCdValve.GetValue` passes its y arguments in the
   reverse order to its x ones. Both are reproduced verbatim in
   `LegacyInterpolation`; the phase 4 reference runs were produced by them.
+- **The equilibrium temperature derivatives are ~318x too large.** `go2` forms the
+  equilibrium constants from pressure in atmospheres; `Partial_dxd` forms their
+  temperature derivatives from pressure in pascals. The mismatch is
+  `sqrt(101325)`. The pressure derivatives are unaffected. Reproduced verbatim
+  because `data/baseline/` was produced by it, and pinned by
+  `EquilibriumSolverTests`.
 - **The RKF5 tableau has a transposed digit.** `RKf5.pas:76` reads `854/4104`
   where Fehlberg published `845/4104`. The fifth stage's row then sums to 455/456
   rather than 1, and the method converges at **first order, not fifth** — no
