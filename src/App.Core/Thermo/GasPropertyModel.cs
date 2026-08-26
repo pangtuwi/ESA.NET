@@ -205,7 +205,7 @@ public sealed class GasPropertyModel
         // The analytic dudp is computed and then discarded: the original replaces it
         // with a central difference of u over a 0.05 per cent pressure band. Marked
         // with a bare "//#" in the source, so evidently a deliberate patch. It costs
-        // two further equilibrium solves per call.
+        // two further equilibrium solves per call. See ISSUES.md B16.
         var uLow = InternalEnergy(pressure - (0.00025 * pressure), gasTemperature);
         var uHigh = InternalEnergy(pressure + (0.00025 * pressure), gasTemperature);
         properties.DuDp = (uHigh - uLow) / (0.0005 * pressure);
@@ -249,7 +249,7 @@ public sealed class GasPropertyModel
     /// computes <c>dMdT</c> and then passes a zero array and a zero <c>dMdT</c> to
     /// <c>MixdhdT</c> anyway, with the real arguments left commented out beside them.
     /// Gamma therefore does not depend on the equilibrium temperature derivatives, and
-    /// so is untouched by the pressure-unit defect in ISSUES.md B15.
+    /// so is untouched by the pressure-unit defect in ISSUES.md B15. See also B19.
     /// </remarks>
     public double Gamma(double pressure, double gasTemperature)
     {
@@ -467,6 +467,7 @@ public sealed class GasPropertyModel
     /// <summary>
     /// The curve fits cover 300 K to 5000 K. The original widened the lower guard to
     /// 260 K "to avoid error messages for now" and clamps rather than extrapolating.
+    /// See ISSUES.md B20.
     /// </summary>
     private static double ClampToFitRange(double gasTemperature) =>
         gasTemperature is < 260 or > 5000
@@ -584,7 +585,7 @@ public sealed class GasPropertyModel
     /// this procedure is about to overwrite — rather than from the residual. On the
     /// first call that array is still zero, which makes the residual mass fraction
     /// exactly one and the charge pure residual; from the second call onward it carries
-    /// the previous result. Reproduced as found.
+    /// the previous result. Reproduced as found. See ISSUES.md B18.
     /// </remarks>
     private void FuelAirResidualConcentrations()
     {

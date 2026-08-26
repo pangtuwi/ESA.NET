@@ -120,7 +120,8 @@ public sealed class EquilibriumSolver
 
         InitialEstimate(equivalenceRatio, n, m, r, rd, rdd);
 
-        // 99 is the original's sentinel for "no workable oxygen estimate".
+        // 99 is the original's sentinel for "no workable oxygen estimate". It is in fact
+        // unreachable, because the only path that sets it raises first: ISSUES.md B23.
         if (_x[8] == 99)
         {
             return;
@@ -251,7 +252,7 @@ public sealed class EquilibriumSolver
             _x[11] += b[3];
 
             // Crash avoidance, as the original labels it. Note the guard tests for
-            // negative but the clamps test for non-positive.
+            // negative but the clamps test for non-positive: ISSUES.md B24.
             if (_x[4] < 0 || _x[6] < 0 || _x[8] < 0 || _x[11] < 0)
             {
                 if (_x[4] <= 0)
@@ -498,7 +499,8 @@ public sealed class EquilibriumSolver
     /// <remarks>
     /// The curve fit is only valid over 600 K to 4000 K. Outside that the original
     /// raises before it reaches the clamp on the following line, so the clamp is dead
-    /// code and an out-of-range temperature is fatal.
+    /// code and an out-of-range temperature is fatal. See ISSUES.md B21, and B22 for
+    /// why every error path in the original throws rather than being suppressed.
     /// </remarks>
     private static double EquilibriumConstant(int reaction, double gasTemperature)
     {
