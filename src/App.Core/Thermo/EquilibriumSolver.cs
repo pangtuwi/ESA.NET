@@ -130,7 +130,9 @@ public sealed class EquilibriumSolver
         Diagnostics.Solves++;
 
         EquilibriumCalc(d1, d2, d3, d4, n, rdd);
-        PartialDerivatives(pressure, gasTemperature, d1, d2, d3, d4, ro, equivalenceRatio, n);
+        // p, not pressure: go2 passes its atmospheres value here, even though the
+        // parameter on the other side is named Pres.
+        PartialDerivatives(p, gasTemperature, d1, d2, d3, d4, ro, equivalenceRatio, n);
 
         PublishState();
     }
@@ -381,17 +383,11 @@ public sealed class EquilibriumSolver
         double equivalenceRatio,
         double n)
     {
-        // p is pressure in PASCALS here, but go2 built C1..C10 from pressure in
-        // ATMOSPHERES (Pres/101325). The temperature derivatives below therefore scale
-        // by sqrt(Pres) where the constants they differentiate used sqrt(Pres/101325),
-        // making every dC/dT wrong by a factor of sqrt(101325) = 318.3 - too large for
-        // C9 and C10, too small for C1 to C3. Measured against a finite difference of
-        // the solver itself, dx/dT comes out 260 to 360 times the true value.
-        //
-        // The pressure derivatives escape this: dC/dPres = -0.5*C/Pres holds whatever
-        // constant factor sits inside C, so only the temperature path is affected.
-        //
-        // Reproduced verbatim - data/baseline/ was produced by it. See ISSUES.md B15.
+        // Atmospheres, the same units go2 built C1 to C10 from. The Delphi parameter
+        // this arrives in is named Pres, which reads like pascals and is not: go2 passes
+        // its local p, already divided by 101325. Passing pascals here instead inflates
+        // every dC/dT by sqrt(101325) and, through dhdT and dRdT, dudT with them. See
+        // ISSUES.md A7.
         var p = pressure;
         SetupMatrix(d1, d2, d3, d4);
 

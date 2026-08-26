@@ -134,12 +134,15 @@ work.
   area — a cliff, not a clamp. `TCdValve.GetValue` passes its y arguments in the
   reverse order to its x ones. Both are reproduced verbatim in
   `LegacyInterpolation`; the phase 4 reference runs were produced by them.
-- **The equilibrium temperature derivatives are ~318x too large.** `go2` forms the
-  equilibrium constants from pressure in atmospheres; `Partial_dxd` forms their
-  temperature derivatives from pressure in pascals. The mismatch is
-  `sqrt(101325)`. The pressure derivatives are unaffected. Reproduced verbatim
-  because `data/baseline/` was produced by it, and pinned by
-  `EquilibriumSolverTests`.
+- **`Partial_dxd` takes pressure in atmospheres, not pascals.** Its first parameter
+  is named `Pres`, but `go2` passes it the local `p`, already divided by 101325
+  (`Eqbm.pas:117, 137`). Passing pascals inflates every `dC/dT` by `sqrt(101325)`
+  and, through `MixdhdT` and `MixdRdT`, `dudT` with them — which the burnt
+  temperature equation divides by. This was the port's own defect for a while, and
+  was written up as a *legacy* one (the retracted `ISSUES.md` B15) because it was
+  only ever checked against a reimplementation of the same misreading. Gamma cannot
+  catch it: `Get_gamma` passes a zero derivative array, so it matched the baseline
+  trace throughout. See `ISSUES.md` A7.
 - **The RKF5 tableau has a transposed digit.** `RKf5.pas:76` reads `854/4104`
   where Fehlberg published `845/4104`. The fifth stage's row then sums to 455/456
   rather than 1, and the method converges at **first order, not fifth** — no

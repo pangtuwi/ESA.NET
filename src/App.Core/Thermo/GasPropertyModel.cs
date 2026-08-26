@@ -249,7 +249,8 @@ public sealed class GasPropertyModel
     /// computes <c>dMdT</c> and then passes a zero array and a zero <c>dMdT</c> to
     /// <c>MixdhdT</c> anyway, with the real arguments left commented out beside them.
     /// Gamma therefore does not depend on the equilibrium temperature derivatives, and
-    /// so is untouched by the pressure-unit defect in ISSUES.md B15. See also B19.
+    /// so it never sees the equilibrium temperature derivatives at all. That is why it
+/// matched the baseline trace even while ISSUES.md A7 was inflating them. See B19.
     /// </remarks>
     public double Gamma(double pressure, double gasTemperature)
     {

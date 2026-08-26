@@ -154,25 +154,26 @@ public sealed class EquilibriumSolverTests
     // ---------------------------------------------------------------------------
 
     /// <summary>
-    /// The temperature derivatives are wrong by roughly 318, and that is the original's
-    /// behaviour, not a porting slip.
+    /// The temperature derivatives agree with a finite difference of the solver itself.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>go2</c> builds the equilibrium constants from pressure in <b>atmospheres</b>
-    /// (<c>p := Pres/101325</c>), but <c>Partial_dxd</c> rebuilds their temperature
-    /// derivatives from pressure in <b>pascals</b> (<c>p := Pres</c>). Every
-    /// <c>dC/dT</c> is therefore off by <c>sqrt(101325)</c>, which is 318.3 — too large
-    /// for C9 and C10, too small for C1 to C3 — and the resulting <c>dx/dT</c> lands
-    /// between about 260 and 360 times the true derivative depending on which constants
-    /// a species leans on.
+    /// This test previously asserted the opposite: that the ratio sat between 250 and
+    /// 380, and that the error belonged to the original rather than to the port. It did
+    /// not. <c>go2</c> builds the equilibrium constants from pressure in atmospheres
+    /// (<c>p := Pres/101325</c>) and then passes <b>that same p</b> to
+    /// <c>Partial_dxd</c> (<c>Eqbm.pas:137</c>), whose first parameter is merely
+    /// <i>named</i> <c>Pres</c>. The units were consistent all along; the port passed
+    /// pascals.
     /// </para>
     /// <para>
-    /// Confirmed by replicating the algorithm independently and reproducing the same
-    /// ratios, so this pins a defect in the source rather than in the translation.
-    /// Correcting the units would make these ratios collapse to 1 and fail this test,
-    /// which is the point: <c>data/baseline/</c> was produced by the defective version.
-    /// See ISSUES.md B15.
+    /// Worth remembering how the wrong conclusion survived. It was checked by
+    /// reimplementing the algorithm from the same misreading and getting the same
+    /// ratios, which confirms only that the misreading was self-consistent. Nothing
+    /// compared it against <c>data/baseline/</c>, and the one property that would have
+    /// caught it - gamma - goes through <c>Get_gamma</c>, which passes a zero derivative
+    /// array and never touches this path, so it matched the reference throughout. See
+    /// ISSUES.md A7 and the retracted B15.
     /// </para>
     /// </remarks>
     [Theory]
@@ -180,7 +181,7 @@ public sealed class EquilibriumSolverTests
     [InlineData(Species.CO)]
     [InlineData(Species.O2)]
     [InlineData(Species.N2)]
-    public void TemperatureDerivativesCarryThePressureUnitDefect(Species species)
+    public void TemperatureDerivativesMatchAFiniteDifference(Species species)
     {
         const double T = 2400;
         const double Step = 2;
@@ -195,8 +196,11 @@ public sealed class EquilibriumSolverTests
 
         var ratio = analytic / numeric;
 
-        // Same sign, but hundreds of times too large.
-        Assert.InRange(ratio, 250, 380);
+        // These once came out 250 to 380 times the finite difference, and that was
+        // recorded as a defect in the original (the retracted ISSUES.md B15). It was the
+        // port's own: go2 passes Partial_dxd its atmospheres value, into a parameter
+        // named Pres, and the port passed pascals. See ISSUES.md A7.
+        Assert.InRange(ratio, 0.999, 1.001);
     }
 
     [Theory]
@@ -208,18 +212,22 @@ public sealed class EquilibriumSolverTests
     {
         const double P = 1_000_000;
         const double Step = 500;
+        const double Atmosphere = 101325.0;
 
         var analytic = Solved(pressure: P).State.DxDp[species];
 
         var up = Solved(pressure: P + Step).State.X[species];
         var down = Solved(pressure: P - Step).State.X[species];
-        var numeric = (up - down) / (2 * Step);
+
+        // Per atmosphere, not per pascal. Partial_dxd works in the units go2 hands it,
+        // so dx/dp comes out per atmosphere; the finite difference has to match.
+        var numeric = (up - down) / (2 * Step) * Atmosphere;
 
         var tolerance = Math.Max(Math.Abs(analytic) * 0.02, 1e-13);
 
         Assert.True(
             Math.Abs(analytic - numeric) <= tolerance,
-            $"{species}: analytic {analytic:E6}, finite difference {numeric:E6}.");
+            $"{species}: analytic {analytic:E6}, finite difference {numeric:E6} per atmosphere.");
     }
 
     // ---------------------------------------------------------------------------

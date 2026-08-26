@@ -201,26 +201,20 @@ public sealed class GasPropertyModelTests
     }
 
     /// <summary>
-    /// <c>Cp</c> and <c>DuDt</c> from <c>ReturnProps</c> carry the B15 defect;
-    /// <c>Gamma</c> does not.
+    /// <c>ReturnProps</c> reports an equilibrium <c>Cp</c> modestly above the frozen one,
+    /// which is what dissociating combustion products should give.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <c>ReturnProps</c> feeds the real <c>dxdT</c> into <c>MixdhdT</c>, so the
-    /// composition-change term inherits the 318-fold error in the equilibrium
-    /// temperature derivatives. The frozen specific heat underneath is physically
-    /// sound at about 1400 to 1500 J/(kg.K) for combustion products; what comes out
-    /// of <c>ReturnProps</c> is roughly eleven times that at 1800 K and over a hundred
-    /// times at 2800 K, growing as dissociation does.
-    /// </para>
-    /// <para>
-    /// <c>Get_gamma</c> escapes because it passes a zero array instead, which is why
-    /// gamma still matches the baseline trace exactly. Step 4 should expect the
-    /// temperature ODEs, which divide by <c>dudT</c>, to be where this first bites.
-    /// </para>
+    /// This test used to assert the opposite. It pinned <c>Cp</c> at fifty to two hundred
+    /// times the frozen value and called that faithful reproduction of a legacy defect
+    /// (the retracted ISSUES.md B15). The inflation was the port's own - pascals passed
+    /// where <c>go2</c> passes atmospheres - and it reached <c>Cp</c> and <c>DuDt</c>
+    /// through <c>MixdhdT</c> and <c>MixdRdT</c>. <c>Gamma</c> was unaffected either way,
+    /// because <c>Get_gamma</c> passes a zero derivative array, which is why it matched
+    /// the baseline trace throughout and gave no warning. See ISSUES.md A7.
     /// </remarks>
     [Fact]
-    public void ReturnPropsInflatesCpAndDuDtThroughTheDerivativeDefect()
+    public void ReturnPropsReportsAnEquilibriumSpecificHeatAboveTheFrozenOne()
     {
         var model = Model(burned: true);
         var properties = new GasProperties();
@@ -230,16 +224,22 @@ public sealed class GasPropertyModelTests
         Assert.InRange(properties.R, 240, 320);
         Assert.Equal(1.0, properties.U / (properties.H - (properties.R * 2400)), 9);
 
-        // The frozen value is what physics expects.
+        // The frozen value is what physics expects of the mixture as composed.
         var frozen = model.SpecificHeatConstantPressure(2_000_000, 2400);
         Assert.InRange(frozen, 1300, 1600);
 
-        // What ReturnProps actually reports is two orders of magnitude larger.
-        Assert.InRange(properties.Cp / frozen, 50, 200);
+        // Allowing the composition to shift with temperature adds to it, because energy
+        // goes into dissociation as well as into raising the temperature. A modest
+        // multiple is right; the fifty to two hundred this once asserted was not.
+        Assert.InRange(properties.Cp / frozen, 1.0, 3.0);
         Assert.True(properties.DuDt > 0, $"dudT came back as {properties.DuDt}.");
 
-        // The pressure derivative comes from a finite difference of u, not from the
-        // defective analytic path, so it stays sane.
+        // dudT is now the same order as the frozen specific heat, which is what the
+        // burnt temperature equation needs: it divides by this.
+        Assert.InRange(properties.DuDt, 500, 5000);
+
+        // The pressure derivative comes from a finite difference of u, not the analytic
+        // path, so it was never affected. See ISSUES.md B16.
         Assert.NotEqual(0, properties.DuDp);
     }
 
