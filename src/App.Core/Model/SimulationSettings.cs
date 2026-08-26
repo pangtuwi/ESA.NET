@@ -21,8 +21,10 @@ public sealed class SimulationSettings
     public int OneZoneCycleCount { get; set; } = 1;
 
     /// <summary>
-    /// Convergence tolerance in micrograms. SPEC.md section 5: the run stops when
-    /// <c>abs(TotalMInIV - TotalMOutEV) * 1e6</c> falls below this value.
+    /// Convergence tolerance in <b>milligrams</b>: the run stops when
+    /// <c>abs(TotalMInIV - TotalMOutEV) * 1e6</c> falls below this value, and those two
+    /// totals are in kilograms, so the factor converts to milligrams rather than the
+    /// micrograms SPEC.md section 5 says.
     /// </summary>
     public double MassBalance { get; set; } = 1;
 }

@@ -77,8 +77,11 @@ public sealed class EngineLoader : IEngineLoader
         foreach (var gas in (Gas[])[engine.Plenum, engine.Cylinder, engine.Exhaust, engine.Atmosphere])
         {
             gas.Fuel.AFRatio = definition.AirFuelRatio;
-            gas.Fuel.T = definition.FuelTemperature;
-            gas.Fuel.Q = definition.FuelCalorificValue;
+            // Same reasoning as the atmosphere above: these are physical quantities the
+            // simulation reads directly, so they are converted here rather than at the
+            // simulation boundary. Edit.pas:472-473 does TFuel + 273.15 and QFuel * 1E6.
+            gas.Fuel.T = definition.FuelTemperature + 273.15;
+            gas.Fuel.Q = definition.FuelCalorificValue * 1E6;
             gas.Fuel.Lambda = definition.Lambda;
             gas.Fuel.BurnAngle = definition.BurnAngle;
             gas.Fuel.C = definition.FuelCarbon;
@@ -87,7 +90,12 @@ public sealed class EngineLoader : IEngineLoader
             gas.Fuel.N = definition.FuelNitrogen;
         }
 
-        engine.Atmosphere.PGas = definition.AtmosphericPressure;
+        // Converted here, not at the simulation boundary like the geometry in ISSUES.md
+        // A6. PGas and Tu on a Gas are the same fields the solver writes pascals and
+        // kelvin into every step, so leaving the file's kilopascals and Celsius in them
+        // would mean one field holding two different units at two different times.
+        engine.Atmosphere.PGas = definition.AtmosphericPressure * 1000;
+        engine.Atmosphere.Tu = definition.AtmosphericTemperature + 273.15;
         engine.OilViscosity = definition.OilViscosity;
     }
 

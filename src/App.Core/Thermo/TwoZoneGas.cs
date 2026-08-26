@@ -24,8 +24,26 @@ namespace App.Core.Thermo;
 /// </remarks>
 public sealed class TwoZoneGas
 {
+    /// <summary>Creates a gas that owns its own state.</summary>
+    public TwoZoneGas()
+        : this(new Gas())
+    {
+    }
+
+    /// <summary>
+    /// Wraps an existing state record. <c>TEngine2z</c> holds four of these and the rest
+    /// of the engine reads their fields directly, so the solver passes in the
+    /// <see cref="Model.Engine"/>'s own <see cref="Model.Gas"/> instances rather than
+    /// letting each gas allocate a private one that nothing else can see.
+    /// </summary>
+    public TwoZoneGas(Gas state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        State = state;
+    }
+
     /// <summary>The gas state, Delphi's fields on <c>TGas2Z</c> itself.</summary>
-    public Gas State { get; } = new();
+    public Gas State { get; }
 
     /// <summary>Properties of the burnt zone, Delphi <c>Burnt : TProp</c>.</summary>
     public GasPropertyModel Burnt { get; } = new(burned: true);

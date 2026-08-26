@@ -24,4 +24,11 @@ public sealed class SpeciesValues
     }
 
     public ReadOnlySpan<double> AsSpan() => _values;
+
+    /// <summary>Copies every species value from <paramref name="source"/>.</summary>
+    public void CopyFrom(SpeciesValues source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        source.AsSpan().CopyTo(_values);
+    }
 }
