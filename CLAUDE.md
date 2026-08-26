@@ -200,7 +200,7 @@ pressing OK must not restyle a single byte.
 | 1 | Reverse-engineer the Delphi application into `SPEC.md` | **Complete** |
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | **Complete** |
 | 3 | Remaining file formats (`.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, `.exh`, `ESA.ini`), an expression evaluator to replace `TAdCalc`, and the engine Edit form | **Complete** |
-| 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against the `data/baseline/` reference run (see `BASELINE.md`) | Not started |
+| 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against the `data/baseline/` reference run (see `BASELINE.md`) | **4a in progress**, 4b not started |
 | 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | Not started |
 | 6 | Packaging and distribution | Not started |
 
@@ -218,6 +218,40 @@ pressing OK must not restyle a single byte.
   legacy `.eng` files and the layering guard.
 
 No business logic and no ported forms: that was phase 3 onward.
+
+### Where phase 4a has got to
+
+Everything except the manifold CFD, which is 4b. Each layer is checked against
+`data/baseline/` rather than against itself — that is what caught A7.
+
+- `src/App.Core/Simulation` — `Rkf5Integrator`, `CylinderGeometry`, `ValveMotion`,
+  `CrankAngleStateMap`, `CylinderModel` (Woschni heat transfer and all thirteen
+  derivative functions), `CycleSolver` (`InitVars`, the `Run` state machine and the
+  cycle loop) and `PerformanceCalculator`.
+- `src/App.Core/Thermo` — `EquilibriumSolver`, `GasPropertyModel`, `TwoZoneGas`,
+  `ThermoTables`, `DelphiNumerics`.
+- `IManifoldSource` is the seam the manifolds arrive through. 4b substitutes the
+  real solver for the recorded fixture; nothing else changes.
+
+What the reference run says, worst case over the closed period:
+
+| Layer | Reference values | Agreement |
+|---|---|---|
+| Cylinder volume | 720 | inside printed precision |
+| Valve flow areas | 1440 | inside printed precision |
+| Heat loss per step | 1440 | one unit in the last printed place |
+| Compression pressure | 79 | 0.081 % |
+| Expansion pressure | 82 | 0.25 % |
+| Combustion pressure | 55 | 0.25 %, except 0.72 % over the first eight steps (`ISSUES.md` A8) |
+| Reported performance | all 15 figures | exact at their printed precision |
+
+**A free run cannot be driven from the recorded fixture.** `dPMass` is the one
+`Main_Prog` output the trace does not record, and the single-zone pressure equation
+has no mass term without it, so the cylinder never empties and the model diverges.
+The recorded mass flows also belong to a converged cycle carrying 580 mg where
+`InitVars` guesses 415 mg. Validation is therefore one-step-ahead residuals from the
+reference state, which is the stronger test for an ODE port anyway. Whole-cycle
+comparison waits for 4b.
 
 ### What phase 3 delivered
 
