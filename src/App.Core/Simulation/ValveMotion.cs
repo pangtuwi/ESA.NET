@@ -17,6 +17,8 @@ namespace App.Core.Simulation;
 public sealed class ValveMotion
 {
     private readonly CamProfile _profile;
+    private readonly DischargeCoefficientTable _forward;
+    private readonly DischargeCoefficientTable _reverse;
 
     /// <param name="openAngle">Delphi <c>O</c>, converted: <c>360 - IVO</c> or <c>180 - EVO</c>.</param>
     /// <param name="closeAngle">Delphi <c>C</c>, converted: <c>-180 + IVC</c> or <c>-360 + EVC</c>.</param>
@@ -30,7 +32,9 @@ public sealed class ValveMotion
         double maxLift,
         double diameter,
         int count,
-        CamProfile profile)
+        CamProfile profile,
+        DischargeCoefficientTable? forward = null,
+        DischargeCoefficientTable? reverse = null)
     {
         OpenAngle = openAngle;
         CloseAngle = closeAngle;
@@ -38,6 +42,8 @@ public sealed class ValveMotion
         Diameter = diameter;
         Count = count;
         _profile = profile;
+        _forward = forward ?? new DischargeCoefficientTable();
+        _reverse = reverse ?? new DischargeCoefficientTable();
     }
 
     public double OpenAngle { get; }
@@ -71,7 +77,9 @@ public sealed class ValveMotion
             valve.MaxLift / 1000,
             valve.Diameter / 1000,
             valve.Count,
-            valve.Profile);
+            valve.Profile,
+            valve.CdForward,
+            valve.CdReverse);
     }
 
     /// <summary>
@@ -130,6 +138,47 @@ public sealed class ValveMotion
     /// </summary>
     public double FlowArea(double crankAngleDegrees) =>
         Lift(crankAngleDegrees) * Math.PI * Diameter * Count;
+
+
+    /// <summary>
+    /// Discharge coefficient at a crank angle and pressure ratio. Port of
+    /// <c>TValve.FlowCoeff</c> (Valves.pas:31-47).
+    /// </summary>
+    /// <param name="crankAngleDegrees">Crank angle.</param>
+    /// <param name="pressureRatio">Pressure ratio across the valve.</param>
+    /// <param name="reverse">
+    /// Whether flow is in the reverse direction, selecting <see cref="Valve.CdReverse"/>
+    /// over <see cref="Valve.CdForward"/>. Note that for the exhaust valve those two are
+    /// wired to the outward and inward tables respectively, because forward flow through
+    /// an exhaust valve is outward: ISSUES.md B3.
+    /// </param>
+    /// <remarks>
+    /// <b>A seated valve returns an undefined coefficient.</b> The original assigns the
+    /// result 0 when the lift ratio is zero, and then unconditionally overwrites it with a
+    /// local that only the other branch ever assigns, so a shut valve yields whatever was
+    /// in that variable. The port returns 0, which is what the live branch was plainly
+    /// meant to produce. See ISSUES.md B57.
+    /// </remarks>
+    public double FlowCoefficient(double crankAngleDegrees, double pressureRatio, bool reverse)
+    {
+        // A pressure ratio beyond 5 is off the end of every shipped table, and the
+        // original answers with a flat 0.7 rather than extrapolating.
+        if (pressureRatio > 5)
+        {
+            return 0.7;
+        }
+
+        var liftRatio = Lift(crankAngleDegrees) / MaxLift;
+
+        if (liftRatio == 0)
+        {
+            return 0;
+        }
+
+        var table = reverse ? _reverse : _forward;
+
+        return LegacyInterpolation.CoefficientAt(table, pressureRatio, liftRatio);
+    }
 
     /// <summary>
     /// Normalised lift at a normalised position through the open period. Port of
