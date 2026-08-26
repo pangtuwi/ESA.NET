@@ -90,8 +90,10 @@ public static class ClosedValveBoundary
         // way; in floating point it is not, so each is built the way its own routine
         // builds it.
         var line = sign > 0
-            ? Interpolant(current, from: interior, to: wall, velocityAtWall: interpolantWallVelocity, wall: wall)
-            : Interpolant(current, from: wall, to: interior, velocityAtWall: interpolantWallVelocity, wall: wall);
+            ? GridInterpolants.Through(current, from: interior, to: wall)
+            : GridInterpolants.Through(
+                current, from: wall, to: interior, velocityOverrideAt: wall,
+                velocityOverride: interpolantWallVelocity);
 
         // Point 4, the new state at the wall. Its position drifts with the imposed wall
         // velocity, which Main_Prog always passes as zero, so in practice it sits on the
@@ -149,9 +151,9 @@ public static class ClosedValveBoundary
                 }
 
                 footX = x;
-                footU = (line.VelocitySlope * x) + line.VelocityIntercept;
-                footP = (line.PressureSlope * x) + line.PressureIntercept;
-                footR = (line.DensitySlope * x) + line.DensityIntercept;
+                footU = line.VelocityAt(x);
+                footP = line.PressureAt(x);
+                footR = line.DensityAt(x);
             }
 
             // ---- The path line, carrying entropy off the wall itself ----
@@ -197,33 +199,5 @@ public static class ClosedValveBoundary
         target.Pressure[wall] = p4;
         target.Density[wall] = r4;
         target.SpeedOfSound[wall] = Math.Sqrt(gamma * p4 / r4);
-    }
-
-    private readonly record struct Interpolants(
-        double VelocitySlope, double VelocityIntercept,
-        double PressureSlope, double PressureIntercept,
-        double DensitySlope, double DensityIntercept);
-
-    /// <summary>
-    /// A straight line through the wall point and its interior neighbour, with the
-    /// velocity at the wall substituted where the caller asks for it. The slope runs
-    /// <paramref name="from"/> to <paramref name="to"/> and the intercept is anchored on
-    /// <paramref name="to"/>, matching whichever routine is being reproduced.
-    /// </summary>
-    private static Interpolants Interpolant(
-        PipeGrid grid, int from, int to, double velocityAtWall, int wall)
-    {
-        double Velocity(int index) => index == wall ? velocityAtWall : grid.Velocity[index];
-
-        var dx = grid.X[from] - grid.X[to];
-
-        var velocitySlope = (Velocity(from) - Velocity(to)) / dx;
-        var pressureSlope = (grid.Pressure[from] - grid.Pressure[to]) / dx;
-        var densitySlope = (grid.Density[from] - grid.Density[to]) / dx;
-
-        return new Interpolants(
-            velocitySlope, Velocity(to) - (velocitySlope * grid.X[to]),
-            pressureSlope, grid.Pressure[to] - (pressureSlope * grid.X[to]),
-            densitySlope, grid.Density[to] - (densitySlope * grid.X[to]));
     }
 }
