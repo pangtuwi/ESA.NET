@@ -79,4 +79,33 @@ public static class DelphiMath
 
         return exponent < 0 ? 1.0 / result : result;
     }
+
+    /// <summary>
+    /// Port of <c>Pwr</c> from <c>PNTWMath.pas:50-56</c>, which is <b>not</b>
+    /// <see cref="Power"/>. The engine's Woschini correlation calls this one.
+    /// </summary>
+    /// <remarks>
+    /// Two differences matter. It always goes through <c>exp(j * ln(i))</c>, with none
+    /// of <c>Power</c>'s integer-exponent branch, and it returns <b>zero</b> for a base
+    /// at or below zero rather than raising or returning a NaN. The second is a real
+    /// discontinuity where the caller can drive the base negative: in
+    /// <c>hWoshini</c> the characteristic velocity <c>w</c> goes negative whenever
+    /// cylinder pressure falls far enough below the motored pressure, and the
+    /// heat-transfer coefficient then collapses to exactly zero rather than following
+    /// the correlation. See ISSUES.md B31.
+    /// </remarks>
+    public static double Pwr(double baseValue, double exponent)
+    {
+        if (baseValue <= 0)
+        {
+            return 0;
+        }
+
+        if (exponent == 0)
+        {
+            return 1;
+        }
+
+        return Math.Exp(exponent * Math.Log(baseValue));
+    }
 }

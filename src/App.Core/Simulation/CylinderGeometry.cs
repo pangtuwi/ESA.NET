@@ -73,6 +73,9 @@ public sealed class CylinderGeometry
     /// <summary>Stroke in metres.</summary>
     public double Stroke => _stroke;
 
+    /// <summary>Compression ratio, Delphi <c>CR</c>.</summary>
+    public double CompressionRatio => _compressionRatio;
+
     /// <summary>
     /// Swept volume of one cylinder in cubic metres, Delphi <c>Vd</c> as
     /// <c>InitVars</c> computes it.
