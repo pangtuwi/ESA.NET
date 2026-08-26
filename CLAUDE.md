@@ -241,8 +241,8 @@ What the reference run says, worst case over the closed period:
 | Valve flow areas | 1440 | inside printed precision |
 | Heat loss per step | 1440 | one unit in the last printed place |
 | Compression pressure | 79 | 0.081 % |
-| Expansion pressure | 82 | 0.25 % |
-| Combustion pressure | 55 | 0.25 %, except 0.72 % over the first eight steps (`ISSUES.md` A8) |
+| Expansion pressure | 82 | 0.036 % |
+| Combustion pressure | 55 | 0.72 % at the spark, falling to ~0.2 % across the burn (`ISSUES.md` A8) |
 | Reported performance | all 15 figures | exact at their printed precision |
 
 **A free run cannot be driven from the recorded fixture.** `dPMass` is the one

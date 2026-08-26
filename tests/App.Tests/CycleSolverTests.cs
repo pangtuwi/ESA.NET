@@ -172,9 +172,15 @@ public sealed class CycleSolverTests
             gas.Mu = unburntMass[i] / 1E6;
             gas.MGas = (burntMass[i] + unburntMass[i]) / 1E6;
 
-            // The closed period has no flow across either valve.
-            gas.DmInDTheta = 0;
-            gas.DmOutDTheta = 0;
+            // Not zero, even though no gas crosses a valve here. Run's mass block has a
+            // case only for Exhaust, Intake and Overlap, so through the whole closed
+            // period both derivatives keep whatever gas exchange last left on them - the
+            // final intake step of this cycle, and the final exhaust step of the one
+            // before. Zeroing them instead leaves dTb/dtheta 7 per cent short at the
+            // start of expansion and 13 per cent short by the end of it. See ISSUES.md
+            // B44.
+            gas.DmInDTheta = StaleInletFlowRate;
+            gas.DmOutDTheta = StaleExhaustFlowRate;
 
             engine.CrankAngle = angle;
             engine.Integration.X = angle * Math.PI / 180;
@@ -212,22 +218,25 @@ public sealed class CycleSolverTests
     }
 
     /// <summary>
-    /// Combustion and expansion reproduce the reference pressure, with the residual
-    /// concentrated in the first few steps after the spark.
+    /// Combustion and expansion reproduce the reference pressure; what is left is a
+    /// smooth bias across the burn.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Expansion holds 0.25 per cent over 82 steps and mid-to-late combustion stays
-    /// inside 0.25 per cent. The residual is largest at the spark itself, -0.72 per cent,
-    /// and decays monotonically to zero within eight steps - the signature of a starting
-    /// value rather than a wrong equation. The burnt zone is seeded at the spark by
-    /// <c>InitialTb</c>'s isenthalpic iteration, and at that point the burnt mass
-    /// fraction is at its 0.01 clamp, so the temperature equation is at its stiffest and
-    /// least forgiving of a small difference in that seed.
+    /// Expansion holds 0.036 per cent over 82 steps, on a par with compression.
+    /// Combustion runs from -0.72 per cent at the spark through zero around five degrees
+    /// before top dead centre to about +0.2 per cent for the rest of the burn.
     /// </para>
     /// <para>
-    /// Before ISSUES.md A7 was fixed these were 1.26 and 0.77 per cent, and the cause was
-    /// a hundredfold error in <c>dudTb</c> spread across every step.
+    /// That shape is not a transient. This harness reloads the reference state before
+    /// every step, so nothing propagates from one to the next and the bias is a
+    /// systematic error in the burning equations themselves. It tracks the burnt
+    /// fraction, which suggests the unburnt-weighted and burnt-weighted halves of
+    /// <c>dPdThetaB</c> are wrong in opposite directions. See ISSUES.md A8.
+    /// </para>
+    /// <para>
+    /// These were 1.26 and 0.77 per cent before A7, and expansion was 0.25 per cent
+    /// before B46.
     /// </para>
     /// </remarks>
     [Fact]
@@ -248,15 +257,32 @@ public sealed class CycleSolverTests
         Assert.NotEmpty(expansion);
         Assert.NotEmpty(combustion);
 
-        Assert.True(Worst(expansion) < 0.005, $"Worst expansion residual {Worst(expansion):P4}.");
+        // Expansion is now on a par with compression. It was 0.25 per cent until the
+        // stale exhaust mass-flow derivative of ISSUES.md B46 was reproduced.
+        Assert.True(Worst(expansion) < 0.0006, $"Worst expansion residual {Worst(expansion):P4}.");
 
-        // Past the first eight steps of the burn the seed has washed out.
-        var settled = combustion.Where(r => r.CrankAngle > -13).ToList();
-        Assert.True(Worst(settled) < 0.005, $"Worst settled combustion residual {Worst(settled):P4}.");
-
-        // The opening transient, recorded at its measured size so a regression shows up.
-        var opening = combustion.Where(r => r.CrankAngle <= -13).ToList();
-        Assert.True(Worst(opening) < 0.009, $"The combustion opening transient has grown to {Worst(opening):P4}.");
+        // Recorded at its measured size so a regression shows up, and so that fixing
+        // A8 fails this test rather than passing it silently.
+        Assert.True(Worst(combustion) < 0.008, $"The combustion bias has grown to {Worst(combustion):P4}.");
     }
+
+    /// <summary>
+    /// The mass-flow derivatives as the closed period inherits them: the last intake step
+    /// before inlet valve closing, and the last exhaust step before the exhaust valve
+    /// shuts. See ISSUES.md B46.
+    /// </summary>
+    private static double StaleFlowRate(string column, int crankAngle)
+    {
+        var mass = BaselinePaths.TraceColumn(column).Single(p => p.CrankAngle == crankAngle).Value;
+
+        return mass / 1E6 / (Math.PI / 180);
+    }
+
+    // dmindtheta takes the negated inlet mass; dmoutdtheta takes the exhaust mass as it
+    // stands. The two disagree about which direction is positive - also B46.
+    private static double StaleInletFlowRate => -StaleFlowRate("Min", -101);
+
+    private static double StaleExhaustFlowRate => StaleFlowRate("Mout", 340);
+
 
 }
