@@ -213,6 +213,7 @@ Present in the repository, referenced by nothing.
 | F2 | `A2China.eng` carries both `PlenumP=98.0` (kPa) and `FPlenumP=(99000)` (Pa). The Inlet tab shows `(99000)`, so `FPlenumP` wins — but 98 kPa and 99 kPa are not the same number, so this is not a stale unit conversion | The plenum pressure feeds the inlet boundary condition; the wrong one shifts every intake result |
 | F3 | Is *No Cylinders* genuinely read-only in the original, or just rendered flat? | See A5 |
 | F4 | What tolerance should each compared quantity carry? | Nothing is a pass/fail gate until this is agreed — see `BASELINE.md` |
+| F5 | **The wave solver runs near a Courant number of 1, and nothing checks it.** Measured on the baseline inlet at one crank degree: a characteristic foot travels 14.4 mm against a grid spacing of 19.95 mm, so the Courant number is 0.72. The grid-size expressions in the `.eng` file are evidently tuned to land there, since they scale the point count by both pipe length and engine speed. But nothing in `Manifolds.pas` computes the Courant number or asserts anything about it, and three inputs move it independently: engine speed, pipe length, and the crank-angle step `dCA` that `InitVars` hard-codes to 1. Above 1 the piecewise-linear interpolant in `INTERNAL_PIPE` is extrapolating past its neighbouring point rather than interpolating between it, which degrades quietly rather than failing. A user-supplied grid expression tuned for a different pipe, or a different `dCA`, could cross that line with no warning | Phase 4b accuracy depends on it, and B14 already makes results unusually step-sensitive from the integrator side. Worth computing and reporting the Courant number per run, even if the original never did |
 
 ---
 
@@ -228,6 +229,11 @@ Present in the repository, referenced by nothing.
   analytic derivative against a finite difference of the solver itself.
 - `tests/App.Tests/GasPropertyModelTests.cs` — gamma against the baseline trace in
   both the burnt and unburnt branches, and the equilibrium specific heat.
+- `tests/App.Tests/ManifoldNumericsTests.cs` — B47 to B49, the three power routines
+  kept apart and the friction bands.
+- `tests/App.Tests/CharacteristicSolverTests.cs` — B50, and the invariants the
+  interior-point update must satisfy: a uniform stagnant pipe preserved exactly over
+  fifty steps, and the measured Courant number of F5.
 - `tests/App.Tests/Rkf5IntegratorTests.cs` — B12 and B14, including a measured
   order-of-convergence test that fails loudly if the transposed coefficient is
   ever "corrected".
