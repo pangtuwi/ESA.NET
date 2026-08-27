@@ -32,6 +32,9 @@ public sealed class SimulationSettingsStore : ISimulationSettingsStore
     private const string DefaultFiles = "DefaultFiles";
     private const string Simulation = "Simulation";
 
+    /// <summary>The file the original keeps beside its executable.</summary>
+    public const string FileName = "ESA.ini";
+
     public SimulationSettings Read(string path)
     {
         ArgumentNullException.ThrowIfNull(path);

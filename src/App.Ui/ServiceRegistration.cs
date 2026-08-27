@@ -4,6 +4,7 @@ using App.Persistence;
 using App.Persistence.Tables;
 using App.Core.Simulation;
 using App.Ui.Charts;
+using App.Ui.Dialogs;
 using App.Ui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -38,9 +39,13 @@ public static class ServiceRegistration
         services.AddSingleton<GridSizeCalculator>();
         services.AddSingleton<IChartWindowService, ChartWindowService>();
         services.AddSingleton<SimulationRunner>();
+        services.AddSingleton<IFileDialogService, FileDialogService>();
+        services.AddSingleton<IEditEngineWindowService, EditEngineWindowService>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<EditEngineViewModel>();
+        services.AddSingleton<Func<EditEngineViewModel>>(
+            provider => provider.GetRequiredService<EditEngineViewModel>);
 
         return services;
     }

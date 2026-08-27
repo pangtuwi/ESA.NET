@@ -4,6 +4,7 @@ using App.Core.Model;
 using App.Core.Simulation;
 using App.Persistence;
 using App.Ui.Charts;
+using App.Ui.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -24,6 +25,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IChartWindowService _charts;
     private readonly SimulationRunner _runner;
     private readonly ISimulationSettingsStore _settingsStore;
+    private readonly IFileDialogService _files;
+    private readonly IEditEngineWindowService _editor;
 
     private CancellationTokenSource? _running;
 
@@ -32,13 +35,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IEngineDefinitionStore definitions,
         IChartWindowService charts,
         SimulationRunner runner,
-        ISimulationSettingsStore settingsStore)
+        ISimulationSettingsStore settingsStore,
+        IFileDialogService files,
+        IEditEngineWindowService editor)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
         _charts = charts;
         _runner = runner;
         _settingsStore = settingsStore;
+        _files = files;
+        _editor = editor;
     }
 
     /// <summary>Run options, as ESA.ini carries them.</summary>
@@ -82,6 +89,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyCanExecuteChangedFor(nameof(ValveOpeningCommand))]
     [NotifyCanExecuteChangedFor(nameof(SinglePointSimulationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveAsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EditEngineCommand))]
     private EngineLoadResult? _currentEngine;
 
     /// <summary>The file the current engine came from, shown in the status line.</summary>
@@ -139,28 +148,91 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     // File. Delphi: Load1Click, SaveAs1Click, Edit1Click, LoadDefault1Click, Exit1Click.
 
+    /// <summary>Opens an engine file. Port of <c>Load1Click</c>.</summary>
     [RelayCommand]
-    private void Load()
+    private async Task LoadAsync()
     {
-        // The file dialog belongs to the view; the shell wires it to LoadEngine.
+        if (await _files.OpenEngineAsync() is not { } path)
+        {
+            return;
+        }
+
+        LoadEngineReportingFailure(path);
     }
 
-    [RelayCommand]
-    private void SaveAs()
+    /// <summary>Saves the current definition under a new name. Port of <c>SaveAs1Click</c>.</summary>
+    [RelayCommand(CanExecute = nameof(HasEngine))]
+    private async Task SaveAsAsync()
     {
-        // The file dialog belongs to the view; the shell wires it to SaveEngineAs.
+        var suggested = Path.GetFileName(CurrentEngineFile) is { Length: > 0 } name
+            ? name
+            : "Engine.eng";
+
+        if (await _files.SaveEngineAsync(suggested) is { } path)
+        {
+            SaveEngineAs(path);
+            RunStatus = $"Saved {Path.GetFileName(path)}.";
+        }
     }
 
-    [RelayCommand]
-    private void EditEngine()
-    {
-        // The window is opened by the view, against CurrentEngine.Definition.
-    }
+    /// <summary>Opens the eight-tab editor on the current engine. Port of <c>Edit1Click</c>.</summary>
+    [RelayCommand(CanExecute = nameof(HasEngine))]
+    private void EditEngine() => _editor.Show(CurrentEngine!.Definition, CurrentEngineFile);
 
+    /// <summary>
+    /// Opens whatever <c>ESA.ini</c> names as the default engine. Port of
+    /// <c>LoadDefault1Click</c>.
+    /// </summary>
     [RelayCommand]
     private void LoadDefault()
     {
-        // Resolved from ESA.ini's [DefaultFiles] Engine entry by the shell.
+        // ESA.ini sits beside the executable, as it did beside ESA.EXE. A missing file is
+        // not an error - the store returns the same defaults Delphi's TIniFile would.
+        var settings = _settingsStore.Read(
+            Path.Combine(AppContext.BaseDirectory, SimulationSettingsStore.FileName));
+
+        var name = settings.EngineFileName;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            RunStatus = "No default engine is named in ESA.ini.";
+            return;
+        }
+
+        // The entry may be a bare name, so look beside the executable before giving up.
+        var path = File.Exists(name)
+            ? name
+            : Path.Combine(AppContext.BaseDirectory, name);
+
+        if (!File.Exists(path))
+        {
+            RunStatus = $"The default engine named in ESA.ini was not found: {name}";
+            return;
+        }
+
+        LoadEngineReportingFailure(path);
+    }
+
+    /// <summary>
+    /// Loads a file and reports why if it will not open, rather than letting the
+    /// exception reach the dispatcher and close the application.
+    /// </summary>
+    private void LoadEngineReportingFailure(string path)
+    {
+        try
+        {
+            LoadEngine(path);
+
+            RunStatus = CurrentEngine!.Problems.Count == 0
+                ? $"Opened {Path.GetFileName(path)}."
+                : $"Opened {Path.GetFileName(path)} with {CurrentEngine.Problems.Count} problem(s): "
+                  + string.Join("; ", CurrentEngine.Problems);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                                          or LegacyDataException or FormatException)
+        {
+            RunStatus = $"Could not open {Path.GetFileName(path)}: {error.Message}";
+        }
     }
 
     [RelayCommand]
