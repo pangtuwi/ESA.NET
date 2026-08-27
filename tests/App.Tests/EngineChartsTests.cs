@@ -61,7 +61,7 @@ public sealed class EngineChartsTests
         Assert.InRange(series.X.Max(), 440, 450);
         Assert.InRange(series.Y.Max(), 68, 72);
 
-        Assert.Equal("Volume [cc]", chart.XAxisLabel);
+        Assert.Equal("Gas Volume [cc]", chart.XAxisLabel);
         Assert.Equal("Pressure [bar]", chart.YAxisLabel);
     }
 

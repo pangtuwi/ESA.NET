@@ -1,6 +1,7 @@
 using App.Core;
 using App.Core.Charts;
 using App.Core.Model;
+using App.Core.Interpolation;
 using App.Core.Simulation;
 using App.Persistence;
 using App.Ui.Charts;
@@ -62,6 +63,30 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Engine speed for a single-point run, in rev/min.</summary>
     [ObservableProperty]
     private double _engineSpeed = 4000;
+
+    /// <summary>The headline figures, shown in the top-left panel.</summary>
+    public SimulationResultsViewModel Results { get; } = new();
+
+    /// <summary>The P-V diagram, shown in the top-right quadrant.</summary>
+    [ObservableProperty]
+    private ChartDefinition? _pressureVolumeChart;
+
+    /// <summary>The gas-flow chart, shown in the bottom-left quadrant.</summary>
+    [ObservableProperty]
+    private ChartDefinition? _gasFlowChart;
+
+    /// <summary>The in-cylinder chart, shown in the bottom-right quadrant.</summary>
+    [ObservableProperty]
+    private ChartDefinition? _inCylinderChart;
+
+    /// <summary>
+    /// Whether the gas-flow quadrant shows velocities rather than pressures. The original
+    /// offers the same choice on its run-time graph options dialog.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showGasFlowVelocities;
+
+    partial void OnShowGasFlowVelocitiesChanged(bool value) => RefreshEmbeddedCharts();
 
     /// <summary>What the simulation is doing, for the status bar.</summary>
     [ObservableProperty]
@@ -268,6 +293,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IsRunning = true;
         RunStatus = "Simulating...";
 
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         try
         {
             var token = _running.Token;
@@ -282,6 +309,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 () => _runner.Run(engine, Settings, progress, token), token);
 
             Trace = result.Trace;
+            Results.Update(engine, result.CyclesRun, Settings.CycleCount, stopwatch.Elapsed);
+            RefreshEmbeddedCharts();
 
             Performance.Points.Add(new PerformancePoint
             {
@@ -372,6 +401,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Performance.Points.Clear();
         TorqueCurveCommand.NotifyCanExecuteChanged();
 
+        var multiStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         try
         {
             var token = _running.Token;
@@ -399,7 +430,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
             }
 
             // The last row's cycle is what the charts show, as in the original.
-            Trace = results.LastOrDefault(r => r.Result is not null)?.Result!.Trace ?? Trace;
+            var last = results.LastOrDefault(r => r.Result is not null)?.Result;
+
+            if (last is not null)
+            {
+                Trace = last.Trace;
+                Results.Update(last.Engine, last.CyclesRun, Settings.CycleCount, multiStopwatch.Elapsed);
+                RefreshEmbeddedCharts();
+            }
+
             TorqueCurveCommand.NotifyCanExecuteChanged();
 
             var failed = results.Count(r => r.Failure is not null);
@@ -497,6 +536,34 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void InCylinder() => _charts.Show(EngineCharts.InCylinder(Trace!));
 
     private bool HasTrace => Trace is not null;
+
+    /// <summary>
+    /// Rebuilds the three charts embedded in the main window. The original redraws them
+    /// the same way at the end of a run, walking every even crank angle.
+    /// </summary>
+    private void RefreshEmbeddedCharts()
+    {
+        if (Trace is not { } trace)
+        {
+            return;
+        }
+
+        var engine = CurrentEngine?.Engine;
+        var events = engine is null
+            ? null
+            : CrankAngleStateMap.FromEngine(
+                engine,
+                LegacyInterpolation.AtSpeed(
+                    engine.SparkAngle.Rpm, engine.SparkAngle.Values, engine.Rpm));
+
+        PressureVolumeChart = EngineCharts.PressureVolume(trace);
+
+        GasFlowChart = ShowGasFlowVelocities
+            ? EngineCharts.GasFlowVelocity(trace, events)
+            : EngineCharts.GasFlowPressure(trace, engine?.Rpm ?? 0, events);
+
+        InCylinderChart = EngineCharts.InCylinder(trace);
+    }
 
     // Text. Delphi: PVTTrace1Click.
 

@@ -1,13 +1,16 @@
 <Window xmlns="https://github.com/avaloniaui"
+        xmlns:charts="clr-namespace:App.Ui.Charts"
+        xmlns:sp="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:App.Ui.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
+        mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="800"
         x:Class="App.Ui.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding Title}"
-        Width="900" Height="620">
+        Width="1180" Height="800"
+        MinWidth="820" MinHeight="600">
 
   <!--
     Phase 2 shell. The menu reproduces the structure of MainMenu1 on TFMain in
@@ -19,6 +22,45 @@
     both Exit and QuickRun. Avalonia treats MenuItem.InputGesture as display only,
     so the clash is cosmetic here as it stands.
   -->
+  <Window.Styles>
+    <Style Selector="Border.quadrant">
+      <Setter Property="BorderBrush" Value="#40808080" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Margin" Value="4" />
+      <Setter Property="MinHeight" Value="180" />
+    </Style>
+    <Style Selector="TextBlock.quadrantTitle">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontStyle" Value="Italic" />
+      <Setter Property="Margin" Value="0,6,0,2" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,2,6,2" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.value">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="Margin" Value="0,2,4,2" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.unit">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="Margin" Value="0,2,0,2" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="TextDecorations" Value="Underline" />
+      <Setter Property="Margin" Value="0,2,0,2" />
+    </Style>
+  </Window.Styles>
+
   <DockPanel>
     <Menu x:Name="MainMenu" DockPanel.Dock="Top">
 
@@ -69,13 +111,18 @@
 
     </Menu>
 
-    <!-- Delphi kept these on a toolbar and a status bar; the shell shows the same
-         information, and the speed box is what a single-point run uses. -->
-    <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="#40808080" Padding="8,4">
-      <TextBlock x:Name="RunStatusText" Text="{Binding RunStatus}" />
-    </Border>
+    <!-- Delphi kept these on a status bar; the same two facts, plus the run controls
+         it kept on a toolbar. -->
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="8,4">
+      <TextBlock x:Name="RunStatusText" Grid.Column="0"
+                 Text="{Binding RunStatus, StringFormat='Simulation Status: {0}'}"
+                 TextTrimming="CharacterEllipsis" />
+      <TextBlock Grid.Column="1" Opacity="0.7" MaxWidth="460"
+                 Text="{Binding StatusText, StringFormat='Current Engine : {0}'}"
+                 TextTrimming="CharacterEllipsis" />
+    </Grid>
 
-    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="8">
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="8,8,8,4">
       <TextBlock Text="Engine speed" VerticalAlignment="Center" />
       <NumericUpDown x:Name="EngineSpeedBox" Value="{Binding EngineSpeed}"
                      Minimum="100" Maximum="20000" Increment="250" Width="140"
@@ -84,8 +131,113 @@
       <Button x:Name="RunButton" Content="Run"
               Command="{Binding SinglePointSimulationCommand}" />
       <Button x:Name="StopButton" Content="Stop" Command="{Binding StopCommand}" />
+      <CheckBox x:Name="GasFlowVelocitiesBox" Content="Gas flow: velocities"
+                IsChecked="{Binding ShowGasFlowVelocities}" VerticalAlignment="Center" />
     </StackPanel>
 
-    <Panel />
+    <!-- The original's results screen: figures top left, three charts filling the rest. -->
+    <Grid x:Name="ResultsGrid" RowDefinitions="*,*" ColumnDefinitions="*,*" Margin="4">
+
+      <Border x:Name="FiguresQuadrant" Grid.Row="0" Grid.Column="0" Classes="quadrant">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="quadrantTitle"
+                     Text="Single Simulation Results" />
+          <ScrollViewer HorizontalScrollBarVisibility="Auto">
+            <Grid x:Name="ResultsPanel" Margin="8"
+                  ColumnDefinitions="Auto,Auto,Auto,12,Auto,Auto,Auto,12,Auto,Auto,Auto"
+                  RowDefinitions="Auto,8,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+
+              <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Engine Name:" />
+              <TextBlock Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="10" Classes="value"
+                         Text="{Binding Results.EngineName}" />
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Run Time:" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Classes="value" Text="{Binding Results.RunTime}" />
+              <TextBlock Grid.Row="2" Grid.Column="2" Classes="unit" Text="[s]" />
+              <TextBlock Grid.Row="2" Grid.Column="4" Classes="label" Text="Fuel Cons.:" />
+              <TextBlock Grid.Row="2" Grid.Column="5" Classes="value" Text="{Binding Results.FuelConsumption}" />
+              <TextBlock Grid.Row="2" Grid.Column="6" Classes="unit" Text="[kg/hr]" />
+              <TextBlock Grid.Row="2" Grid.Column="8" Grid.ColumnSpan="3" Classes="heading"
+                         Text="Energy Balance" />
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="No. Cycles:" />
+              <TextBlock Grid.Row="3" Grid.Column="1" Classes="value" Text="{Binding Results.Cycles}" />
+              <TextBlock Grid.Row="3" Grid.Column="4" Classes="label" Text="SFC:" />
+              <TextBlock Grid.Row="3" Grid.Column="5" Classes="value" Text="{Binding Results.SpecificFuelConsumption}" />
+              <TextBlock Grid.Row="3" Grid.Column="6" Classes="unit" Text="[g/kW.hr]" />
+              <TextBlock Grid.Row="3" Grid.Column="8" Classes="label" Text="Work:" />
+              <TextBlock Grid.Row="3" Grid.Column="9" Classes="value" Text="{Binding Results.Work}" />
+              <TextBlock Grid.Row="3" Grid.Column="10" Classes="unit" Text="[%]" />
+
+              <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="Mass Balance:" />
+              <TextBlock Grid.Row="4" Grid.Column="1" Classes="value" Text="{Binding Results.MassBalance}" />
+              <TextBlock Grid.Row="4" Grid.Column="2" Classes="unit" Text="[mg]" />
+              <TextBlock Grid.Row="4" Grid.Column="4" Classes="label" Text="Cyl. Mass:" />
+              <TextBlock Grid.Row="4" Grid.Column="5" Classes="value" Text="{Binding Results.CylinderMass}" />
+              <TextBlock Grid.Row="4" Grid.Column="6" Classes="unit" Text="[mg]" />
+              <TextBlock Grid.Row="4" Grid.Column="8" Classes="label" Text="Heat Loss:" />
+              <TextBlock Grid.Row="4" Grid.Column="9" Classes="value" Text="{Binding Results.HeatLoss}" />
+              <TextBlock Grid.Row="4" Grid.Column="10" Classes="unit" Text="[%]" />
+
+              <TextBlock Grid.Row="5" Grid.Column="0" Classes="label" Text="Speed:" />
+              <TextBlock Grid.Row="5" Grid.Column="1" Classes="value" Text="{Binding Results.Speed}" />
+              <TextBlock Grid.Row="5" Grid.Column="2" Classes="unit" Text="[rpm]" />
+              <TextBlock Grid.Row="5" Grid.Column="4" Classes="label" Text="IMEP:" />
+              <TextBlock Grid.Row="5" Grid.Column="5" Classes="value" Text="{Binding Results.Imep}" />
+              <TextBlock Grid.Row="5" Grid.Column="6" Classes="unit" Text="[bar]" />
+              <TextBlock Grid.Row="5" Grid.Column="8" Classes="label" Text="Pumping:" />
+              <TextBlock Grid.Row="5" Grid.Column="9" Classes="value" Text="{Binding Results.Pumping}" />
+              <TextBlock Grid.Row="5" Grid.Column="10" Classes="unit" Text="[%]" />
+
+              <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="Torque:" />
+              <TextBlock Grid.Row="6" Grid.Column="1" Classes="value" Text="{Binding Results.Torque}" />
+              <TextBlock Grid.Row="6" Grid.Column="2" Classes="unit" Text="[Nm]" />
+              <TextBlock Grid.Row="6" Grid.Column="4" Classes="label" Text="BMEP:" />
+              <TextBlock Grid.Row="6" Grid.Column="5" Classes="value" Text="{Binding Results.Bmep}" />
+              <TextBlock Grid.Row="6" Grid.Column="6" Classes="unit" Text="[bar]" />
+              <TextBlock Grid.Row="6" Grid.Column="8" Classes="label" Text="Friction:" />
+              <TextBlock Grid.Row="6" Grid.Column="9" Classes="value" Text="{Binding Results.Friction}" />
+              <TextBlock Grid.Row="6" Grid.Column="10" Classes="unit" Text="[%]" />
+
+              <TextBlock Grid.Row="7" Grid.Column="0" Classes="label" Text="Power:" />
+              <TextBlock Grid.Row="7" Grid.Column="1" Classes="value" Text="{Binding Results.Power}" />
+              <TextBlock Grid.Row="7" Grid.Column="2" Classes="unit" Text="[kW]" />
+              <TextBlock Grid.Row="7" Grid.Column="4" Classes="label" Text="FMEP:" />
+              <TextBlock Grid.Row="7" Grid.Column="5" Classes="value" Text="{Binding Results.Fmep}" />
+              <TextBlock Grid.Row="7" Grid.Column="6" Classes="unit" Text="[bar]" />
+              <TextBlock Grid.Row="7" Grid.Column="8" Classes="label" Text="Exhaust:" />
+              <TextBlock Grid.Row="7" Grid.Column="9" Classes="value" Text="{Binding Results.Exhaust}" />
+              <TextBlock Grid.Row="7" Grid.Column="10" Classes="unit" Text="[%]" />
+
+              <TextBlock Grid.Row="8" Grid.Column="0" Classes="label" Text="Vol.Eff.:" />
+              <TextBlock Grid.Row="8" Grid.Column="1" Classes="value" Text="{Binding Results.VolumetricEfficiency}" />
+              <TextBlock Grid.Row="8" Grid.Column="2" Classes="unit" Text="[%]" />
+              <TextBlock Grid.Row="8" Grid.Column="4" Classes="label" Text="PMEP:" />
+              <TextBlock Grid.Row="8" Grid.Column="5" Classes="value" Text="{Binding Results.Pmep}" />
+              <TextBlock Grid.Row="8" Grid.Column="6" Classes="unit" Text="[bar]" />
+              <TextBlock Grid.Row="8" Grid.Column="8" Classes="label" Text="Fuel:" />
+              <TextBlock Grid.Row="8" Grid.Column="9" Classes="value" Text="{Binding Results.Fuel}" />
+              <TextBlock Grid.Row="8" Grid.Column="10" Classes="unit" Text="[%]" />
+
+            </Grid>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+
+      <Border x:Name="PressureVolumeQuadrant" Grid.Row="0" Grid.Column="1" Classes="quadrant">
+        <sp:AvaPlot x:Name="PressureVolumePlot"
+                    charts:ChartHost.Definition="{Binding PressureVolumeChart}" />
+      </Border>
+
+      <Border x:Name="GasFlowQuadrant" Grid.Row="1" Grid.Column="0" Classes="quadrant">
+        <sp:AvaPlot x:Name="GasFlowPlot" charts:ChartHost.Definition="{Binding GasFlowChart}" />
+      </Border>
+
+      <Border x:Name="InCylinderQuadrant" Grid.Row="1" Grid.Column="1" Classes="quadrant">
+        <sp:AvaPlot x:Name="InCylinderPlot"
+                    charts:ChartHost.Definition="{Binding InCylinderChart}" />
+      </Border>
+
+    </Grid>
   </DockPanel>
 </Window>
