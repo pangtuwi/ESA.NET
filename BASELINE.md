@@ -505,3 +505,17 @@ faad1c0108a13806453d0301a3265c9b  A2China.txt
 
 Treat every file here as read-only. Regenerating any of it means running the
 original Delphi application again, which needs a Windows machine.
+
+## A provenance caveat: line endings
+
+`A2China.txt` and `A2China.eng` carry **LF** line endings; every other captured file —
+the five manifold text files, the four `.m` field files and `SimulDat.txt` — carries
+**CRLF**. All of them came from the same Delphi program on the same Windows machine, and
+Delphi's `Writeln` produces CRLF, so the two LF files were normalised somewhere in
+transit rather than written that way.
+
+`.gitattributes` marks `data/baseline/**` as `-text -diff`, so git has not touched them
+since; what is committed is what arrived. The practical consequence is that a byte-exact
+comparison against `A2China.txt` will fail on line endings alone, so
+`CrankAngleTraceWriterTests` compares line by line and the writer emits CRLF, which is
+what the original actually produces.
