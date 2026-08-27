@@ -24,7 +24,11 @@ public sealed class FileMenuWiringTests
 
         public string? SuggestedName { get; private set; }
 
+        public string? MultiRunResult { get; set; }
+
         public Task<string?> OpenEngineAsync() => Task.FromResult(OpenResult);
+
+        public Task<string?> OpenMultiRunAsync() => Task.FromResult(MultiRunResult);
 
         public Task<string?> SaveEngineAsync(string suggestedName)
         {

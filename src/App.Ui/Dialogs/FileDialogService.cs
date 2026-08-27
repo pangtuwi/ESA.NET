@@ -12,6 +12,11 @@ public sealed class FileDialogService : IFileDialogService
         Patterns = ["*.eng"],
     };
 
+    private static readonly FilePickerFileType MultiRunFiles = new("Multi-run grids")
+    {
+        Patterns = ["*.msr"],
+    };
+
     /// <inheritdoc />
     public async Task<string?> OpenEngineAsync()
     {
@@ -25,6 +30,24 @@ public sealed class FileDialogService : IFileDialogService
             Title = "Open Engine",
             AllowMultiple = false,
             FileTypeFilter = [EngineFiles],
+        });
+
+        return files.Count == 0 ? null : files[0].TryGetLocalPath();
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> OpenMultiRunAsync()
+    {
+        if (MainWindow() is not { } window)
+        {
+            return null;
+        }
+
+        var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open Multi-Run Grid",
+            AllowMultiple = false,
+            FileTypeFilter = [MultiRunFiles],
         });
 
         return files.Count == 0 ? null : files[0].TryGetLocalPath();

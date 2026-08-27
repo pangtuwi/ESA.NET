@@ -39,6 +39,7 @@ public static class ServiceRegistration
         services.AddSingleton<GridSizeCalculator>();
         services.AddSingleton<IChartWindowService, ChartWindowService>();
         services.AddSingleton<SimulationRunner>();
+        services.AddSingleton<MultiRunner>();
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<IEditEngineWindowService, EditEngineWindowService>();
 

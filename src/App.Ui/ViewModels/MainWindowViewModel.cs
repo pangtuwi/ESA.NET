@@ -27,6 +27,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly ISimulationSettingsStore _settingsStore;
     private readonly IFileDialogService _files;
     private readonly IEditEngineWindowService _editor;
+    private readonly MultiRunner _multiRunner;
 
     private CancellationTokenSource? _running;
 
@@ -37,7 +38,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SimulationRunner runner,
         ISimulationSettingsStore settingsStore,
         IFileDialogService files,
-        IEditEngineWindowService editor)
+        IEditEngineWindowService editor,
+        MultiRunner multiRunner)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
@@ -46,7 +48,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _settingsStore = settingsStore;
         _files = files;
         _editor = editor;
+        _multiRunner = multiRunner;
     }
+
+    /// <summary>The multi-run table, loaded from a <c>.msr</c> file.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(MultiPointSimulationCommand))]
+    private MultiRunGrid _multiRun = new();
 
     /// <summary>Run options, as ESA.ini carries them.</summary>
     public SimulationSettings Settings { get; } = new();
@@ -62,6 +70,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Whether a simulation is in progress, which disables starting another.</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SinglePointSimulationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(MultiPointSimulationCommand))]
     [NotifyCanExecuteChangedFor(nameof(StopCommand))]
     private bool _isRunning;
 
@@ -89,6 +98,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyCanExecuteChangedFor(nameof(ValveOpeningCommand))]
     [NotifyCanExecuteChangedFor(nameof(SinglePointSimulationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(MultiPointSimulationCommand))]
     [NotifyCanExecuteChangedFor(nameof(SaveAsCommand))]
     [NotifyCanExecuteChangedFor(nameof(EditEngineCommand))]
     private EngineLoadResult? _currentEngine;
@@ -319,11 +329,101 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private bool CanStartRun => CurrentEngine is not null && !IsRunning;
 
+    /// <summary>
+    /// Opens a saved multi-run grid, which is what makes a sweep possible. Port of the
+    /// grid window's Load button.
+    /// </summary>
     [RelayCommand]
-    private static void MultiPointSimulation()
+    private async Task LoadMultiRunAsync()
     {
-        // Phase 4.
+        if (await _files.OpenMultiRunAsync() is not { } path)
+        {
+            return;
+        }
+
+        try
+        {
+            MultiRun = new MultiRunGridStore().Read(path).Grid;
+
+            RunStatus = MultiRun.RunCount == 0
+                ? $"{Path.GetFileName(path)} holds no runs. If its speed column counts "
+                  + "1, 2, 3 upwards it is a short-format file; see ISSUES.md C13."
+                : $"Loaded {MultiRun.RunCount} run(s) from {Path.GetFileName(path)}.";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                                          or FormatException)
+        {
+            RunStatus = $"Could not open {Path.GetFileName(path)}: {error.Message}";
+        }
     }
+
+    /// <summary>
+    /// Runs every row of the multi-run grid, building a torque curve. Port of
+    /// <c>MultiPointSimulation1Click</c>.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanStartMultiRun))]
+    private async Task MultiPointSimulationAsync()
+    {
+        _running = new CancellationTokenSource();
+        IsRunning = true;
+
+        // The original clears the curve before a sweep, so it shows this run and not an
+        // accumulation of every run before it.
+        Performance.Points.Clear();
+        TorqueCurveCommand.NotifyCanExecuteChanged();
+
+        try
+        {
+            var token = _running.Token;
+            var path = CurrentEngineFile;
+
+            var progress = new Progress<MultiRunProgress>(
+                p => RunStatus =
+                    $"Run {p.Row + 1} of {p.TotalRows} at {p.Speed:F0} rev/min   "
+                    + $"cycle {p.Inner.Cycle}   {p.Inner.CrankAngle,4:F0}°");
+
+            var results = await Task.Run(
+                () => _multiRunner.Run(path, MultiRun, Settings, progress, token), token);
+
+            foreach (var row in results.Where(r => r.Result is not null))
+            {
+                var engine = row.Result!.Engine;
+
+                Performance.Points.Add(new PerformancePoint
+                {
+                    Speed = row.Speed,
+                    Torque = engine.Torque,
+                    Power = engine.BrakePower / 1e3,
+                    VolumetricEfficiency = engine.VolumetricEfficiency,
+                });
+            }
+
+            // The last row's cycle is what the charts show, as in the original.
+            Trace = results.LastOrDefault(r => r.Result is not null)?.Result!.Trace ?? Trace;
+            TorqueCurveCommand.NotifyCanExecuteChanged();
+
+            var failed = results.Count(r => r.Failure is not null);
+
+            RunStatus = failed == 0
+                ? $"Completed {results.Count} runs."
+                : $"Completed {results.Count - failed} of {results.Count} runs; "
+                  + $"{failed} failed. First failure: "
+                  + results.First(r => r.Failure is not null).Failure;
+        }
+        catch (OperationCanceledException)
+        {
+            RunStatus = $"Stopped after {Performance.Points.Count} runs.";
+        }
+        finally
+        {
+            IsRunning = false;
+            _running.Dispose();
+            _running = null;
+        }
+    }
+
+    private bool CanStartMultiRun =>
+        CurrentEngine is not null && !IsRunning && MultiRun.RunCount > 0;
 
     [RelayCommand]
     private static void Pause()

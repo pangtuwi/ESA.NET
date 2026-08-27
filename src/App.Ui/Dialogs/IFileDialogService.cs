@@ -11,4 +11,7 @@ public interface IFileDialogService
 
     /// <summary>Asks where to save an engine file, or null if the user cancelled.</summary>
     Task<string?> SaveEngineAsync(string suggestedName);
+
+    /// <summary>Asks for a saved multi-run grid to open, or null if the user cancelled.</summary>
+    Task<string?> OpenMultiRunAsync();
 }

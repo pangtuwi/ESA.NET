@@ -40,6 +40,8 @@
         <MenuItem Header="_Pause" InputGesture="Ctrl+P" Command="{Binding PauseCommand}" />
         <MenuItem Header="S_TOP" InputGesture="Ctrl+S" Command="{Binding StopCommand}" />
         <MenuItem Header="_QuickRun" InputGesture="Ctrl+Q" Command="{Binding QuickRunCommand}" />
+        <Separator />
+        <MenuItem Header="Load Multi-Run _Grid..." Command="{Binding LoadMultiRunCommand}" />
       </MenuItem>
 
       <MenuItem Header="_Graph">

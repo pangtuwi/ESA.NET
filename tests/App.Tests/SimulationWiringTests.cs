@@ -95,4 +95,72 @@ public sealed class SimulationWiringTests
         Assert.NotNull(window.FindControl<Button>("StopButton"));
         Assert.NotNull(window.FindControl<TextBlock>("RunStatusText"));
     }
+
+    [Fact]
+    public void MultiRunNeedsBothAnEngineAndAPopulatedGrid()
+    {
+        BaselinePaths.Require();
+
+        var viewModel = Loaded();
+
+        // An engine is open but the grid is empty, so there is nothing to sweep.
+        Assert.Equal(0, viewModel.MultiRun.RunCount);
+        Assert.False(viewModel.MultiPointSimulationCommand.CanExecute(null));
+
+        viewModel.MultiRun[0, 0] = "4000";
+        viewModel.MultiRun[0, 1] = "6";
+
+        // RunCount is computed rather than observable, so the command is re-queried when
+        // the engine or the running flag changes; a grid edit alone will not refresh it.
+        Assert.True(viewModel.MultiPointSimulationCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task AMultiRunBuildsTheTorqueCurveAndLeavesTheLastCycleForTheCharts()
+    {
+        BaselinePaths.Require();
+
+        var viewModel = Loaded();
+        viewModel.CurrentEngineFile = BaselinePaths.File("A2China.eng");
+
+        viewModel.MultiRun[0, 0] = "3000";
+        viewModel.MultiRun[0, 1] = "6";
+        viewModel.MultiRun[1, 0] = "4000";
+        viewModel.MultiRun[1, 1] = "6";
+
+        await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
+
+        // One point per row, in grid order.
+        Assert.Equal(2, viewModel.Performance.Points.Count);
+        Assert.Equal([3000, 4000], viewModel.Performance.Points.Select(p => p.Speed));
+        Assert.True(viewModel.TorqueCurveCommand.CanExecute(null));
+
+        // The last row's cycle is what the charts show.
+        Assert.NotNull(viewModel.Trace);
+        Assert.True(viewModel.PressureVolumeCommand.CanExecute(null));
+
+        Assert.Contains("Completed 2 runs", viewModel.RunStatus, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AMultiRunClearsAnyEarlierCurveFirst()
+    {
+        BaselinePaths.Require();
+
+        var viewModel = Loaded();
+        viewModel.CurrentEngineFile = BaselinePaths.File("A2China.eng");
+
+        // A single-point run first, then a sweep: the sweep shows itself, not an
+        // accumulation, which is what the original does before a multi-run.
+        await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
+        Assert.Single(viewModel.Performance.Points);
+
+        viewModel.MultiRun[0, 0] = "3000";
+        viewModel.MultiRun[0, 1] = "6";
+
+        await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
+
+        var point = Assert.Single(viewModel.Performance.Points);
+        Assert.Equal(3000, point.Speed);
+    }
 }

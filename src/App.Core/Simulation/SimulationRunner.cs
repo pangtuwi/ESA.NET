@@ -39,12 +39,19 @@ public sealed class SimulationRunner
     /// </summary>
     /// <param name="progress">Called after each step, on the calling thread.</param>
     /// <param name="cancellation">Checked between steps, so a long run can be stopped.</param>
+    /// <param name="afterInitialise">
+    /// Applied once the engine is initialised and before the first cycle. The original
+    /// has this seam because <c>InitVars</c> derives some values that a multi-run row is
+    /// then allowed to override - the spark angle above all, which <c>InitVars</c> looks
+    /// up from the <c>.spk</c> map and the grid may replace.
+    /// </param>
     /// <exception cref="EngineException">The engine could not be initialised or ran to an impossible state.</exception>
     public SimulationResult Run(
         Engine engine,
         SimulationSettings settings,
         IProgress<SimulationProgress>? progress = null,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default,
+        Action<Engine>? afterInitialise = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(settings);
@@ -57,6 +64,8 @@ public sealed class SimulationRunner
             throw new EngineException(
                 "The engine could not be initialised: one or both cam profiles failed to load.");
         }
+
+        afterInitialise?.Invoke(engine);
 
         var recorder = new CrankAngleTraceRecorder(solver.InletValve, solver.ExhaustValve);
         var requested = Math.Max(settings.CycleCount, EsaLimits.MinimumCycles);
