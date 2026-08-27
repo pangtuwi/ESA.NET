@@ -348,7 +348,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
             RunStatus = MultiRun.RunCount == 0
                 ? $"{Path.GetFileName(path)} holds no runs. If its speed column counts "
                   + "1, 2, 3 upwards it is a short-format file; see ISSUES.md C13."
-                : $"Loaded {MultiRun.RunCount} run(s) from {Path.GetFileName(path)}.";
+                : CurrentEngine is null
+                    ? $"Loaded {MultiRun.RunCount} run(s) from {Path.GetFileName(path)}. "
+                      + "Load an engine, then press Run Multi-Point (Ctrl+M) to start it."
+                    : $"Loaded {MultiRun.RunCount} run(s) from {Path.GetFileName(path)}. "
+                      + "Press Run Multi-Point (Ctrl+M) to start it.";
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException
                                           or FormatException)

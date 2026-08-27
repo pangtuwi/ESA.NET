@@ -19,6 +19,18 @@
     both Exit and QuickRun. Avalonia treats MenuItem.InputGesture as display only,
     so the clash is cosmetic here as it stands.
   -->
+  <Window.KeyBindings>
+    <!-- MenuItem.InputGesture only displays the caption in Avalonia; these make the
+         keys actually do something. Ctrl+Q is left bound to Exit only - see ISSUES.md C8. -->
+    <KeyBinding Gesture="Ctrl+E" Command="{Binding EditEngineCommand}" />
+    <KeyBinding Gesture="Ctrl+L" Command="{Binding LoadDefaultCommand}" />
+    <KeyBinding Gesture="Ctrl+Q" Command="{Binding ExitCommand}" />
+    <KeyBinding Gesture="Ctrl+R" Command="{Binding SinglePointSimulationCommand}" />
+    <KeyBinding Gesture="Ctrl+M" Command="{Binding MultiPointSimulationCommand}" />
+    <KeyBinding Gesture="Ctrl+P" Command="{Binding PauseCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding StopCommand}" />
+  </Window.KeyBindings>
+
   <DockPanel>
     <Menu x:Name="MainMenu" DockPanel.Dock="Top">
 
@@ -83,6 +95,8 @@
       <TextBlock Text="rev/min" VerticalAlignment="Center" />
       <Button x:Name="RunButton" Content="Run"
               Command="{Binding SinglePointSimulationCommand}" />
+      <Button x:Name="RunMultiPointButton" Content="Run Multi-Point"
+              Command="{Binding MultiPointSimulationCommand}" />
       <Button x:Name="StopButton" Content="Stop" Command="{Binding StopCommand}" />
     </StackPanel>
 
