@@ -50,6 +50,17 @@ public sealed class ManifoldSolver : IManifoldSource
 
     private bool _started;
 
+    /// <summary>
+    /// Where the nine output files' rows go, or <see langword="null"/> to record nothing.
+    /// </summary>
+    /// <remarks>
+    /// The original gates its writes on three conditions at once and gets the files only
+    /// when a run reaches its final <b>requested</b> cycle, which a converged run never
+    /// does (ISSUES.md C1 to C4). None of that is reproduced: the caller decides when to
+    /// attach a recorder, and everything sent to it is written.
+    /// </remarks>
+    public IManifoldRecorder? Recorder { get; set; }
+
     public ManifoldSolver(Engine engine, IExpressionEvaluator? evaluator = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
@@ -196,6 +207,18 @@ public sealed class ManifoldSolver : IManifoldSource
             massOut = 0;
             pressureCorrection = 0;
         }
+
+        Recorder?.Record(new ManifoldRow(
+            CrankAngle: crankAngle,
+            CylinderPressure: request.CylinderPressure,
+            CylinderTemperature: request.CylinderTemperature,
+            CylinderVolume: request.CylinderVolume,
+            MassIn: massIn,
+            MassOut: massOut,
+            InletPressure: _inlet.Pressure.AsMemory(0, _inlet.ActiveCount),
+            InletVelocity: _inlet.Velocity.AsMemory(0, _inlet.ActiveCount),
+            ExhaustPressure: _exhaust.Pressure.AsMemory(0, _exhaust.ActiveCount),
+            ExhaustVelocity: _exhaust.Velocity.AsMemory(0, _exhaust.ActiveCount)));
 
         return Report(massIn, massOut, pressureCorrection);
     }
