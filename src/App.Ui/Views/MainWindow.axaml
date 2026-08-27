@@ -67,6 +67,23 @@
 
     </Menu>
 
+    <!-- Delphi kept these on a toolbar and a status bar; the shell shows the same
+         information, and the speed box is what a single-point run uses. -->
+    <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="#40808080" Padding="8,4">
+      <TextBlock x:Name="RunStatusText" Text="{Binding RunStatus}" />
+    </Border>
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="8">
+      <TextBlock Text="Engine speed" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="EngineSpeedBox" Value="{Binding EngineSpeed}"
+                     Minimum="100" Maximum="20000" Increment="250" Width="140"
+                     FormatString="0" />
+      <TextBlock Text="rev/min" VerticalAlignment="Center" />
+      <Button x:Name="RunButton" Content="Run"
+              Command="{Binding SinglePointSimulationCommand}" />
+      <Button x:Name="StopButton" Content="Stop" Command="{Binding StopCommand}" />
+    </StackPanel>
+
     <Panel />
   </DockPanel>
 </Window>

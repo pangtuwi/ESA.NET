@@ -2,6 +2,7 @@ using App.Core;
 using App.Core.Charts;
 using App.Core.Model;
 using App.Core.Simulation;
+using App.Persistence;
 using App.Ui.Charts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -21,16 +22,41 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IEngineLoader _engineLoader;
     private readonly IEngineDefinitionStore _definitions;
     private readonly IChartWindowService _charts;
+    private readonly SimulationRunner _runner;
+    private readonly ISimulationSettingsStore _settingsStore;
+
+    private CancellationTokenSource? _running;
 
     public MainWindowViewModel(
         IEngineLoader engineLoader,
         IEngineDefinitionStore definitions,
-        IChartWindowService charts)
+        IChartWindowService charts,
+        SimulationRunner runner,
+        ISimulationSettingsStore settingsStore)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
         _charts = charts;
+        _runner = runner;
+        _settingsStore = settingsStore;
     }
+
+    /// <summary>Run options, as ESA.ini carries them.</summary>
+    public SimulationSettings Settings { get; } = new();
+
+    /// <summary>Engine speed for a single-point run, in rev/min.</summary>
+    [ObservableProperty]
+    private double _engineSpeed = 4000;
+
+    /// <summary>What the simulation is doing, for the status bar.</summary>
+    [ObservableProperty]
+    private string _runStatus = string.Empty;
+
+    /// <summary>Whether a simulation is in progress, which disables starting another.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SinglePointSimulationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopCommand))]
+    private bool _isRunning;
 
     /// <summary>
     /// The last completed run's captured cycle, which the charts draw from. Null until a
@@ -55,6 +81,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText))]
     [NotifyCanExecuteChangedFor(nameof(ValveOpeningCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SinglePointSimulationCommand))]
     private EngineLoadResult? _currentEngine;
 
     /// <summary>The file the current engine came from, shown in the status line.</summary>
@@ -145,11 +172,80 @@ public sealed partial class MainWindowViewModel : ObservableObject
     // Run. Delphi: SinglePointSimulation1Click, MultiPointSimulation1Click,
     // Pause1Click, STOP1Click, QuickRunClick.
 
-    [RelayCommand]
-    private static void SinglePointSimulation()
+    /// <summary>
+    /// Simulates the open engine at the chosen speed, then makes the charts and exports
+    /// available. Runs off the UI thread so the window stays responsive and Stop works.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanStartRun))]
+    private async Task SinglePointSimulationAsync()
     {
-        // Phase 4.
+        var engine = CurrentEngine!.Engine;
+        engine.Rpm = EngineSpeed;
+
+        _running = new CancellationTokenSource();
+        IsRunning = true;
+        RunStatus = "Simulating...";
+
+        try
+        {
+            var token = _running.Token;
+
+            // Progress<T> marshals back to the UI thread for us.
+            var progress = new Progress<SimulationProgress>(
+                p => RunStatus =
+                    $"Cycle {p.Cycle} of {p.RequestedCycles}   "
+                    + $"{p.CrankAngle,4:F0}°   mass balance {p.MassBalance:F2} mg");
+
+            var result = await Task.Run(
+                () => _runner.Run(engine, Settings, progress, token), token);
+
+            Trace = result.Trace;
+
+            Performance.Points.Add(new PerformancePoint
+            {
+                Speed = engine.Rpm,
+                Torque = engine.Torque,
+                Power = engine.BrakePower / 1e3,
+                VolumetricEfficiency = engine.VolumetricEfficiency,
+            });
+
+            TorqueCurveCommand.NotifyCanExecuteChanged();
+
+            RunStatus = result.Converged
+                ? $"Converged after {result.CyclesRun} cycles.   "
+                  + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW"
+                : $"Stopped at the requested {result.CyclesRun} cycles without converging.   "
+                  + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW";
+        }
+        catch (OperationCanceledException)
+        {
+            RunStatus = "Stopped.";
+        }
+        catch (EngineException error)
+        {
+            RunStatus = $"Terminated on engine error: {error.Message}";
+        }
+        catch (CfdException error)
+        {
+            RunStatus = $"Terminated on CFD error: {error.Message}";
+        }
+        catch (EquilibriumException error)
+        {
+            RunStatus = $"Terminated on equilibrium error: {error.Message}";
+        }
+        catch (GasPropertiesException error)
+        {
+            RunStatus = $"Terminated on gas properties error: {error.Message}";
+        }
+        finally
+        {
+            IsRunning = false;
+            _running.Dispose();
+            _running = null;
+        }
     }
+
+    private bool CanStartRun => CurrentEngine is not null && !IsRunning;
 
     [RelayCommand]
     private static void MultiPointSimulation()
@@ -163,11 +259,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         // Phase 4.
     }
 
-    [RelayCommand]
-    private static void Stop()
-    {
-        // Phase 4.
-    }
+    /// <summary>Asks a running simulation to stop at the next step.</summary>
+    [RelayCommand(CanExecute = nameof(IsRunning))]
+    private void Stop() => _running?.Cancel();
 
     [RelayCommand]
     private static void QuickRun()

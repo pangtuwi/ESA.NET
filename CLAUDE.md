@@ -202,7 +202,7 @@ pressing OK must not restyle a single byte.
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | **Complete** |
 | 3 | Remaining file formats (`.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, `.exh`, `ESA.ini`), an expression evaluator to replace `TAdCalc`, and the engine Edit form | **Complete** |
 | 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against the `data/baseline/` reference run (see `BASELINE.md`) | **Complete.** A converged whole-cycle run matches the reference trace to 0.33 % at every crank angle; see `ISSUES.md` A8 and A10 for what is still open |
-| 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | Not started |
+| 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | **Complete**, and the Run menu drives the simulation |
 | 6 | Packaging and distribution | Not started |
 
 ### What phase 2 delivered

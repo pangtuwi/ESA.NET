@@ -2,6 +2,7 @@ using App.Core;
 using App.Core.Expressions;
 using App.Persistence;
 using App.Persistence.Tables;
+using App.Core.Simulation;
 using App.Ui.Charts;
 using App.Ui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,6 +37,7 @@ public static class ServiceRegistration
         services.AddSingleton<IExpressionEvaluator, CachingExpressionEvaluator>();
         services.AddSingleton<GridSizeCalculator>();
         services.AddSingleton<IChartWindowService, ChartWindowService>();
+        services.AddSingleton<SimulationRunner>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<EditEngineViewModel>();
