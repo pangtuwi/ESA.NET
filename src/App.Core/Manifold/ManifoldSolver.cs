@@ -38,7 +38,7 @@ public sealed class ManifoldSolver : IManifoldSource
     private readonly PipeGrid _exhaustNext;
 
     private readonly double _plenumPressure;
-    private readonly double _plenumTemperature;
+    private double _plenumTemperature;
     private readonly double _backPressure;
     private readonly double _backTemperature;
 
@@ -70,11 +70,13 @@ public sealed class ManifoldSolver : IManifoldSource
             manifold.ExhaustGrid.Expression, _exhaustPipe.Length, rpm);
 
         _plenumPressure = expressions.Evaluate(manifold.PlenumPressureFunction.Expression, rpm);
-        _plenumTemperature = manifold.PlenumTemperature;
 
+        // Gauge kPa plus atmospheric, and the temperature raw: see the notes in
+        // CycleSolver.InitialiseExhaust and ISSUES.md B66.
         var back = manifold.ExhaustBack;
-        _backPressure = LegacyInterpolation.AtSpeed(back.Rpm, back.Pressure, rpm) * 1000;
-        _backTemperature = LegacyInterpolation.AtSpeed(back.Rpm, back.Temperature, rpm) + 273.15;
+        _backPressure = (LegacyInterpolation.AtSpeed(back.Rpm, back.Pressure, rpm) * 1000)
+                        + engine.Atmosphere.PGas;
+        _backTemperature = LegacyInterpolation.AtSpeed(back.Rpm, back.Temperature, rpm);
 
         _inletTuning = (
             Forward: InletForwardTuning(manifold, expressions, rpm),
@@ -91,8 +93,12 @@ public sealed class ManifoldSolver : IManifoldSource
         _inletNext = new PipeGrid(EsaLimits.InletGridPoints);
         _exhaustNext = new PipeGrid(EsaLimits.ExhaustGridPoints);
 
-        Initialise(inletPoints, exhaustPoints);
+        _inletPoints = inletPoints;
+        _exhaustPoints = exhaustPoints;
     }
+
+    private readonly int _inletPoints;
+    private readonly int _exhaustPoints;
 
     /// <summary>
     /// Delphi <c>tStep</c>: how many times inlet valve closing has come round. The
@@ -119,6 +125,8 @@ public sealed class ManifoldSolver : IManifoldSource
 
     private void Initialise(int inletPoints, int exhaustPoints)
     {
+        _plenumTemperature = _engine.Manifold.PlenumTemperature;
+
         foreach (var (grid, points, length, pressure, temperature, gamma) in
                  new[]
                  {
@@ -156,7 +164,11 @@ public sealed class ManifoldSolver : IManifoldSource
         // original: no characteristics are advanced and nothing crosses a valve.
         if (!_started)
         {
+            // Everything the original does at tStep = 0, deferred to here rather than to
+            // construction because the plenum temperature is not known until InitVars has
+            // run - and InitVars is what sets it.
             _started = true;
+            Initialise(_inletPoints, _exhaustPoints);
             return Report(0, 0, 0);
         }
 

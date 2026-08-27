@@ -53,6 +53,11 @@ public sealed class ManifoldSolverTests
         var engine = BaselineEngine();
         var solver = new ManifoldSolver(engine);
 
+        // The grid is laid out on the first step, not at construction, because the
+        // original does it inside Main_Prog at tStep = 0 - by which point InitVars has
+        // established the plenum temperature it seeds from.
+        solver.Step(Request(-100, 200000, 400, 0, 0));
+
         // The same 39 and 16 the .m field files carry.
         Assert.Equal(39, solver.InletGrid.ActiveCount);
         Assert.Equal(16, solver.ExhaustGrid.ActiveCount);
@@ -177,5 +182,111 @@ public sealed class ManifoldSolverTests
         }
 
         Assert.Equal(1, solver.TimeStep);
+    }
+
+    /// <summary>
+    /// The acceptance run for phase 4: load the baseline engine, simulate to convergence
+    /// with both the cylinder model and the real manifold solver live, and compare the
+    /// final cycle against the original's own trace at every crank angle.
+    /// </summary>
+    /// <remarks>
+    /// Everything before this validated one layer at a time, mostly through one-step-ahead
+    /// residuals from the reference state. This is the first test where nothing is fed
+    /// from the trace: the port runs open-loop from InitVars' initial guess, converges its
+    /// own mass balance, and is then asked whether it arrived at the same place.
+    /// </remarks>
+    [Fact]
+    public void AConvergedRunMatchesTheBaselineTraceAtEveryCrankAngle()
+    {
+        BaselinePaths.Require();
+
+        var engine = BaselineEngine();
+        var solver = new App.Core.Simulation.CycleSolver(engine, new ManifoldSolver(engine));
+
+        Assert.True(solver.Initialise(), "Both cam profiles should have loaded.");
+
+        var captured = new Dictionary<int, (double Pressure, double Mass)>();
+
+        solver.StepCompleted += s =>
+        {
+            var crankAngle = (int)Math.Round(s.Engine.CrankAngle);
+
+            // Each cycle starts at inlet valve closing; keep only the last one.
+            if (crankAngle == -100)
+            {
+                captured.Clear();
+            }
+
+            captured[crankAngle] = (s.Engine.Cylinder.PGas, s.Engine.Cylinder.MGas);
+        };
+
+        var cycles = solver.RunCycles(
+            new SimulationSettings { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 });
+
+        // The original converged in four requested cycles; this reaches its mass balance
+        // in three, which is within the same ballpark and not itself a fidelity claim.
+        Assert.InRange(cycles, 2, 6);
+        Assert.Equal(720, captured.Count);
+
+        var referencePressure = BaselinePaths.TraceColumn("PCyl");
+        var referenceMass = BaselinePaths.TraceColumn("Mcyl");
+
+        var worstPressure = 0.0;
+        var worstPressureAngle = 0;
+        var worstMass = 0.0;
+
+        for (var i = 0; i < referencePressure.Count; i++)
+        {
+            var angle = (int)referencePressure[i].CrankAngle;
+            var got = captured[angle];
+
+            var pressureError = Math.Abs(got.Pressure - referencePressure[i].Value)
+                                / referencePressure[i].Value;
+
+            if (pressureError > worstPressure)
+            {
+                worstPressure = pressureError;
+                worstPressureAngle = angle;
+            }
+
+            // Mass is printed in milligrams to two decimals, so tiny values carry little
+            // precision; compare against the trapped charge rather than each reading.
+            worstMass = Math.Max(
+                worstMass,
+                Math.Abs((got.Mass * 1e6) - referenceMass[i].Value) / 580.32);
+        }
+
+        Assert.True(
+            worstPressure < 0.005,
+            $"Worst cylinder pressure error {worstPressure:P3} at {worstPressureAngle} degrees.");
+
+        Assert.True(worstMass < 0.01, $"Worst cylinder mass error {worstMass:P3} of the charge.");
+    }
+
+    [Fact]
+    public void AConvergedRunReproducesTheReportedMassFlows()
+    {
+        BaselinePaths.Require();
+
+        var engine = BaselineEngine();
+        var solver = new App.Core.Simulation.CycleSolver(engine, new ManifoldSolver(engine));
+
+        solver.Initialise();
+        solver.RunCycles(
+            new SimulationSettings { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 });
+
+        // SimulDat.txt reports MassIn 560.11 mg, MassOut 560.38 mg and a trapped charge
+        // of 580.11 mg. The port reaches its own converged balance rather than being fed
+        // these, so a relative bound is the honest comparison; it currently lands about
+        // 0.3 per cent high on all three.
+        void Within(double expected, double actual, string what) =>
+            Assert.True(
+                Math.Abs(actual - expected) / expected < 0.01,
+                $"{what}: expected {expected:F2} mg, got {actual:F2} mg "
+                + $"({(actual - expected) / expected:P2}).");
+
+        Within(560.11, engine.TotalMassInInletValve * 1e6, "Mass in");
+        Within(560.38, engine.TotalMassOutExhaustValve * 1e6, "Mass out");
+        Within(580.11, engine.Cylinder.MGas * 1e6, "Trapped charge");
     }
 }

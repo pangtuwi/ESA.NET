@@ -126,6 +126,10 @@ public sealed class CycleSolver
 
         // Not conditions at inlet valve closing despite the names: the plenum's, fixed
         // here for the whole run. See ISSUES.md B38.
+        // InitVars: PlenumT := Plenum.Tgas. The manifold solver reads this when it lays
+        // out its grids on the first step.
+        engine.Manifold.PlenumTemperature = _plenum.GasTemperature();
+
         engine.PressureAtIvc = engine.Plenum.PGas;
         engine.TemperatureAtIvc = _plenum.GasTemperature();
         engine.VolumeAtIvc = Geometry.Volume(States.InletClose * Math.PI / 180);
@@ -203,9 +207,17 @@ public sealed class CycleSolver
         var exhaust = engine.Exhaust;
         var table = engine.Manifold.ExhaustBack;
 
-        exhaust.PGas = LegacyInterpolation.AtSpeed(table.Rpm, table.Pressure, engine.Rpm) * 1000;
+        // The .exh table holds gauge pressure in kPa; TExhaustPandT.Pres adds
+        // atmospheric to make it absolute (ExhBackPandT.pas:72).
+        exhaust.PGas = (LegacyInterpolation.AtSpeed(table.Rpm, table.Pressure, engine.Rpm) * 1000)
+                       + engine.Atmosphere.PGas;
+
         exhaust.Tu = 293.15;
-        exhaust.Tb = LegacyInterpolation.AtSpeed(table.Rpm, table.Temperature, engine.Rpm) + 273.15;
+
+        // Deliberately not converted. The .exh column is headed TEMP[C] and
+        // TExhaustPandT.Temp returns it raw, so the original uses Celsius wherever a
+        // temperature in kelvin is wanted. See ISSUES.md B66.
+        exhaust.Tb = LegacyInterpolation.AtSpeed(table.Rpm, table.Temperature, engine.Rpm);
 
         Setup(_exhaust);
 
