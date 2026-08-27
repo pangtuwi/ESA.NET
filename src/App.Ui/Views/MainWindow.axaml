@@ -48,6 +48,12 @@
         <MenuItem Header="_Torque Curve" Command="{Binding TorqueCurveCommand}" />
         <MenuItem Header="_Valve Opening" Command="{Binding ValveOpeningCommand}" />
         <MenuItem Header="_Energy Balance" Command="{Binding EnergyBalanceCommand}" />
+        <Separator />
+        <MenuItem Header="_P-V Diagram" Command="{Binding PressureVolumeCommand}" />
+        <MenuItem Header="_In-Cylinder" Command="{Binding InCylinderCommand}" />
+        <MenuItem Header="Gas Flow: P_ressure" Command="{Binding GasFlowPressureCommand}" />
+        <MenuItem Header="Gas Flow: V_elocity" Command="{Binding GasFlowVelocityCommand}" />
+        <MenuItem Header="Gas Flow: _Mass" Command="{Binding GasFlowMassCommand}" />
       </MenuItem>
 
       <MenuItem Header="_Text">

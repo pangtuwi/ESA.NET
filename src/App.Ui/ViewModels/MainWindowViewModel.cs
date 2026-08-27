@@ -1,4 +1,8 @@
 using App.Core;
+using App.Core.Charts;
+using App.Core.Model;
+using App.Core.Simulation;
+using App.Ui.Charts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -16,12 +20,33 @@ public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly IEngineLoader _engineLoader;
     private readonly IEngineDefinitionStore _definitions;
+    private readonly IChartWindowService _charts;
 
-    public MainWindowViewModel(IEngineLoader engineLoader, IEngineDefinitionStore definitions)
+    public MainWindowViewModel(
+        IEngineLoader engineLoader,
+        IEngineDefinitionStore definitions,
+        IChartWindowService charts)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
+        _charts = charts;
     }
+
+    /// <summary>
+    /// The last completed run's captured cycle, which the charts draw from. Null until a
+    /// simulation has been run, which is what disables the chart commands.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EnergyBalanceCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PressureVolumeCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GasFlowPressureCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GasFlowVelocityCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GasFlowMassCommand))]
+    [NotifyCanExecuteChangedFor(nameof(InCylinderCommand))]
+    private CrankAngleTrace? _trace;
+
+    /// <summary>Points accumulated across a multi-run, for the torque curve.</summary>
+    public PerformanceData Performance { get; } = new();
 
     /// <summary>Window caption. The Delphi original appended a version and build date.</summary>
     public string Title => "Engine Simulation and Analysis (ESA)";
@@ -29,6 +54,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>The engine currently open, or <see langword="null"/> before anything is loaded.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyCanExecuteChangedFor(nameof(ValveOpeningCommand))]
     private EngineLoadResult? _currentEngine;
 
     /// <summary>The file the current engine came from, shown in the status line.</summary>
@@ -157,23 +183,54 @@ public sealed partial class MainWindowViewModel : ObservableObject
         // Phase 5.
     }
 
-    [RelayCommand]
-    private static void TorqueCurve()
+    /// <summary>Torque, power and volumetric efficiency against speed.</summary>
+    [RelayCommand(CanExecute = nameof(HasPerformancePoints))]
+    private void TorqueCurve() => _charts.Show(EngineCharts.TorqueCurve(Performance));
+
+    private bool HasPerformancePoints => Performance.Points.Count > 0;
+
+    /// <summary>
+    /// The camshaft profiles. Unlike the others this needs only the engine, not a
+    /// completed run, so it is available as soon as a file is open.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasEngine))]
+    private void ValveOpening()
     {
-        // Phase 5.
+        var manifold = CurrentEngine!.Engine.Manifold;
+
+        _charts.Show(EngineCharts.ValveLift(
+            ValveMotion.Inlet(manifold.InletValve),
+            ValveMotion.Exhaust(manifold.ExhaustValve)));
     }
 
-    [RelayCommand]
-    private static void ValveOpening()
-    {
-        // Phase 5.
-    }
+    private bool HasEngine => CurrentEngine is not null;
 
-    [RelayCommand]
-    private static void EnergyBalance()
-    {
-        // Phase 5.
-    }
+    /// <summary>Accumulated heat loss against indicated and pumping work.</summary>
+    [RelayCommand(CanExecute = nameof(HasTrace))]
+    private void EnergyBalance() => _charts.Show(EngineCharts.EnergyBalance(Trace!));
+
+    /// <summary>The pressure-volume diagram.</summary>
+    [RelayCommand(CanExecute = nameof(HasTrace))]
+    private void PressureVolume() => _charts.Show(EngineCharts.PressureVolume(Trace!));
+
+    /// <summary>Pressure either side of the cylinder through the gas exchange.</summary>
+    [RelayCommand(CanExecute = nameof(HasTrace))]
+    private void GasFlowPressure() =>
+        _charts.Show(EngineCharts.GasFlowPressure(Trace!, CurrentEngine?.Engine.Rpm ?? 0));
+
+    /// <summary>Gas velocity at each valve.</summary>
+    [RelayCommand(CanExecute = nameof(HasTrace))]
+    private void GasFlowVelocity() => _charts.Show(EngineCharts.GasFlowVelocity(Trace!));
+
+    /// <summary>The mass balance across the cycle.</summary>
+    [RelayCommand(CanExecute = nameof(HasTrace))]
+    private void GasFlowMass() => _charts.Show(EngineCharts.GasFlowMass(Trace!));
+
+    /// <summary>Cylinder pressure and zone temperatures over the closed period.</summary>
+    [RelayCommand(CanExecute = nameof(HasTrace))]
+    private void InCylinder() => _charts.Show(EngineCharts.InCylinder(Trace!));
+
+    private bool HasTrace => Trace is not null;
 
     // Text. Delphi: PVTTrace1Click.
 

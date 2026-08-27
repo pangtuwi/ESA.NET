@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:charts="clr-namespace:App.Ui.Charts"
+        xmlns:sp="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+        xmlns:vm="clr-namespace:App.Ui.ViewModels"
+        x:Class="App.Ui.Views.ChartWindow"
+        x:DataType="vm:ChartWindowViewModel"
+        Title="{Binding Title}"
+        Width="820" Height="560">
+
+  <sp:AvaPlot Name="Plot" charts:ChartHost.Definition="{Binding Definition}" />
+
+</Window>

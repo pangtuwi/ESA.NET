@@ -52,8 +52,14 @@ public sealed class MenuStructureTests
             .SelectMany(top => top.Items.OfType<MenuItem>())
             .ToList();
 
-        // Five File, five Run, four Graph, one Text, two Help.
-        Assert.Equal(17, leaves.Count);
+        // Five File, five Run, nine Graph, one Text, two Help.
+        //
+        // The Graph menu has grown past what Main.dfm carried. The original drew five of
+        // its charts - the P-V diagram, the in-cylinder trace and the three gas-flow
+        // modes - inside its own main window, switched by radio buttons on a separate
+        // options dialog rather than by menu items. They are windows here like the other
+        // four, so they need somewhere to be opened from.
+        Assert.Equal(22, leaves.Count);
         Assert.All(leaves, item => Assert.NotNull(item.Command));
     }
 }

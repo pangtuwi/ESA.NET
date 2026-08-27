@@ -2,6 +2,7 @@ using App.Core;
 using App.Core.Expressions;
 using App.Persistence;
 using App.Persistence.Tables;
+using App.Ui.Charts;
 using App.Ui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,6 +35,7 @@ public static class ServiceRegistration
         // Shared so that a parsed expression is reused across the whole session.
         services.AddSingleton<IExpressionEvaluator, CachingExpressionEvaluator>();
         services.AddSingleton<GridSizeCalculator>();
+        services.AddSingleton<IChartWindowService, ChartWindowService>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<EditEngineViewModel>();
