@@ -1,3 +1,4 @@
+using App.Core;
 using Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,8 +16,27 @@ internal static class Program
 
         using var host = builder.Build();
 
+        PrepareWorkspace(host.Services);
+
         return BuildAvaloniaApp(host.Services)
             .StartWithClassicDesktopLifetime(args);
+    }
+
+    /// <summary>
+    /// Creates the data folder, so Engines is there to be filled before the first run.
+    /// A folder that cannot be created is not a reason to refuse to start: the run that
+    /// needs it will say so.
+    /// </summary>
+    private static void PrepareWorkspace(IServiceProvider services)
+    {
+        try
+        {
+            services.GetRequiredService<IWorkspace>().Prepare();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            // Nothing to show it on yet - the window is not up.
+        }
     }
 
     /// <summary>Used by the XAML previewer, which requires this exact signature.</summary>

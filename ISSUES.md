@@ -51,7 +51,7 @@ Ours, and ours to fix.
 | A9 ([#11](https://github.com/pangtuwi/ESA.NET/issues/11)) | **Exhaust back pressure was read as absolute and its temperature converted from Celsius; both were wrong.** `TExhaustPandT.Pres` returns `TempP*1000 + PAtm` (`ExhBackPandT.pas:72`), so the `.exh` table's kPa figure is **gauge** and atmospheric has to be added; the port used it as absolute, leaving the whole exhaust pipe at 17.8 kPa instead of 119.1 kPa. `TExhaustPandT.Temp` returns its value **raw**, so the port's `+ 273.15` was also wrong — see B66. Together these emptied the cylinder through an exhaust pipe that was effectively a vacuum: cylinder pressure fell to 12 kPa where the reference has 65 kPa, and the whole exhaust stroke was 30 to 90 per cent low. **Fixed**; the converged whole-cycle comparison went from unusable to inside 0.33 per cent at every crank angle | **Fixed** |
 | A10 ([#12](https://github.com/pangtuwi/ESA.NET/issues/12)) | **The exhaust wave field is an order of magnitude less accurate than the inlet one.** Measured against the original's own field files from a converged run: inlet pipe pressure agrees to 0.006 bar and inlet velocity to 8 m/s, but exhaust pipe pressure only to 0.098 bar and exhaust velocity to 36 m/s. Cylinder pressure, temperature and volume in the same files agree to 0.42 bar, 3.9 K and exactly. Part of the exhaust gap is not the port's: F1 records that the manifold files and the PVT trace come from adjacent cycles and that gas exchange differs by up to 0.07 bar between them, which is the same order as the discrepancy — so this sits near the resolution limit of the reference data and cannot be pinned down further without a fresh reference run capturing both on the same cycle. Worth revisiting if one is ever produced | Open, bounded by the reference data |
 | A11 ([#119](https://github.com/pangtuwi/ESA.NET/issues/119)) | **The manifold file bounds were measured from physics the app never runs.** `ManifoldTraceWriterTests.RunAndWrite` counts cycles with `solver.RunCycles`, which sets `ZoneCount` to 1 and then 2 as the original does, then records from a second pass of bare `RunOneCycle` calls that never set `ZoneCount` at all — it stays at 0, its uninitialised value, so every cycle of the recording pass is single-zone. `SimulationRunner` runs cycle 1 single-zone and the rest two-zone, so the bounds in `TheValuesAgreeWithTheOriginalsToTheMeasuredBounds` describe a run the application never performs. **Measured**: routing `RunAndWrite` through `SimulationRunner` — same engine, settings, three cycles and 620-row window — moves `MassFlow.txt` column 1 to 0.466 against its recorded bound of 0.25, everything else staying inside. The wrong physics passes and the right physics does not, which is either a real loss of accuracy in the two-zone gas-exchange path (B37 has overlap running a single-zone constant-gamma pressure equation, exactly where a mass-flow discrepancy would come from) or a bound that needs re-measuring against the real path. Not established which. Found while wiring up C1 and left alone there rather than re-measure a documented bound as a side effect | Open |
-| A12 ([#120](https://github.com/pangtuwi/ESA.NET/issues/120)) | **A multi-run sweep writes no manifold data at all.** `MultiRunner.RunRow` calls `_runner.Run` without a `manifoldRecorder` (`MultiRunner.cs:99`), so `SaveManifoldData` is ignored for every row, where a single-point run of the same engine writes all nine files. The original is not much better: `DataWrite := SaveManifoldData` sits inside `Main_Prog` (`Manifolds.pas:2701`), which every row runs, and the files are opened with bare relative names (C4) — so each row overwrites the last and what survives is one unlabelled row, and under C1's gate not even the last one but the last that reached its final requested cycle. Left out of the C1 fix rather than guessed at, because it needs a destination and a naming decision: a subdirectory or a filename prefix per row, whether every row is written at all (100 rows × 9 files is 900 of them), and how the row's speed and overrides get recorded when the filenames cannot carry them | Open |
+| A12 ([#120](https://github.com/pangtuwi/ESA.NET/issues/120)) | **A multi-run sweep writes no manifold data at all.** `MultiRunner.RunRow` calls `_runner.Run` without a `manifoldRecorder` (`MultiRunner.cs:99`), so `SaveManifoldData` is ignored for every row, where a single-point run of the same engine writes all nine files. The original is not much better: `DataWrite := SaveManifoldData` sits inside `Main_Prog` (`Manifolds.pas:2701`), which every row runs, and the files are opened with bare relative names (C4) — so each row overwrites the last and what survives is one unlabelled row, and under C1's gate not even the last one but the last that reached its final requested cycle. Left out of the C1 fix rather than guessed at, because it needs a destination and a naming decision: a subdirectory or a filename prefix per row, whether every row is written at all (100 rows × 9 files is 900 of them), and how the row's speed and overrides get recorded when the filenames cannot carry them. **Fixed** alongside C4, which supplied the destination it was waiting for: `RunRow` takes an `IManifoldRecorder`, the sweep gives each row one, and each row's nine files go into a `Row01_4000rpm` subfolder of the sweep's own run folder — so nothing overwrites anything and the folder name carries the speed the filenames could not. Every row is written; a hundred-row sweep is a hundred subfolders, which is the honest cost of not throwing 99 of them away. Pinned by `MultiRunnerTests.EachRowRecordsItsOwnManifoldData` and `RunFolderWiringTests.ASweepPutsEveryRowInOneFolder` | **Fixed** |
 | A13 ([#121](https://github.com/pangtuwi/ESA.NET/issues/121)) | **The editor's changes never reached the engine the simulation reads.** `EngineLoadResult` carries an `Engine` and an `EngineDefinition` that are two snapshots taken at load time; `EditEngine` handed the editor the definition, `Apply` wrote to the definition, and the run read the engine, with nothing reconciling them. Bore, stroke, cam and manifold file names, valve timing and `Save Manifold Data` alike reached the definition and stopped there — the only way to get an edit into a run was to save the file and reopen it. The original has no such split: `Edit.pas`'s OK handler converts and assigns straight onto `Engine2z` (`Edit.pas:412-419, 448-466`); the port grew the split when it separated the format-preserving INI model from the domain model, and nothing was put back to bridge them. **Fixed** by `IEngineLoader.Rebuild` plus the editor's `Applied` event, which the shell rebuilds `CurrentEngine` on. Found while working on C2, where it surfaced narrowly as the checkbox having no effect | **Fixed** |
 | A14 ([#125](https://github.com/pangtuwi/ESA.NET/issues/125)) | **The main window carried run controls the original does not have.** An engine-speed box and Run, Stop and Run Multi-Point buttons sat on a toolbar of the shell's own. The original's main form has none: `Run > Single Point Simulation` opens the modal Single Speed Simulation dialog (`FormSimul.pas`) for speed, total cycles, mass balance and the graphic display options, and abandons the run unless OK was pressed (`Main.pas:857`); running, pausing and stopping are menu items. So the port asked for two of the three run parameters nowhere at all — cycle count and mass balance came from `ESA.ini` with no way to change them per run — and offered a speed box the original lacks. **Fixed** in [#123](https://github.com/pangtuwi/ESA.NET/pull/123), which ports `TFSimulateOptions` and honours its graph options rather than leaving them inert; the two deliberate departures it produced are C15 and C16. The *Gas flow: velocities* box is still on the main window, since the original switches that quadrant from a run-time graph options form (`FflowGraphOptions.pas`) the port has not built | **Fixed** |
 | A15 ([#127](https://github.com/pangtuwi/ESA.NET/issues/127)) | **Intermittent: a converged run reported as not converged.** `SimulationWiringTests.RunningPopulatesTheTraceThePerformancePointAndTheStatus` failed once inside a full-suite run at `368544d`, on `Assert.Contains("Converged", viewModel.RunStatus)`. It reached that line, so every earlier assertion passed — trace populated, one torque point inside the 140-165 N·m band — meaning the run produced sound physics but came back `Converged: false`: the mass balance never fell below 1 mg inside the 6 requested cycles, on settings that converge in 3 every other time. **Ruled out**: not a code path (passes 3/3 under `--filter`, only ever fails in the full suite); not the expression cache (`ConcurrentDictionary`); not the manifold status text (assigned earlier, and `A2China.eng` has `SaveManfData=0`). **Hypothesis, unproven**: shared mutable state under xUnit's parallelism — `IEngineLoader`, `SimulationRunner` and all six table stores are singletons, and four test classes load `A2China.eng` and simulate concurrently. That would matter beyond the suite, since a multi-run sweep drives rows through the same singletons. Next sighting: report `Converged`, `CyclesRun` and the balance reached in the assertion, and re-run with `xUnit.parallelizeTestCollections=false`. One failure in about a dozen full runs | Open, seen once, watching |
@@ -174,14 +174,15 @@ no second run to find out how many cycles there will be. `SimulationResult` repo
 `ManifoldDataCaptured` so the caller knows there is something to write. Pinned by
 `ManifoldOutputGateTests`.
 
-The files land beside the `.eng` rather than in the working directory, which also settles
-C4 for the single-point run; with no engine path loaded there is nowhere better than the
-working directory, which is what the original always did. C2 and C3 were dealt with
+The files landed beside the `.eng` rather than in the working directory, which was the
+first half of C4; they now go into the run's own folder under the data folder, which is
+the rest of it. Note that the gate described here is no longer what the application uses:
+every run archives its manifold data, so *Save Manifold Data* decides nothing — see C4. C2 and C3 were dealt with
 separately: the note that first stood here, that they "do not arise", was wrong — the port
 read the flag off the engine as it says, but nothing refreshed the engine when the editor
 changed it.
 
-**A multi-run sweep still writes nothing** — see A12, which is where that now lives.
+**A multi-run sweep still wrote nothing** — that lived on as A12, and was fixed with C4.
 
 **C2 ([#88](https://github.com/pangtuwi/ESA.NET/issues/88)) — The checkbox is read off the Edit form, not the engine.** **Fixed.**
 `TFMain.Simulate` tests `FEdit.CBSaveManfData.Checked`, so the Edit window must
@@ -218,7 +219,43 @@ latch: unticking and pressing OK writes `false` through to the engine the same w
 writes `true`, and `UntickingItTurnsOutputOffAgain` pins the round trip.
 
 **C4 ([#90](https://github.com/pangtuwi/ESA.NET/issues/90)) — Manifold files land in the working directory**, not beside the `.eng`.
-They are opened with bare relative names. Look where `SimulDat.txt` appears.
+**Fixed.** They are opened with bare relative names. Look where `SimulDat.txt` appears.
+
+The first pass at this put them beside the `.eng`, which settled where they land and
+nothing else: the next run of the same engine still overwrote them, nothing recorded which
+engine or which speed produced them, and the port wrote no `SimulDat.txt` and no PVT trace
+at all — `PerformanceResultWriter` was never called from the application and `Text ▸ PVT
+Trace` was a stub.
+
+The port now has a **data folder**: `Documents/ESA`, holding `Engines` and `Runs`,
+overridden by `[Folders] Data` in `ESA.ini` or by the `ESA_DATA_ROOT` environment
+variable. Every run gets a folder of its own under `Runs`, named
+`2026-08-28_141530_A2China`, holding
+
+- `inputs/` — the `.eng` and every side file it read, copied verbatim,
+- `SimulDat.txt`, `Lastcyc.txt` and the nine manifold files,
+- `run.txt` — what was asked for, how it ended, the headline figures, and the inputs.
+
+A sweep puts every row in one such folder, each row under `Row01_4000rpm`, with a single
+`SimulDat.txt` at the top carrying all of them. That is `data/baseline/`'s arrangement,
+which `BASELINE.md` gives as the reason that set can be trusted where the output scattered
+through `legacy/ESA/Data` cannot: a result whose inputs travel with it can still be
+accounted for after the engine has been edited.
+
+`IWorkspace` (Core) names the folders, `Workspace` (Persistence) resolves and creates them,
+and `RunArchive` and `RunManifest` fill one in. The file **formats** are untouched — the
+existing writers are pointed at a destination — and `EngineLoadResult.SideFiles` is what
+makes the input copies possible, since the `.eng` entries are bare names, backslash
+relative paths and absolute paths to dead drives. Pinned by `WorkspaceTests`,
+`RunFolderNameTests`, `RunArchiveTests` and `RunFolderWiringTests`.
+
+**One deliberate departure**, taken as a decision rather than by accident: *Save Manifold
+Data* no longer gates anything in the application. Every run archives its manifold files,
+so the checkbox now only round-trips through the `.eng`. The gate itself still exists on
+`SimulationRunner`, still defaults to the engine's flag, and is still pinned by
+`ManifoldOutputGateTests` — the application passes `recordManifoldData: true` over it. C1
+to C3 are unaffected as ported behaviour; what changed is that the operator no longer has
+to have ticked anything to keep the output of a run.
 
 **C5 ([#91](https://github.com/pangtuwi/ESA.NET/issues/91)) — "4 / 4" does not mean four cycles ran.** The convergence test sits at the
 top of the loop body, before the `repeat` that runs the cycle, and exits outright.
@@ -227,6 +264,11 @@ Stopping at `i = 4` means cycles 1 to 3 ran and cycle 4 never did.
 **C6 ([#92](https://github.com/pangtuwi/ESA.NET/issues/92)) — The performance data file accumulates.** Rows are appended per run, so one
 file can hold several unrelated runs. `Example1/Simuldat.txt` has two 5000 rpm
 rows with different values.
+
+The appending is reproduced and is now harmless: since C4 each run writes into a folder of
+its own, so a single-point run's `SimulDat.txt` holds its one row and a sweep's holds one
+row per grid row — every row in a file belonging to the same run. Two unrelated runs can no
+longer meet in one file.
 
 **C7 ([#93](https://github.com/pangtuwi/ESA.NET/issues/93)) — Switching the gas-flow chart to velocities after a run shows stale data.**
 The panel title changes but the plot does not: the mode is read on refresh, and

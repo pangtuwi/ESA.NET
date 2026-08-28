@@ -62,6 +62,14 @@ public sealed class SimulationRunner
     /// (ISSUES.md C1). Here the recorder is reset at each cycle boundary and so ends up
     /// holding the last cycle that actually ran.
     /// </param>
+    /// <param name="recordManifoldData">
+    /// Overrides that gate. <see langword="null"/> leaves it to the engine, which is the
+    /// original's behaviour and what <c>ManifoldOutputGateTests</c> pins;
+    /// <see langword="true"/> or <see langword="false"/> decides regardless of the flag.
+    /// The application passes <see langword="true"/>, because every run archives its
+    /// manifold files into its own run folder and there is no longer anything for the
+    /// checkbox to save.
+    /// </param>
     /// <exception cref="EngineException">The engine could not be initialised or ran to an impossible state.</exception>
     public SimulationResult Run(
         Engine engine,
@@ -69,7 +77,8 @@ public sealed class SimulationRunner
         IProgress<SimulationProgress>? progress = null,
         CancellationToken cancellation = default,
         Action<Engine>? afterInitialise = null,
-        IManifoldRecorder? manifoldRecorder = null)
+        IManifoldRecorder? manifoldRecorder = null,
+        bool? recordManifoldData = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(settings);
@@ -90,8 +99,9 @@ public sealed class SimulationRunner
         var cycle = 0;
 
         // Ticking Save Manifold Data is the whole gate, where the original wanted that and
-        // two more conditions besides. See ISSUES.md C1.
-        var capturing = manifoldRecorder is not null && engine.Manifold.SaveManifoldData;
+        // two more conditions besides. See ISSUES.md C1. The caller may override it.
+        var capturing = manifoldRecorder is not null
+                        && (recordManifoldData ?? engine.Manifold.SaveManifoldData);
 
         if (capturing)
         {

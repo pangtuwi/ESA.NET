@@ -1,3 +1,5 @@
+using App.Core;
+using App.Persistence;
 using App.Ui;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,8 +11,19 @@ namespace App.Tests;
 /// </summary>
 internal static class TestServices
 {
+    /// <summary>
+    /// A data folder under the temp directory, one per test process.
+    /// </summary>
+    /// <remarks>
+    /// Load-bearing. Several tests drive a real simulation through the view model, and
+    /// every run now writes a folder of its own; without this they would fill the
+    /// operator's Documents with run folders from the test suite.
+    /// </remarks>
+    public static string DataRoot { get; } = Path.Combine(
+        Path.GetTempPath(), "esa-tests", Guid.NewGuid().ToString("N"));
+
     private static readonly IServiceProvider Provider =
-        ServiceRegistration.CreateServices().BuildServiceProvider();
+        Configured(ServiceRegistration.CreateServices()).BuildServiceProvider();
 
     public static T Resolve<T>() where T : notnull => Provider.GetRequiredService<T>();
 
@@ -23,10 +36,21 @@ internal static class TestServices
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        var services = ServiceRegistration.CreateServices();
+        var services = Configured(ServiceRegistration.CreateServices());
 
         configure(services);
 
         return services.BuildServiceProvider().GetRequiredService<T>();
+    }
+
+    /// <summary>A workspace rooted in its own temp folder, for a test that wants one.</summary>
+    public static Workspace TemporaryWorkspace([System.Runtime.CompilerServices.CallerMemberName] string name = "") =>
+        new(Path.Combine(DataRoot, RunFolderName.Sanitise(name), Guid.NewGuid().ToString("N")[..8]));
+
+    private static IServiceCollection Configured(IServiceCollection services)
+    {
+        services.AddSingleton<IWorkspace>(new Workspace(Path.Combine(DataRoot, "shared")));
+
+        return services;
     }
 }

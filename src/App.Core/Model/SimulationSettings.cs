@@ -13,6 +13,13 @@ public sealed class SimulationSettings
 
     public string EngineFileName { get; set; } = "Default.eng";
 
+    /// <summary>
+    /// The data folder, held under <c>[Folders] Data</c>. Empty means the default,
+    /// <c>Documents/ESA</c>; the Delphi original has no such key and no such notion, and
+    /// wrote its output wherever the working directory happened to be (ISSUES.md C4).
+    /// </summary>
+    public string DataFolder { get; set; } = string.Empty;
+
     public double EngineSpeed { get; set; } = 4000;
 
     public int CycleCount { get; set; } = 6;
