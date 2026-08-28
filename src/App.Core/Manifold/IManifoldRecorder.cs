@@ -12,6 +12,17 @@ public interface IManifoldRecorder
 {
     /// <summary>Records the state at the end of one step.</summary>
     void Record(in ManifoldRow row);
+
+    /// <summary>
+    /// Discards everything recorded so far, because a new cycle is starting.
+    /// </summary>
+    /// <remarks>
+    /// The original writes the files from the last <b>requested</b> cycle, which a run
+    /// that converges early never reaches - ISSUES.md C1. Resetting at each cycle
+    /// boundary instead leaves the recorder holding the last cycle actually run,
+    /// whichever that turns out to be, in one pass.
+    /// </remarks>
+    void Reset();
 }
 
 /// <summary>

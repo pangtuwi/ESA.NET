@@ -56,6 +56,37 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Writes the nine manifold output files and returns the directory they went to, or
+    /// <see langword="null"/> if they could not be written.
+    /// </summary>
+    /// <remarks>
+    /// They go beside the engine file, where the original opens them with bare relative
+    /// names and so drops them in the working directory instead (ISSUES.md C4). With no
+    /// engine path to hand there is nowhere better than the working directory, which is
+    /// what the original always did.
+    /// </remarks>
+    private string? WriteManifoldData(ManifoldTraceWriter writer)
+    {
+        var directory = Path.GetDirectoryName(CurrentEngineFile);
+
+        if (string.IsNullOrEmpty(directory))
+        {
+            directory = Directory.GetCurrentDirectory();
+        }
+
+        try
+        {
+            writer.Write(directory);
+            return directory;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            RunStatus = $"Manifold data could not be written to {directory}: {error.Message}";
+            return null;
+        }
+    }
+
+    /// <summary>
     /// The multi-run table. Carried between openings of the editor, as the original's
     /// single <c>TFMultiRun</c> instance keeps whatever was last typed into it.
     /// </summary>
@@ -317,8 +348,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     $"Cycle {p.Cycle} of {p.RequestedCycles}   "
                     + $"{p.CrankAngle,4:F0}°   mass balance {p.MassBalance:F2} mg");
 
+            // Save Manifold Data on the engine is the only condition; the original also
+            // needed the run to reach the last requested cycle, which a converged run
+            // never does. See ISSUES.md C1.
+            var manifoldWriter = new ManifoldTraceWriter();
+
             var result = await Task.Run(
-                () => _runner.Run(engine, Settings, progress, token), token);
+                () => _runner.Run(
+                    engine, Settings, progress, token, manifoldRecorder: manifoldWriter),
+                token);
+
+            var manifoldDirectory = result.ManifoldDataCaptured
+                ? WriteManifoldData(manifoldWriter)
+                : null;
 
             Trace = result.Trace;
             Results.Update(engine, result.CyclesRun, Settings.CycleCount, stopwatch.Elapsed);
@@ -334,11 +376,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
             TorqueCurveCommand.NotifyCanExecuteChanged();
 
-            RunStatus = result.Converged
-                ? $"Converged after {result.CyclesRun} cycles.   "
-                  + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW"
-                : $"Stopped at the requested {result.CyclesRun} cycles without converging.   "
-                  + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW";
+            RunStatus = (result.Converged
+                    ? $"Converged after {result.CyclesRun} cycles.   "
+                      + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW"
+                    : $"Stopped at the requested {result.CyclesRun} cycles without converging.   "
+                      + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW")
+                + (manifoldDirectory is null
+                    ? string.Empty
+                    : $"   Manifold data written to {manifoldDirectory}");
         }
         catch (OperationCanceledException)
         {

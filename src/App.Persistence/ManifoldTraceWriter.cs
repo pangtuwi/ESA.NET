@@ -19,7 +19,9 @@ namespace App.Persistence;
 /// CRLF line endings, so the files can be diffed against the originals. The <b>gate</b> is
 /// not: ISSUES.md C1 to C4 describe a write condition that also needs the edit dialog to
 /// have been opened and that a converged run never satisfies. Which rows to record is the
-/// caller's decision here.
+/// caller's decision here - <see cref="App.Core.Manifold.ManifoldCaptureWindow"/> is the
+/// filter <see cref="App.Core.Simulation.SimulationRunner"/> wraps this in, and
+/// <see cref="Reset"/> is how it keeps the last cycle rather than all of them.
 /// </para>
 /// </remarks>
 public sealed class ManifoldTraceWriter : IManifoldRecorder
@@ -41,15 +43,6 @@ public sealed class ManifoldTraceWriter : IManifoldRecorder
     /// <summary>How many rows have been recorded.</summary>
     public int RowCount => _rows.Count;
 
-    /// <summary>
-    /// The crank-angle window the original captures, in <c>Main_Prog</c>'s 1 to 720
-    /// convention: one full cycle starting at firing top dead centre, which is 620 steps
-    /// rather than 720 because the hundred before it belong to the previous cycle.
-    /// </summary>
-    public static bool IsInCaptureWindow(double crankAngle, double inletCloseAngle) =>
-        (crankAngle > 359 && crankAngle <= 720)
-        || (crankAngle > 0 && crankAngle < inletCloseAngle + 360);
-
     /// <inheritdoc />
     public void Record(in ManifoldRow row) =>
         _rows.Add(new Row(
@@ -63,6 +56,9 @@ public sealed class ManifoldTraceWriter : IManifoldRecorder
             row.InletVelocity.ToArray(),
             row.ExhaustPressure.ToArray(),
             row.ExhaustVelocity.ToArray()));
+
+    /// <inheritdoc />
+    public void Reset() => _rows.Clear();
 
     /// <summary>Writes all nine files into <paramref name="directory"/>.</summary>
     public void Write(string directory)

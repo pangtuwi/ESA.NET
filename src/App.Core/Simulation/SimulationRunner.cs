@@ -20,8 +20,17 @@ public readonly record struct SimulationProgress(
 /// <param name="Trace">The last cycle, captured crank angle by crank angle.</param>
 /// <param name="CyclesRun">How many cycles were actually simulated.</param>
 /// <param name="Converged">Whether the run stopped on its mass balance rather than the cycle limit.</param>
+/// <param name="ManifoldDataCaptured">
+/// Whether the manifold recorder was handed the last cycle's rows, so the caller knows
+/// there is something to write. False when no recorder was supplied or the engine does not
+/// ask for manifold data.
+/// </param>
 public sealed record SimulationResult(
-    Engine Engine, CrankAngleTrace Trace, int CyclesRun, bool Converged);
+    Engine Engine,
+    CrankAngleTrace Trace,
+    int CyclesRun,
+    bool Converged,
+    bool ManifoldDataCaptured = false);
 
 /// <summary>
 /// Runs a complete simulation: initialise, simulate to convergence, capture the last
@@ -45,13 +54,22 @@ public sealed class SimulationRunner
     /// then allowed to override - the spark angle above all, which <c>InitVars</c> looks
     /// up from the <c>.spk</c> map and the grid may replace.
     /// </param>
+    /// <param name="manifoldRecorder">
+    /// Where the nine manifold output files' rows go, when the engine asks for them.
+    /// <see cref="App.Core.Model.Manifolds.SaveManifoldData"/> is the only condition: the
+    /// original also required the run to reach the last <b>requested</b> cycle, which a
+    /// converged run never does, so ticking the box could produce nothing at all
+    /// (ISSUES.md C1). Here the recorder is reset at each cycle boundary and so ends up
+    /// holding the last cycle that actually ran.
+    /// </param>
     /// <exception cref="EngineException">The engine could not be initialised or ran to an impossible state.</exception>
     public SimulationResult Run(
         Engine engine,
         SimulationSettings settings,
         IProgress<SimulationProgress>? progress = null,
         CancellationToken cancellation = default,
-        Action<Engine>? afterInitialise = null)
+        Action<Engine>? afterInitialise = null,
+        IManifoldRecorder? manifoldRecorder = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(settings);
@@ -70,6 +88,16 @@ public sealed class SimulationRunner
         var recorder = new CrankAngleTraceRecorder(solver.InletValve, solver.ExhaustValve);
         var requested = Math.Max(settings.CycleCount, EsaLimits.MinimumCycles);
         var cycle = 0;
+
+        // Ticking Save Manifold Data is the whole gate, where the original wanted that and
+        // two more conditions besides. See ISSUES.md C1.
+        var capturing = manifoldRecorder is not null && engine.Manifold.SaveManifoldData;
+
+        if (capturing)
+        {
+            manifold.Recorder = new ManifoldCaptureWindow(
+                manifoldRecorder!, -180 + engine.Manifold.InletValve.CloseAngle);
+        }
 
         solver.StepCompleted += s =>
         {
@@ -102,8 +130,16 @@ public sealed class SimulationRunner
                 engine.CycleCount = cycle - 1;
                 new PerformanceCalculator().Calculate(engine);
 
-                return new SimulationResult(engine, recorder.Trace, cycle - 1, Converged: true);
+                // The cycle that just converged never ran, so the recorder still holds the
+                // one before it - which is the last cycle there was.
+                return new SimulationResult(
+                    engine, recorder.Trace, cycle - 1, Converged: true,
+                    ManifoldDataCaptured: capturing && cycle > 1);
             }
+
+            // Keep only the cycle in hand, so whichever turns out to be the last one run
+            // is the one written.
+            manifold.Recorder?.Reset();
 
             solver.RunOneCycle();
         }
@@ -111,6 +147,7 @@ public sealed class SimulationRunner
         engine.CycleCount = requested;
         new PerformanceCalculator().Calculate(engine);
 
-        return new SimulationResult(engine, recorder.Trace, requested, Converged: false);
+        return new SimulationResult(
+            engine, recorder.Trace, requested, Converged: false, ManifoldDataCaptured: capturing);
     }
 }

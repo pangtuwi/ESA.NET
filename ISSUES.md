@@ -158,6 +158,25 @@ breakage.
 run reaches the final requested cycle — and a run that converges early exits
 before it. Requesting 6 cycles produced nothing; requesting 4 produced all nine.
 
+**Not reproduced.** Ticking the box is the whole gate in the port. `SimulationRunner`
+takes an `IManifoldRecorder`, wraps it in `ManifoldCaptureWindow` — the same crank-angle
+window the original writes, so the files hold the same rows — and resets it at each cycle
+boundary, which leaves it holding the last cycle *actually* run rather than the last one
+requested. A converged run therefore still produces all nine files, in one pass and with
+no second run to find out how many cycles there will be. `SimulationResult` reports
+`ManifoldDataCaptured` so the caller knows there is something to write. Pinned by
+`ManifoldOutputGateTests`.
+
+The files land beside the `.eng` rather than in the working directory, which also settles
+C4 for the single-point run; with no engine path loaded there is nowhere better than the
+working directory, which is what the original always did. C2 and C3 do not arise: the port
+reads `Save Manifold Data` off the engine, so there is no form state to latch.
+
+**A multi-run sweep still writes nothing.** The original writes from `Main_Prog` on every
+row, so each row's nine files overwrite the previous row's and only the last survives —
+useful to nobody. Wiring that up wants a per-row destination and a decision about naming,
+which is its own piece of work.
+
 **C2 ([#88](https://github.com/pangtuwi/ESA.NET/issues/88)) — The checkbox is read off the Edit form, not the engine.**
 `TFMain.Simulate` tests `FEdit.CBSaveManfData.Checked`, so the Edit window must
 have been opened at least once in the session for it to reflect the loaded engine.

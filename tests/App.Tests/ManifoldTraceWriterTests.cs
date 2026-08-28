@@ -72,7 +72,7 @@ public sealed class ManifoldTraceWriterTests
         for (var i = 1; i <= cycles; i++)
         {
             manifold.Recorder = i == cycles
-                ? new CaptureWindow(writer, inletClose)
+                ? new ManifoldCaptureWindow(writer, inletClose)
                 : null;
 
             solver.RunOneCycle();
@@ -82,19 +82,6 @@ public sealed class ManifoldTraceWriterTests
         writer.Write(directory);
 
         return directory;
-    }
-
-    /// <summary>Passes on only the rows inside the original's capture window.</summary>
-    private sealed class CaptureWindow(ManifoldTraceWriter inner, double inletCloseAngle)
-        : IManifoldRecorder
-    {
-        public void Record(in ManifoldRow row)
-        {
-            if (ManifoldTraceWriter.IsInCaptureWindow(row.CrankAngle, inletCloseAngle))
-            {
-                inner.Record(in row);
-            }
-        }
     }
 
     [Fact]
@@ -164,12 +151,12 @@ public sealed class ManifoldTraceWriterTests
     {
         // 620 rows, not 720: the window runs from firing TDC round to inlet valve
         // closing, so the hundred steps before TDC belong to the previous cycle.
-        Assert.True(ManifoldTraceWriter.IsInCaptureWindow(360, -100));
-        Assert.True(ManifoldTraceWriter.IsInCaptureWindow(720, -100));
-        Assert.True(ManifoldTraceWriter.IsInCaptureWindow(259, -100));
+        Assert.True(ManifoldCaptureWindow.Contains(360, -100));
+        Assert.True(ManifoldCaptureWindow.Contains(720, -100));
+        Assert.True(ManifoldCaptureWindow.Contains(259, -100));
 
-        Assert.False(ManifoldTraceWriter.IsInCaptureWindow(260, -100));
-        Assert.False(ManifoldTraceWriter.IsInCaptureWindow(359, -100));
+        Assert.False(ManifoldCaptureWindow.Contains(260, -100));
+        Assert.False(ManifoldCaptureWindow.Contains(359, -100));
     }
 
     /// <summary>
