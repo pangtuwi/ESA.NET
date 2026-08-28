@@ -74,7 +74,7 @@ cd ESA.NET
 
 ```powershell
 dotnet build ESA.NET.slnx -c Release    # expect 0 warnings, 0 errors
-dotnet test  ESA.NET.slnx               # expect 374 passed
+dotnet test  ESA.NET.slnx               # expect 417 passed
 dotnet run   --project src\App.Ui       # opens the shell window
 ```
 
@@ -209,7 +209,7 @@ NuGet packages and takes about a minute; later ones are seconds.
 dotnet test ESA.NET.slnx -c Release
 ```
 
-Expect **374 passed, 0 failed**, in roughly 20 seconds.
+Expect **417 passed, 0 failed**, in roughly 45 seconds.
 
 You do **not** need a display for this. The Avalonia tests
 (`MenuStructureTests`, `ChartRenderingTests`) run through `Avalonia.Headless`,
@@ -254,8 +254,12 @@ end to end without supplying any input of your own:
 2. **File → Edit** (<kbd>Ctrl</kbd>+<kbd>E</kbd>) opens the eight-tab editor.
    Pressing OK rewrites the file **byte for byte** unless you changed a value —
    that is a guarantee the round-trip tests enforce, not an aspiration.
-3. **Run → Single Point Simulation** (<kbd>Ctrl</kbd>+<kbd>R</kbd>) integrates the
-   cycle, with the charts updating live as it runs.
+3. **Run → Single Point Simulation** (<kbd>Ctrl</kbd>+<kbd>R</kbd>) opens the
+   **Single Speed Simulation** dialog — engine speed, total cycles, mass balance
+   and which charts to draw, the same four things the original asks for before
+   every run. Press **Run** and it integrates the cycle, with the charts updating
+   live. There are no run controls on the main window; the original has none
+   either.
 4. **Text → PVT Trace** exports the crank-angle trace, the same format
    `data/baseline/` holds a reference copy of.
 
@@ -412,7 +416,7 @@ A missing `ESA.ini` is not an error — the store returns the same defaults Delp
 
 #### 6. Run the tests from the editor
 
-With C# Dev Kit installed, the beaker icon in the activity bar lists all 374
+With C# Dev Kit installed, the beaker icon in the activity bar lists all 417
 tests by class. Run or debug any one from there, or from the ▷ gutter icon beside
 a `[Fact]`. Debugging a single test is the fastest way into the ported physics —
 put a breakpoint in `CycleSolver` and run one case from `CycleSolverTests`.
@@ -447,7 +451,7 @@ hit a difference and want a known-good reference point.
 | Platform | Toolchain | Exercised |
 |---|---|---|
 | Windows 10 | VS Code with the C# Dev Kit, .NET SDK 10.0.400 | Build and run |
-| Ubuntu 24.04 (the Mint 22 base) | .NET SDK 10.0.111 from `noble-updates/universe`, command line | Release build (0 warnings), 374 tests passing, app run under Xvfb, `dotnet publish -r linux-x64 --self-contained` and the resulting binary run |
+| Ubuntu 24.04 (the Mint 22 base) | .NET SDK 10.0.111 from `noble-updates/universe`, command line | Release build (0 warnings), 417 tests passing, app run under Xvfb, `dotnet publish -r linux-x64 --self-contained` and the resulting binary run |
 
 Everything in the Ubuntu row applies to Mint 22, which is the same base with the
 same `universe` repo enabled. Not yet exercised anywhere: Mint 21 / LMDE and the
@@ -479,7 +483,7 @@ The layering table above is enforced, not merely documented:
 
 ## Tests
 
-`dotnet test ESA.NET.slnx` runs 374 tests. The ones that matter most guard user
+`dotnet test ESA.NET.slnx` runs 417 tests. The ones that matter most guard user
 data and the ported semantics:
 
 - `EngRoundTripTests`, `TableRoundTripTests`, `EditEngineViewModelTests` — every
