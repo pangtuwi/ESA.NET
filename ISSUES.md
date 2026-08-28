@@ -132,7 +132,7 @@ renumbered.
 | B65 | **The pipe temperature arrays are written once and never updated.** `TempInlet` and `TempExhaust` are filled at `tStep = 0` — the whole inlet at plenum temperature, the whole exhaust at back temperature — and nothing writes to them again for the rest of the run. `Main_Prog` then reports `InletT := TempInlet[QI]` every step, so the value `TEngine2z.Run` uses to refresh the plenum gas is permanently the starting temperature. The wave solver does carry temperature implicitly, through density and speed of sound, so the pipes themselves are not wrong; it is the reported boundary temperature that is frozen. `ExhaustT` gets the same treatment and is then **never read by anything** | `Manifolds.pas:2747-2749, 3017-3018` | **Fix** — report the temperature the solver actually holds, `c^2/(gamma*287)`, and delete `ExhaustT` |
 | B66 | **The `.exh` temperature column is labelled Celsius and used as kelvin.** The file header reads `SPEED TEMP[C] P[kPa]` and `TExhaustPandT.Temp` returns the value with no conversion, so both `InitVars` (`Exh.Tb`) and `Main_Prog` (`Tback`) treat it as an absolute temperature. On the baseline engine that is 820 at 4000 rpm: read as kelvin it is 547 C, read as the column says it is 820 C. Which the author intended cannot be settled from the source — but the whole-cycle comparison can settle it, and it comes out inside 0.33 per cent using the value raw, so the original's behaviour is reproduced and the label is what is wrong | `ExhBackPandT.pas:88`, `A2China.exh` | Keep — the reference run agrees with the raw reading; fix the column heading instead |
 | B67 | **The PVT export scales its last column with a stale loop counter.** `TCAList.SendToFile` writes the first 27 columns as `value[i]*k[i]` inside a `for i := 1 to NoVals-1` loop, then writes the 28th as `value[NoVals]*k[i]` — reusing `i` after the loop, where Pascal leaves it undefined. `k[27]` is 1000 and `k[28]` is 1, so the difference is not academic: heat loss would be reported a thousand times too large. The reference file shows it in joules, so the compiler evidently left `i` at 28. The port writes `k[NoVals]`, which is both the evident intent and what reproduces the file | `CAList2z.pas:156` | **Fix** — index the last column properly rather than relying on a value the language does not define |
-| B68 | **`LoadGrid` parses each `.msr` line backwards.** It walks from the end of the string splitting on commas and fills the grid from its rightmost column inwards, stopping when either runs out. Two consequences: the row number `SaveGrid` writes at the front of every line is never read back, and a line with too few fields fills the **right-hand** columns and leaves the left ones at their default instead of the other way round — which is what makes C13 silent | `MultiRun.pas:156-200` | **Fix** — parse forwards and validate the field count |
+| B68 | **`LoadGrid` parses each `.msr` line backwards.** It walks from the end of the string splitting on commas and fills the grid from its rightmost column inwards, stopping when either runs out. Two consequences: the row number `SaveGrid` writes at the front of every line is never read back, and a line with too few fields fills the **right-hand** columns and leaves the left ones at their default instead of the other way round — which is what made C13 silent | `MultiRun.pas:156-200` | **Fixed** — `MultiRunGridStore.Read` parses forwards, discards the leading row number, fills from the left and refuses a line that is not in the format. Nothing in `data/baseline/` depends on it: the reference run is a single engine and reads no `.msr` at all, so this is the one section B entry that could be fixed without re-baselining. See C13 |
 | B69 | **The reported exhaust back pressure subtracts a hard-coded atmosphere.** `WriteRunFile` writes `Manifold.ExhBack.Pres(Nrpm)/1e3-101.325` to undo the `+ PAtm` that `TExhaustPandT.Pres` applied — but `Pres` adds the engine's own `Atm.PGas`, which the operator can set. Run an engine at any other ambient pressure and the `BackP` column is wrong by the difference, while everything downstream of the real `Pres` value stays right | `Main.pas:1234` | **Fix** — subtract the same atmospheric pressure that was added |
 | B70 | **The charts are drawn at two different point densities.** A static redraw walks every **even** crank angle (`RedrawGraphs`, 360 points of the 720), while a live run updates every **five** degrees (`Simulate`, roughly 144). So the same chart looks smoother after a run finishes than it did while the run was in progress, and neither shows every point that was computed. The port takes the stride as a parameter and defaults to the redraw's two | `Main.pas:329, 551` | Keep — a deliberate speed trade for live plotting, though the redraw could simply use every point |
 | B71 | **Unburnt hydrocarbons are recorded as a literal zero.** `UpdateCApoint` sets the HC column to `0` outright, while CO, NO and CO2 beside it come from the equilibrium solver. The column exists in the PVT grid, in the text export and in the emissions the results carry, and nothing anywhere computes a value for it — which the reference trace confirms, HC being 0.00 at every one of its 720 crank angles. A twelve-species equilibrium model has no unburnt fuel to report, so this is a placeholder for something never implemented rather than a calculation gone wrong | `CAList2z.pas:131` | Keep — but the column is misleading as it stands; either compute it or label it |
@@ -202,22 +202,27 @@ outright, losing whatever the operator had loaded, after a single message box
 **C13 — 43 of the 49 shipped `.msr` files load with their columns shifted.**
 The multi-run grid has fourteen editable columns, so `SaveGrid` writes fifteen
 comma-separated fields per line. Only six of the shipped files are in that format;
-the other forty-three carry fourteen fields, a column short, from before one was
-added. Because `LoadGrid` fills from the right (B68) it does not notice: every
-value lands one column over, and the row number itself ends up in the **Speed**
+the other forty-three carry fourteen fields, a column short, from before **Burn
+Angle** was added. Because `LoadGrid` fills from the right (B68) it does not notice:
+every value lands one column over, and the row number itself ends up in the **Speed**
 column. The giveaway is a speed column counting 1, 2, 3 up the grid. Loading one of
 these and pressing OK would sweep an engine from 1 rpm upwards.
 
-Reproduced, because it is what the original does and the port has no way to tell a
-short line from a deliberately blank first column. Reading such a file is the one
-case where "faithful" and "useful" genuinely conflict, so it is worth revisiting
-with the rest of section B: aligning short lines to the left would recover all
-forty-three.
+**No longer reproduced.** The doubt was whether a short line means "a column was
+added since" or "the first column is deliberately blank", and the data settles it.
+`SaveGrid` has always written the row number first, and twenty-eight of the
+forty-three short files — every one that overrides anything past Iters — carry an
+inlet manifold `.maf` name in their fourth field, which is `IManfFile` under
+left-alignment and `EManfFile` under the original's fill from the right. No short
+file uses any field beyond the fourth, so nothing contradicts it. B68's forward
+parse therefore discards the leading row number, fills from the left and leaves the
+trailing column unset, and all forty-three now load the speeds they were written
+with. Nothing about the simulation moves: no reference run reads a `.msr`.
 
-The grid editor now names the condition when it sees it: a Speed column counting
-1, 2, 3 up the grid raises a warning quoting this entry. What runs is unchanged —
-the operator can still press OK — but the sweep from 1 rev/min is no longer
-silent.
+`Write` still emits the current fifteen-field format, so a short file opened and
+saved comes back a cell longer — the alternative being to silently drop any Burn
+Angle the operator had typed. The editor says so when it loads one, rather than
+letting the rewrite be a surprise.
 
 
 **C14 — a blank row in the multi-run grid silently discards everything below it.**

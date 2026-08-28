@@ -1,4 +1,3 @@
-using System.Globalization;
 using App.Core.Model;
 using App.Persistence;
 using App.Ui.Dialogs;
@@ -82,16 +81,17 @@ public sealed class MultiRunRow
 /// A hundred rows of fourteen columns, always all present, with a dash meaning "leave
 /// this as the engine file has it" - the original's convention, which
 /// <see cref="MultiRunGrid"/> already carries. Load and Save go through
-/// <see cref="MultiRunGridStore"/>, so a file opened and saved again keeps the format the
-/// original wrote.
+/// <see cref="MultiRunGridStore"/>, so a file in the current format opened and saved
+/// again comes back byte for byte.
 /// </para>
 /// <para>
-/// Two departures from the original, both showing the operator something it hid rather
-/// than changing what runs. The run count stops at the first row with no speed, so a
-/// blank row silently drops everything below it (ISSUES.md C14); <see cref="Summary"/>
-/// says so when it happens. And a file whose speed column counts 1, 2, 3 upwards is a short-format
-/// <c>.msr</c> loaded a column over (ISSUES.md C13), which the original swept from 1
-/// rev/min without comment; <see cref="Warning"/> names it. Neither refuses the run.
+/// Two departures from the original. The run count still stops at the first row with no
+/// speed, so a blank row silently drops everything below it (ISSUES.md C14), but
+/// <see cref="Summary"/> says so when it happens rather than leaving the operator to
+/// work it out. And a short-format <c>.msr</c> - forty-three of the forty-nine shipped
+/// files - now loads into the columns it was written from instead of one to the right
+/// (ISSUES.md C13); <see cref="Warning"/> notes that saving it will rewrite it in the
+/// current format. Neither refuses the run.
 /// </para>
 /// </remarks>
 public sealed partial class MultiRunViewModel : ObservableObject
@@ -213,23 +213,27 @@ public sealed partial class MultiRunViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Set when the loaded file looks like the short format described in ISSUES.md C13,
-    /// whose values all land one column over.
+    /// What the operator needs telling about the file in hand: that it could not be read,
+    /// or that it was in the short format of ISSUES.md C13 and saving it will rewrite it.
     /// </summary>
     [ObservableProperty]
     private string? _warning;
+
+    /// <summary>Whether the file last loaded was a column short. See ISSUES.md C13.</summary>
+    private bool _shortFormat;
 
     /// <summary>Points every row at the engine the sweep will start from.</summary>
     public void SetBaseFile(string? path) =>
         BaseFile = string.IsNullOrEmpty(path) ? "Base File : none loaded" : $"Base File : {path}";
 
     /// <summary>Replaces the grid being edited, refreshing every cell.</summary>
-    public void Load(MultiRunGrid grid, string lineTerminator = "\r\n")
+    public void Load(MultiRunGrid grid, string lineTerminator = "\r\n", bool shortFormat = false)
     {
         ArgumentNullException.ThrowIfNull(grid);
 
         Grid = grid;
         _lineTerminator = lineTerminator;
+        _shortFormat = shortFormat;
 
         foreach (var cell in Rows.SelectMany(row => row.Cells))
         {
@@ -252,7 +256,7 @@ public sealed partial class MultiRunViewModel : ObservableObject
         {
             var document = _store.Read(path);
 
-            Load(document.Grid, document.LineTerminator);
+            Load(document.Grid, document.LineTerminator, document.ShortFormat);
             GridFile = path;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException
@@ -277,6 +281,8 @@ public sealed partial class MultiRunViewModel : ObservableObject
         {
             _store.Write(path, new MultiRunGridStore.Document(Grid, _lineTerminator));
             GridFile = path;
+            _shortFormat = false;
+            Rescan();
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
@@ -319,7 +325,7 @@ public sealed partial class MultiRunViewModel : ObservableObject
 
     private void Rescan()
     {
-        Warning = ShortFormatWarning();
+        Warning = ShortFormatNotice();
 
         OnPropertyChanged(nameof(RunCount));
         OnPropertyChanged(nameof(IgnoredRows));
@@ -327,29 +333,14 @@ public sealed partial class MultiRunViewModel : ObservableObject
     }
 
     /// <summary>
-    /// The signature of a short-format file (ISSUES.md C13): a speed column counting 1,
-    /// 2, 3 up the grid, because the row number each line starts with has landed there.
+    /// Says so when the loaded file predates the Burn Angle column (ISSUES.md C13). Its
+    /// cells are in the right columns, but saving writes the current fifteen-field
+    /// format, so the file on disk will not come back byte for byte.
     /// </summary>
-    private string? ShortFormatWarning()
-    {
-        var count = RunCount;
-
-        if (count < 3)
-        {
-            return null;
-        }
-
-        for (var row = 0; row < count; row++)
-        {
-            if (Grid.Speed(row) != row + 1)
-            {
-                return null;
-            }
-        }
-
-        return $"The Speed column counts 1 to {count.ToString(CultureInfo.InvariantCulture)}, which "
-               + "is what a short-format .msr file looks like when loaded: every value has landed "
-               + "one column to the right and the row number has become the speed. Running this "
-               + "would sweep the engine from 1 rev/min. See ISSUES.md C13.";
-    }
+    private string? ShortFormatNotice() =>
+        _shortFormat
+            ? "This file predates the Burn Angle column and is one cell short. Its values "
+              + "have been loaded into the columns they were written from; saving will "
+              + "rewrite it in the current fifteen-field format. See ISSUES.md C13."
+            : null;
 }
