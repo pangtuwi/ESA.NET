@@ -123,26 +123,41 @@ public sealed class MultiRunEditorTests
     }
 
     [Fact]
-    public void AShortFormatFileIsCalledOut()
+    public async Task AShortFormatFileLoadsIntoTheRightColumnsAndSaysSo()
     {
-        var (viewModel, _) = Build();
+        Assert.SkipWhen(TestPaths.Legacy is null, "Not running from a repository checkout.");
 
-        // What ISSUES.md C13 describes: the row number has landed in the speed column, so
-        // the grid would sweep the engine from 1 rev/min.
-        var grid = new MultiRunGrid();
+        // One of the forty-three files of ISSUES.md C13, a cell short of the current
+        // format. The original filled from the right and swept the engine from 1 rev/min;
+        // this loads the speeds it actually holds and warns that saving rewrites the file.
+        var source = Path.Combine(TestPaths.Legacy!, "ESA", "Data", "Default", "Default.msr");
 
-        for (var row = 0; row < 5; row++)
-        {
-            grid[row, 0] = (row + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-        }
+        Assert.SkipUnless(File.Exists(source), "Default.msr is not in this checkout.");
 
-        viewModel.Load(grid);
+        var (viewModel, files) = Build();
 
+        files.OpenGridResult = source;
+
+        await viewModel.LoadGridCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.Grid.Speed(0) >= 100);
         Assert.NotNull(viewModel.Warning);
         Assert.Contains("C13", viewModel.Warning, StringComparison.Ordinal);
 
-        // A genuine speed sweep is not flagged.
+        // The notice is about the file, not about anything the operator can retype away.
         viewModel.Rows[0].Cells[0].Value = "3000";
+
+        Assert.NotNull(viewModel.Warning);
+    }
+
+    [Fact]
+    public void AGridInTheCurrentFormatCarriesNoNotice()
+    {
+        var (viewModel, _) = Build();
+        var grid = new MultiRunGrid();
+
+        grid[0, 0] = "3000";
+        viewModel.Load(grid);
 
         Assert.Null(viewModel.Warning);
     }

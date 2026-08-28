@@ -17,6 +17,10 @@ public sealed class MultiRunGridTests
     private static IEnumerable<string> WellFormedFiles() =>
         LegacyFiles().Where(p => File.ReadLines(p).First().Split(',').Length == 15);
 
+    /// <summary>Files a cell short, from before the Burn Angle column. See ISSUES.md C13.</summary>
+    private static List<string> ShortFiles() =>
+        [.. LegacyFiles().Where(p => File.ReadLines(p).First().Split(',').Length == 14)];
+
     [Fact]
     public void EveryWellFormedGridRoundTripsByteForByte()
     {
@@ -48,7 +52,8 @@ public sealed class MultiRunGridTests
         }
 
         // Only six of the forty-nine shipped files are in the current format; the rest
-        // are a column short. See the test below and ISSUES.md C13.
+        // are a column short and are written back with that column filled in. See the
+        // tests below and ISSUES.md C13.
         Assert.True(checkedFiles >= 6, $"Expected the well-formed .msr files, found {checkedFiles}.");
         Assert.Empty(failures);
     }
@@ -106,10 +111,11 @@ public sealed class MultiRunGridTests
     }
 
     [Fact]
-    public void CellsAreFilledFromTheRightAsTheOriginalParses()
+    public void CellsAreFilledFromTheLeftAfterTheRowNumber()
     {
         // LoadGrid walks backwards from the end of the line, so a short line fills the
-        // right-hand columns and leaves the left ones at their default. See ISSUES.md B68.
+        // right-hand columns and leaves the left ones at their default. This parses
+        // forwards instead, past the row number the line starts with. See ISSUES.md B68.
         var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".msr");
 
         try
@@ -117,12 +123,33 @@ public sealed class MultiRunGridTests
             // Only three fields where fifteen are expected.
             File.WriteAllText(path, "1,4000,6\n");
 
-            var grid = new MultiRunGridStore().Read(path).Grid;
+            var document = new MultiRunGridStore().Read(path);
+            var grid = document.Grid;
 
-            // The two values landed in the last two columns, not the first two.
-            Assert.Equal("4000", grid[0, MultiRunGrid.ColumnCount - 2]);
-            Assert.Equal("6", grid[0, MultiRunGrid.ColumnCount - 1]);
-            Assert.Equal(MultiRunGrid.Unset, grid[0, 0]);
+            // The two values landed in Speed and Iters, and the row number is discarded.
+            Assert.Equal("4000", grid[0, 0]);
+            Assert.Equal("6", grid[0, 1]);
+            Assert.Equal(MultiRunGrid.Unset, grid[0, MultiRunGrid.ColumnCount - 1]);
+            Assert.True(document.ShortFormat);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("x,4000,6")]                                       // no row number
+    [InlineData("1,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-")]                // one cell too many
+    public void ALineThatIsNotInTheFormatIsRefusedRatherThanMangled(string line)
+    {
+        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".msr");
+
+        try
+        {
+            File.WriteAllText(path, line + "\n");
+
+            Assert.Throws<FormatException>(() => new MultiRunGridStore().Read(path));
         }
         finally
         {
@@ -131,28 +158,83 @@ public sealed class MultiRunGridTests
     }
 
     [Fact]
-    public void MostShippedGridsAreAColumnShortAndLoadShifted()
+    public void MostShippedGridsAreAColumnShortAndStillLoadIntoTheRightColumns()
     {
         Assert.SkipWhen(TestPaths.Legacy is null, "Not running from a repository checkout.");
 
         // Forty-three of the forty-nine shipped files carry thirteen cells where the
-        // current grid has fourteen - they predate a column being added. LoadGrid fills
-        // from the right and does not notice, so every value lands one column over and
-        // the row number itself ends up in the speed column. See ISSUES.md C13.
-        var short_ = LegacyFiles()
-            .Where(p => File.ReadLines(p).First().Split(',').Length == 14)
-            .ToList();
+        // current grid has fourteen - they predate the Burn Angle column being added.
+        // Parsing forwards puts each value in the column it was written from and leaves
+        // the missing one unset, where LoadGrid filled from the right and shifted every
+        // value over, the row number landing in Speed. See ISSUES.md C13.
+        var short_ = ShortFiles();
 
         Assert.True(short_.Count > 40, $"Expected most files to be short, found {short_.Count}.");
 
-        var grid = new MultiRunGridStore().Read(short_[0]).Grid;
+        foreach (var path in short_)
+        {
+            var document = new MultiRunGridStore().Read(path);
 
-        // Row one's speed reads as "1" - its own row number - rather than a real speed.
-        Assert.Equal("1", grid[0, 0]);
-        Assert.Equal(1, grid.Speed(0));
+            Assert.True(document.ShortFormat, path);
 
-        // And row two reads as 2, which is the giveaway: a speed column counting up in
-        // ones is the signature of this shift.
-        Assert.Equal(2, grid.Speed(1));
+            // A real speed, not the row number, and never a grid counting 1, 2, 3 up.
+            Assert.True(document.Grid.Speed(0) >= 100, path);
+            Assert.Equal(MultiRunGrid.Unset, document.Grid[0, MultiRunGrid.ColumnCount - 1]);
+        }
+    }
+
+    [Fact]
+    public void AShortGridsValuesLandInTheColumnsTheHeadingsName()
+    {
+        Assert.SkipWhen(TestPaths.Legacy is null, "Not running from a repository checkout.");
+
+        // These sweep inlet manifold length: the manifold file belongs in IManfFile,
+        // column two, which is where filling from the right would not have put it.
+        var path = ShortFiles().FirstOrDefault(
+            p => Path.GetFileName(p).Equals("VarInlet700900.msr", StringComparison.OrdinalIgnoreCase));
+
+        Assert.SkipWhen(path is null, "VarInlet700900.msr is not in this checkout.");
+
+        var grid = new MultiRunGridStore().Read(path!).Grid;
+
+        Assert.Equal("IManfFile", MultiRunGrid.ColumnNames[2]);
+        Assert.EndsWith("Inlet.maf", grid.Text(0, 2)!, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(grid.Text(0, 3));
+    }
+
+    [Fact]
+    public void AShortGridIsWrittenBackInTheCurrentFormatWithItsValuesIntact()
+    {
+        Assert.SkipWhen(TestPaths.Legacy is null, "Not running from a repository checkout.");
+
+        // A short file cannot round-trip byte for byte - writing it fills in the column
+        // it is missing - but nothing else about it may move.
+        var store = new MultiRunGridStore();
+        var source = ShortFiles()[0];
+        var target = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".msr");
+
+        try
+        {
+            var first = store.Read(source);
+
+            store.Write(target, first);
+
+            var second = store.Read(target);
+
+            Assert.False(second.ShortFormat);
+            Assert.Equal(15, File.ReadLines(target).First().Split(',').Length);
+
+            for (var row = 0; row < MultiRunGrid.MaxRuns; row++)
+            {
+                for (var column = 0; column < MultiRunGrid.ColumnCount; column++)
+                {
+                    Assert.Equal(first.Grid[row, column], second.Grid[row, column]);
+                }
+            }
+        }
+        finally
+        {
+            File.Delete(target);
+        }
     }
 }

@@ -156,24 +156,26 @@ public sealed class MultiRunnerTests
     }
 
     [Fact]
-    public void AShortFormatGridLoadsWithNoRunnableRows()
+    public void AShortFormatGridSweepsTheSpeedsItHolds()
     {
         Assert.SkipWhen(TestPaths.Legacy is null, "Not running from a repository checkout.");
 
-        // 43 of the 49 shipped .msr files are a column short and load shifted, putting the
-        // row number in the speed column (ISSUES.md C13). They still parse, so the guard
-        // an operator gets is the speed column counting 1, 2, 3 rather than a load error.
+        // 43 of the 49 shipped .msr files are a column short, from before the Burn Angle
+        // column (ISSUES.md C13). The original filled from the right, so the row number
+        // landed in the speed column and a sweep started at 1 rev/min; parsing forwards
+        // gives the speeds the file was written with.
         var path = Directory
             .EnumerateFiles(TestPaths.Legacy!, "Default.msr", SearchOption.AllDirectories)
             .First();
 
-        var grid = new MultiRunGridStore().Read(path).Grid;
+        var document = new MultiRunGridStore().Read(path);
 
-        Assert.Equal(1, grid.Speed(0));
-        Assert.Equal(2, grid.Speed(1));
+        Assert.True(document.ShortFormat);
+        Assert.Equal(2000, document.Grid.Speed(0));
+        Assert.Equal(3000, document.Grid.Speed(1));
 
-        // RunCount is not zero - every row has something in its speed column - so nothing
-        // stops a sweep from starting at 1 rev/min. That is the original's behaviour too.
-        Assert.True(grid.RunCount > 1);
+        // The trailing column the file predates is left unset, i.e. no override.
+        Assert.Null(document.Grid.Number(0, MultiRunGrid.ColumnCount - 1));
+        Assert.True(document.Grid.RunCount > 1);
     }
 }
