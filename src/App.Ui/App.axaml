@@ -4,5 +4,9 @@
              RequestedThemeVariant="Default">
   <Application.Styles>
     <FluentTheme />
+
+    <!-- The DataGrid ships its theme separately from the Fluent one. Without this the
+         multi-run grid builds but draws nothing. -->
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
   </Application.Styles>
 </Application>

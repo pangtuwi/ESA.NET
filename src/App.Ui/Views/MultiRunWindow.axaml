@@ -1,0 +1,92 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:App.Ui.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="1330" d:DesignHeight="660"
+        x:Class="App.Ui.Views.MultiRunWindow"
+        x:DataType="vm:MultiRunViewModel"
+        Title="{Binding Title}"
+        Width="1330" Height="660" MinWidth="700" MinHeight="400"
+        WindowStartupLocation="CenterScreen">
+
+  <DockPanel>
+
+    <!-- Delphi LFilename: the engine every row starts from. -->
+    <TextBlock DockPanel.Dock="Top" Margin="10,10,10,6" FontWeight="SemiBold"
+               x:Name="BaseFileText" Text="{Binding BaseFile}"
+               TextTrimming="CharacterEllipsis" />
+
+    <!-- Delphi StatusBar1: the selected row on the left, the grid file on the right. -->
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*" Margin="10,4,10,8">
+      <TextBlock Grid.Column="0" Text="{Binding SelectionText}" Opacity="0.7" />
+      <TextBlock Grid.Column="1" Text="{Binding GridFile}" Opacity="0.7"
+                 HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+    </Grid>
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8"
+                Margin="10,6,10,0" HorizontalAlignment="Right">
+      <CheckBox x:Name="ShowGraphsBox" Content="Show Graphs"
+                IsChecked="{Binding ShowGraphs}" VerticalAlignment="Center"
+                Margin="0,0,16,0" />
+      <Button x:Name="LoadButton" Content="_Load" Width="90"
+              Command="{Binding LoadGridCommand}" />
+      <Button x:Name="SaveButton" Content="_Save" Width="90"
+              Command="{Binding SaveGridCommand}" />
+      <Button x:Name="OkButton" Content="OK" Width="90" IsDefault="True"
+              Command="{Binding AcceptCommand}" />
+      <Button x:Name="CancelButton" Content="Cancel" Width="90" IsCancel="True"
+              Command="{Binding CancelCommand}" />
+    </StackPanel>
+
+    <!-- What OK will run, and anything the original would have dropped silently. -->
+    <TextBlock DockPanel.Dock="Bottom" x:Name="SummaryText" Margin="10,8,10,0"
+               Text="{Binding Summary}" TextWrapping="Wrap" />
+
+    <TextBlock DockPanel.Dock="Bottom" x:Name="WarningText" Margin="10,8,10,0"
+               Text="{Binding Warning}" TextWrapping="Wrap" Foreground="#B03030"
+               IsVisible="{Binding Warning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+    <DataGrid x:Name="RunGrid" Margin="10,0,10,0"
+              ItemsSource="{Binding Rows}"
+              SelectedItem="{Binding SelectedRow}"
+              CanUserReorderColumns="False" CanUserSortColumns="False"
+              CanUserResizeColumns="True" GridLinesVisibility="All"
+              HeadersVisibility="All" IsReadOnly="False"
+              AutoGenerateColumns="False">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="No" Width="Auto" MinWidth="56" IsReadOnly="True"
+                            Binding="{Binding Number}" />
+        <DataGridTextColumn Header="Speed" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[0].Value}" />
+        <DataGridTextColumn Header="Iters" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[1].Value}" />
+        <DataGridTextColumn Header="IManfFile" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[2].Value}" />
+        <DataGridTextColumn Header="EManfFile" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[3].Value}" />
+        <DataGridTextColumn Header="ICamFile" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[4].Value}" />
+        <DataGridTextColumn Header="ECamFile" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[5].Value}" />
+        <DataGridTextColumn Header="IVO" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[6].Value}" />
+        <DataGridTextColumn Header="IVC" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[7].Value}" />
+        <DataGridTextColumn Header="EVO" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[8].Value}" />
+        <DataGridTextColumn Header="EVC" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[9].Value}" />
+        <DataGridTextColumn Header="IValveLift" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[10].Value}" />
+        <DataGridTextColumn Header="EValveLift" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[11].Value}" />
+        <DataGridTextColumn Header="Spark °BTDC" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[12].Value}" />
+        <DataGridTextColumn Header="Burn Angle°" Width="Auto" MinWidth="56"
+                            Binding="{Binding Cells[13].Value}" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+  </DockPanel>
+</Window>

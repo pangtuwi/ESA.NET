@@ -214,6 +214,23 @@ case where "faithful" and "useful" genuinely conflict, so it is worth revisiting
 with the rest of section B: aligning short lines to the left would recover all
 forty-three.
 
+The grid editor now names the condition when it sees it: a Speed column counting
+1, 2, 3 up the grid raises a warning quoting this entry. What runs is unchanged —
+the operator can still press OK — but the sweep from 1 rev/min is no longer
+silent.
+
+
+**C14 — a blank row in the multi-run grid silently discards everything below it.**
+`BOkClick` counts runs by walking the Speed column until it finds a dash, so the
+runs have to start at the first row and be contiguous (`MultiRun.pas:93-104`).
+Fill in rows 1, 2, 4 and 5 and only the first two are swept; nothing says the other
+two were dropped, and the results screen shows a two-point curve as though that is
+what was asked for. Neither the grid nor the status bar mentions it.
+
+The counting rule is reproduced — it is what decides which rows run — but the
+editor now reports the consequence, saying how many further rows are filled in and
+will not run.
+
 
 ## D. Errors and gaps in SPEC.md
 

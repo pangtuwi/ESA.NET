@@ -42,11 +42,15 @@ public static class ServiceRegistration
         services.AddSingleton<MultiRunner>();
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<IEditEngineWindowService, EditEngineWindowService>();
+        services.AddSingleton<IMultiRunWindowService, MultiRunWindowService>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<EditEngineViewModel>();
+        services.AddTransient<MultiRunViewModel>();
         services.AddSingleton<Func<EditEngineViewModel>>(
             provider => provider.GetRequiredService<EditEngineViewModel>);
+        services.AddSingleton<Func<MultiRunViewModel>>(
+            provider => provider.GetRequiredService<MultiRunViewModel>);
 
         return services;
     }

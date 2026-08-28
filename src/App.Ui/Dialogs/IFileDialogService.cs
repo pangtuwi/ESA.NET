@@ -14,4 +14,7 @@ public interface IFileDialogService
 
     /// <summary>Asks for a saved multi-run grid to open, or null if the user cancelled.</summary>
     Task<string?> OpenMultiRunAsync();
+
+    /// <summary>Asks where to save a multi-run grid, or null if the user cancelled.</summary>
+    Task<string?> SaveMultiRunAsync(string suggestedName);
 }

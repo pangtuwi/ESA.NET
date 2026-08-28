@@ -44,51 +44,73 @@ public sealed class MultiRunner
         IProgress<MultiRunProgress>? progress = null,
         CancellationToken cancellation = default)
     {
+        ArgumentNullException.ThrowIfNull(grid);
+
+        var results = new List<MultiRunRowResult>();
+
+        for (var row = 0; row < grid.RunCount; row++)
+        {
+            results.Add(RunRow(enginePath, grid, row, settings, progress, cancellation));
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Runs one row of <paramref name="grid"/>, from a freshly loaded engine.
+    /// </summary>
+    /// <remarks>
+    /// Split out from <see cref="Run"/> so a caller can drive the sweep a row at a time
+    /// and act on each result as it arrives - the original adds its performance point and
+    /// redraws inside the loop (<c>Main.pas:1355-1380</c>) rather than at the end.
+    /// </remarks>
+    /// <param name="enginePath">The engine the row starts from.</param>
+    /// <param name="row">Zero-based grid row, which must be below <see cref="MultiRunGrid.RunCount"/>.</param>
+    public MultiRunRowResult RunRow(
+        string enginePath,
+        MultiRunGrid grid,
+        int row,
+        SimulationSettings settings,
+        IProgress<MultiRunProgress>? progress = null,
+        CancellationToken cancellation = default)
+    {
         ArgumentNullException.ThrowIfNull(enginePath);
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(settings);
 
-        var results = new List<MultiRunRowResult>();
+        cancellation.ThrowIfCancellationRequested();
+
         var rows = grid.RunCount;
+        var speed = grid.Speed(row) ?? 0;
 
-        for (var row = 0; row < rows; row++)
+        try
         {
-            cancellation.ThrowIfCancellationRequested();
+            var engine = _loader.Load(enginePath).Engine;
+            var (rowSettings, afterInitialise) = ApplyRow(engine, grid, row, settings);
 
-            var speed = grid.Speed(row) ?? 0;
+            var inner = progress is null
+                ? null
+                : new RelayProgress<SimulationProgress>(
+                    p => progress.Report(new MultiRunProgress(row, rows, speed, p)));
 
-            try
-            {
-                var engine = _loader.Load(enginePath).Engine;
-                var (rowSettings, afterInitialise) = ApplyRow(engine, grid, row, settings);
-                var index = row;
-
-                var inner = progress is null
-                    ? null
-                    : new RelayProgress<SimulationProgress>(
-                        p => progress.Report(new MultiRunProgress(index, rows, speed, p)));
-
-                results.Add(new MultiRunRowResult(
-                    row,
-                    engine.Rpm,
-                    _runner.Run(engine, rowSettings, inner, cancellation, afterInitialise),
-                    null));
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception error) when (error is EngineException or CfdException
-                                              or EquilibriumException or GasPropertiesException
-                                              or FormatException or IOException)
-            {
-                // The original writes "Error in Multirun Command Line n" and carries on to
-                // the next row rather than abandoning the sweep.
-                results.Add(new MultiRunRowResult(row, speed, null, error.Message));
-            }
+            return new MultiRunRowResult(
+                row,
+                engine.Rpm,
+                _runner.Run(engine, rowSettings, inner, cancellation, afterInitialise),
+                null);
         }
-
-        return results;
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception error) when (error is EngineException or CfdException
+                                          or EquilibriumException or GasPropertiesException
+                                          or FormatException or IOException)
+        {
+            // The original writes "Error in Multirun Command Line n" and carries on to
+            // the next row rather than abandoning the sweep.
+            return new MultiRunRowResult(row, speed, null, error.Message);
+        }
     }
 
     /// <summary>

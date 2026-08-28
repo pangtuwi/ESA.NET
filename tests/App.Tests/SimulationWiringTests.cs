@@ -1,7 +1,9 @@
 using App.Core.Model;
 using App.Core;
 using App.Persistence;
+using App.Ui.Dialogs;
 using App.Ui.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using App.Ui.Views;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -14,9 +16,12 @@ namespace App.Tests;
 /// </summary>
 public sealed class SimulationWiringTests
 {
-    private static MainWindowViewModel Loaded()
+    private static MainWindowViewModel Loaded() => Loaded(new StubMultiRunEditor());
+
+    private static MainWindowViewModel Loaded(StubMultiRunEditor editor)
     {
-        var viewModel = TestServices.Resolve<MainWindowViewModel>();
+        var viewModel = TestServices.Resolve<MainWindowViewModel>(
+            services => services.AddSingleton<IMultiRunWindowService>(editor));
 
         viewModel.CurrentEngine = TestServices.Resolve<IEngineLoader>()
             .Load(BaselinePaths.File("A2China.eng"));
@@ -97,22 +102,61 @@ public sealed class SimulationWiringTests
     }
 
     [Fact]
-    public void MultiRunNeedsBothAnEngineAndAPopulatedGrid()
+    public async Task MultiRunNeedsAnEngineAndAGridWithRunsInIt()
     {
         BaselinePaths.Require();
 
-        var viewModel = Loaded();
+        // Nothing open: the command is unavailable whatever the grid holds, as it is for
+        // a single point run.
+        Assert.False(
+            TestServices.Resolve<MainWindowViewModel>().MultiPointSimulationCommand.CanExecute(null));
 
-        // An engine is open but the grid is empty, so there is nothing to sweep.
+        var editor = new StubMultiRunEditor();
+        var viewModel = Loaded(editor);
+
+        // With an engine open the command is available even though the grid is empty:
+        // the operator fills it in on the window the command itself opens.
         Assert.Equal(0, viewModel.MultiRun.RunCount);
-        Assert.False(viewModel.MultiPointSimulationCommand.CanExecute(null));
-
-        viewModel.MultiRun[0, 0] = "4000";
-        viewModel.MultiRun[0, 1] = "6";
-
-        // RunCount is computed rather than observable, so the command is re-queried when
-        // the engine or the running flag changes; a grid edit alone will not refresh it.
         Assert.True(viewModel.MultiPointSimulationCommand.CanExecute(null));
+
+        // Pressing OK on an empty grid sweeps nothing and says so.
+        await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, editor.Opened);
+        Assert.Empty(viewModel.Performance.Points);
+        Assert.Contains("holds no runs", viewModel.RunStatus, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CancellingTheGridEditorRunsNothing()
+    {
+        BaselinePaths.Require();
+
+        var editor = new StubMultiRunEditor { Accept = false };
+        var viewModel = Loaded(editor);
+
+        editor.Grid = Grid(("3000", "6"));
+
+        await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
+
+        // The edits are kept - the original's single grid window remembers what was typed
+        // - but nothing was run.
+        Assert.Equal(1, viewModel.MultiRun.RunCount);
+        Assert.Empty(viewModel.Performance.Points);
+    }
+
+    /// <summary>A grid holding one row per pair of speed and cycle count.</summary>
+    private static MultiRunGrid Grid(params (string Speed, string Cycles)[] rows)
+    {
+        var grid = new MultiRunGrid();
+
+        for (var row = 0; row < rows.Length; row++)
+        {
+            grid[row, 0] = rows[row].Speed;
+            grid[row, 1] = rows[row].Cycles;
+        }
+
+        return grid;
     }
 
     [Fact]
@@ -120,13 +164,9 @@ public sealed class SimulationWiringTests
     {
         BaselinePaths.Require();
 
-        var viewModel = Loaded();
+        var editor = new StubMultiRunEditor { Grid = Grid(("3000", "6"), ("4000", "6")) };
+        var viewModel = Loaded(editor);
         viewModel.CurrentEngineFile = BaselinePaths.File("A2China.eng");
-
-        viewModel.MultiRun[0, 0] = "3000";
-        viewModel.MultiRun[0, 1] = "6";
-        viewModel.MultiRun[1, 0] = "4000";
-        viewModel.MultiRun[1, 1] = "6";
 
         await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
 
@@ -147,16 +187,14 @@ public sealed class SimulationWiringTests
     {
         BaselinePaths.Require();
 
-        var viewModel = Loaded();
+        var editor = new StubMultiRunEditor { Grid = Grid(("3000", "6")) };
+        var viewModel = Loaded(editor);
         viewModel.CurrentEngineFile = BaselinePaths.File("A2China.eng");
 
         // A single-point run first, then a sweep: the sweep shows itself, not an
         // accumulation, which is what the original does before a multi-run.
         await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
         Assert.Single(viewModel.Performance.Points);
-
-        viewModel.MultiRun[0, 0] = "3000";
-        viewModel.MultiRun[0, 1] = "6";
 
         await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
 

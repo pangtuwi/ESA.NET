@@ -54,6 +54,25 @@ public sealed class FileDialogService : IFileDialogService
     }
 
     /// <inheritdoc />
+    public async Task<string?> SaveMultiRunAsync(string suggestedName)
+    {
+        if (MainWindow() is not { } window)
+        {
+            return null;
+        }
+
+        var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Multi Simulation Run File",
+            SuggestedFileName = suggestedName,
+            DefaultExtension = "msr",
+            FileTypeChoices = [MultiRunFiles],
+        });
+
+        return file?.TryGetLocalPath();
+    }
+
+    /// <inheritdoc />
     public async Task<string?> SaveEngineAsync(string suggestedName)
     {
         if (MainWindow() is not { } window)

@@ -26,6 +26,8 @@ public sealed class FileMenuWiringTests
 
         public string? MultiRunResult { get; set; }
 
+        public string? SaveMultiRunResult { get; set; }
+
         public Task<string?> OpenEngineAsync() => Task.FromResult(OpenResult);
 
         public Task<string?> OpenMultiRunAsync() => Task.FromResult(MultiRunResult);
@@ -35,6 +37,9 @@ public sealed class FileMenuWiringTests
             SuggestedName = suggestedName;
             return Task.FromResult(SaveResult);
         }
+
+        public Task<string?> SaveMultiRunAsync(string suggestedName) =>
+            Task.FromResult(SaveMultiRunResult);
     }
 
     private sealed class StubEditor : IEditEngineWindowService

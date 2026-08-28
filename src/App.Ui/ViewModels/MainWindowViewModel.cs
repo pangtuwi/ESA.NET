@@ -28,6 +28,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly ISimulationSettingsStore _settingsStore;
     private readonly IFileDialogService _files;
     private readonly IEditEngineWindowService _editor;
+    private readonly IMultiRunWindowService _multiRunEditor;
     private readonly MultiRunner _multiRunner;
 
     private CancellationTokenSource? _running;
@@ -40,6 +41,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ISimulationSettingsStore settingsStore,
         IFileDialogService files,
         IEditEngineWindowService editor,
+        IMultiRunWindowService multiRunEditor,
         MultiRunner multiRunner)
     {
         _engineLoader = engineLoader;
@@ -49,13 +51,23 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _settingsStore = settingsStore;
         _files = files;
         _editor = editor;
+        _multiRunEditor = multiRunEditor;
         _multiRunner = multiRunner;
     }
 
-    /// <summary>The multi-run table, loaded from a <c>.msr</c> file.</summary>
+    /// <summary>
+    /// The multi-run table. Carried between openings of the editor, as the original's
+    /// single <c>TFMultiRun</c> instance keeps whatever was last typed into it.
+    /// </summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(MultiPointSimulationCommand))]
     private MultiRunGrid _multiRun = new();
+
+    /// <summary>
+    /// Delphi <c>ShowGraphs</c>, set from the grid editor's check box: whether the charts
+    /// follow the sweep row by row or are drawn once at the end.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showGraphsDuringSweep = true;
 
     /// <summary>Run options, as ESA.ini carries them.</summary>
     public SimulationSettings Settings { get; } = new();
@@ -359,40 +371,30 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private bool CanStartRun => CurrentEngine is not null && !IsRunning;
 
     /// <summary>
-    /// Opens a saved multi-run grid, which is what makes a sweep possible. Port of the
-    /// grid window's Load button.
-    /// </summary>
-    [RelayCommand]
-    private async Task LoadMultiRunAsync()
-    {
-        if (await _files.OpenMultiRunAsync() is not { } path)
-        {
-            return;
-        }
-
-        try
-        {
-            MultiRun = new MultiRunGridStore().Read(path).Grid;
-
-            RunStatus = MultiRun.RunCount == 0
-                ? $"{Path.GetFileName(path)} holds no runs. If its speed column counts "
-                  + "1, 2, 3 upwards it is a short-format file; see ISSUES.md C13."
-                : $"Loaded {MultiRun.RunCount} run(s) from {Path.GetFileName(path)}.";
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
-                                          or FormatException)
-        {
-            RunStatus = $"Could not open {Path.GetFileName(path)}: {error.Message}";
-        }
-    }
-
-    /// <summary>
-    /// Runs every row of the multi-run grid, building a torque curve. Port of
-    /// <c>MultiPointSimulation1Click</c>.
+    /// Opens the multi-run grid, then runs every row of it building a torque curve. Port
+    /// of <c>MultiPointSimulation1Click</c>, which shows <c>FMultiRun</c> modally and
+    /// exits if the operator does not press OK - there is no separate menu item for the
+    /// grid in the original either.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanStartMultiRun))]
     private async Task MultiPointSimulationAsync()
     {
+        var edit = await _multiRunEditor.ShowAsync(MultiRun, CurrentEngineFile);
+
+        MultiRun = edit.Grid;
+        ShowGraphsDuringSweep = edit.ShowGraphs;
+
+        if (!edit.Accepted)
+        {
+            return;
+        }
+
+        if (MultiRun.RunCount == 0)
+        {
+            RunStatus = "The grid holds no runs. Fill in the Speed column from the first row down.";
+            return;
+        }
+
         _running = new CancellationTokenSource();
         IsRunning = true;
 
@@ -413,26 +415,29 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     $"Run {p.Row + 1} of {p.TotalRows} at {p.Speed:F0} rev/min   "
                     + $"cycle {p.Inner.Cycle}   {p.Inner.CrankAngle,4:F0}°");
 
-            var results = await Task.Run(
-                () => _multiRunner.Run(path, MultiRun, Settings, progress, token), token);
+            // A row at a time, awaited individually, so the curve builds as the sweep
+            // proceeds - the original adds its performance point and redraws inside the
+            // loop. Driving the loop from here rather than passing a callback into the
+            // runner keeps every collection touch on this thread.
+            var results = new List<MultiRunRowResult>();
+            var rows = MultiRun.RunCount;
 
-            foreach (var row in results.Where(r => r.Result is not null))
+            for (var row = 0; row < rows; row++)
             {
-                var engine = row.Result!.Engine;
+                var index = row;
+                var completed = await Task.Run(
+                    () => _multiRunner.RunRow(path, MultiRun, index, Settings, progress, token),
+                    token);
 
-                Performance.Points.Add(new PerformancePoint
-                {
-                    Speed = row.Speed,
-                    Torque = engine.Torque,
-                    Power = engine.BrakePower / 1e3,
-                    VolumetricEfficiency = engine.VolumetricEfficiency,
-                });
+                results.Add(completed);
+                RowFinished(completed, multiStopwatch);
             }
 
-            // The last row's cycle is what the charts show, as in the original.
+            // Delphi redraws once more with the graphs forced back on at the end of the
+            // sweep, so the charts show the last row whatever Show Graphs was set to.
             var last = results.LastOrDefault(r => r.Result is not null)?.Result;
 
-            if (last is not null)
+            if (last is not null && !ShowGraphsDuringSweep)
             {
                 Trace = last.Trace;
                 Results.Update(last.Engine, last.CyclesRun, Settings.CycleCount, multiStopwatch.Elapsed);
@@ -461,8 +466,42 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private bool CanStartMultiRun =>
-        CurrentEngine is not null && !IsRunning && MultiRun.RunCount > 0;
+    /// <summary>
+    /// One row of the sweep has finished. Adds its point to the curve and, when Show
+    /// Graphs is on, brings the charts up to date with it.
+    /// </summary>
+    private void RowFinished(MultiRunRowResult row, System.Diagnostics.Stopwatch elapsed)
+    {
+        if (row.Result is not { } result)
+        {
+            return;
+        }
+
+        var engine = result.Engine;
+
+        Performance.Points.Add(new PerformancePoint
+        {
+            Speed = row.Speed,
+            Torque = engine.Torque,
+            Power = engine.BrakePower / 1e3,
+            VolumetricEfficiency = engine.VolumetricEfficiency,
+        });
+
+        TorqueCurveCommand.NotifyCanExecuteChanged();
+
+        if (!ShowGraphsDuringSweep)
+        {
+            return;
+        }
+
+        Trace = result.Trace;
+        Results.Update(engine, result.CyclesRun, Settings.CycleCount, elapsed.Elapsed);
+        RefreshEmbeddedCharts();
+    }
+
+    // The grid is filled in by the editor the command itself opens, so an empty one is no
+    // reason to disable it.
+    private bool CanStartMultiRun => CurrentEngine is not null && !IsRunning;
 
     [RelayCommand]
     private static void Pause()
