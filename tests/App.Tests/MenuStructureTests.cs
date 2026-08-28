@@ -52,17 +52,18 @@ public sealed class MenuStructureTests
             .SelectMany(top => top.Items.OfType<MenuItem>())
             .ToList();
 
-        // Five File, six Run, nine Graph, one Text, two Help.
+        // Five File, five Run, nine Graph, one Text, two Help.
         //
         // The Graph menu has grown past what Main.dfm carried. The original drew five of
         // its charts - the P-V diagram, the in-cylinder trace and the three gas-flow
         // modes - inside its own main window, switched by radio buttons on a separate
         // options dialog rather than by menu items. They are windows here like the other
         // four, so they need somewhere to be opened from.
-        // The extra Run item loads a saved multi-run grid. The original edits that grid
-        // in its own window with Load and Save buttons; opening a .msr file is the part
-        // that matters, since without it a sweep has nothing to run.
-        Assert.Equal(23, leaves.Count);
+        //
+        // The Run menu matches the original exactly. There is no item for the multi-run
+        // grid because there is none in Main.dfm: MultiPointSimulation1Click shows the
+        // grid window itself and exits if the operator does not press OK.
+        Assert.Equal(22, leaves.Count);
         Assert.All(leaves, item => Assert.NotNull(item.Command));
     }
 }

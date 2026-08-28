@@ -67,7 +67,7 @@ public static class EngineCharts
 
         return new ChartDefinition(
             "P-V Diagram",
-            "Volume [cc]",
+            "Gas Volume [cc]",
             "Pressure [bar]",
             [new ChartSeries(
                 "Cylinder",
@@ -83,42 +83,80 @@ public static class EngineCharts
     /// Engine speed, which sets the axis limits: the original scales them with speed and
     /// then clamps the result to [0, 5] bar.
     /// </param>
+    /// <param name="events">
+    /// The valve events to mark, from <see cref="CrankAngleStateMap"/>. Omitted when the
+    /// engine is not known, in which case only the dead centres are drawn.
+    /// </param>
     public static ChartDefinition GasFlowPressure(
-        CrankAngleTrace trace, double rpm, int stride = RedrawStride)
+        CrankAngleTrace trace, double rpm, CrankAngleStateMap? events = null,
+        int stride = RedrawStride)
     {
         ArgumentNullException.ThrowIfNull(trace);
 
         var maximum = Math.Min((0.00025 * rpm) + 1.55, 5);
         var minimum = Math.Max((-0.0001 * rpm) + 0.6, 0);
+        var markers = Events(events);
 
         return new ChartDefinition(
-            "Gas Flow: Pressure",
-            "Crank Angle [deg]",
+            "Gas Flow : Pressures",
+            "Crank Angle°",
             "Pressure [bar]",
             [
                 Build(trace, stride, "Cylinder", p => p[CapturedQuantity.Pressure] / 1e5, FlowAngle),
-                Build(trace, stride, "Inlet Valve", p => p[CapturedQuantity.InletPressure] / 1e5, FlowAngle),
-                Build(trace, stride, "Exhaust Valve", p => p[CapturedQuantity.ExhaustPressure] / 1e5, FlowAngle),
+                Build(trace, stride, "Inlet", p => p[CapturedQuantity.InletPressure] / 1e5, FlowAngle),
+                Build(trace, stride, "Exhaust", p => p[CapturedQuantity.ExhaustPressure] / 1e5, FlowAngle),
             ],
             minimum,
-            maximum);
+            maximum,
+            Markers: markers);
     }
 
     /// <summary>Gas velocity at each valve. Delphi <c>Series1</c> and <c>Series6</c> in velocity mode.</summary>
-    public static ChartDefinition GasFlowVelocity(CrankAngleTrace trace, int stride = RedrawStride)
+    public static ChartDefinition GasFlowVelocity(
+        CrankAngleTrace trace, CrankAngleStateMap? events = null, int stride = RedrawStride)
     {
         ArgumentNullException.ThrowIfNull(trace);
 
         return new ChartDefinition(
-            "Gas Flow: Velocity",
-            "Crank Angle [deg]",
+            "Gas Flow : Velocities",
+            "Crank Angle°",
             "Velocity [m/s]",
             [
-                Build(trace, stride, "Inlet Valve", p => p[CapturedQuantity.InletVelocity], FlowAngle),
-                Build(trace, stride, "Exhaust Valve", p => p[CapturedQuantity.ExhaustVelocity], FlowAngle),
+                Build(trace, stride, "Inlet", p => p[CapturedQuantity.InletVelocity], FlowAngle),
+                Build(trace, stride, "Exhaust", p => p[CapturedQuantity.ExhaustVelocity], FlowAngle),
             ],
             -150,
-            450);
+            450,
+            Markers: Events(events));
+    }
+
+    /// <summary>
+    /// The valve events and dead centres the original rules across its gas-flow charts,
+    /// on the same shifted 0 to 720 axis.
+    /// </summary>
+    private static List<ChartMarker> Events(CrankAngleStateMap? map)
+    {
+        List<ChartMarker> markers =
+        [
+            new("BDC", 180, AtBottom: true),
+            new("TDC", 360, AtBottom: true),
+            new("BDC", 540, AtBottom: true),
+        ];
+
+        if (map is null)
+        {
+            return markers;
+        }
+
+        markers.AddRange(
+        [
+            new ChartMarker("EVO", FlowAngle((int)map.ExhaustOpen)),
+            new ChartMarker("IVO", FlowAngle((int)map.InletOpen)),
+            new ChartMarker("EVC", FlowAngle((int)map.ExhaustClose)),
+            new ChartMarker("IVC", FlowAngle((int)map.InletClose)),
+        ]);
+
+        return markers;
     }
 
     /// <summary>
@@ -163,18 +201,21 @@ public static class EngineCharts
                         && trace[a][CapturedQuantity.ExhaustValveArea] == 0)
             .ToArray();
 
-        ChartSeries Series(string name, Func<CrankAnglePoint, double> value) =>
-            new(name, [.. closed.Select(a => (double)a)], [.. closed.Select(a => value(trace[a]))]);
+        ChartSeries Series(string name, Func<CrankAnglePoint, double> value, bool right = false) =>
+            new(name, [.. closed.Select(a => (double)a)], [.. closed.Select(a => value(trace[a]))], right);
 
+        // Pressure reaches about 70 bar while temperature reaches 4200 K, so the original
+        // gives them separate axes - pressure on the left, temperature on the right.
         return new ChartDefinition(
-            "In-Cylinder Conditions",
-            "Crank Angle [deg]",
-            "Pressure [bar] / Temperature [K]",
+            "In Cylinder Properties",
+            "Crank Angle° (IVC to EVO)",
+            "Pressure [bar]",
             [
-                Series("Pressure", p => p[CapturedQuantity.Pressure] / 1e5),
-                Series("Burnt Temperature", p => p[CapturedQuantity.BurntTemperature]),
-                Series("Unburnt Temperature", p => p[CapturedQuantity.UnburntTemperature]),
-            ]);
+                Series("Pcyl", p => p[CapturedQuantity.Pressure] / 1e5),
+                Series("Tb", p => p[CapturedQuantity.BurntTemperature], right: true),
+                Series("Tu", p => p[CapturedQuantity.UnburntTemperature], right: true),
+            ],
+            RightYAxisLabel: "Temperature [Kelvin]");
     }
 
     /// <summary>

@@ -13,4 +13,20 @@ internal static class TestServices
         ServiceRegistration.CreateServices().BuildServiceProvider();
 
     public static T Resolve<T>() where T : notnull => Provider.GetRequiredService<T>();
+
+    /// <summary>
+    /// Resolves from a fresh provider with <paramref name="configure"/> applied, for tests
+    /// that need a stand-in for something that would open a window.
+    /// </summary>
+    public static T Resolve<T>(Action<IServiceCollection> configure)
+        where T : notnull
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var services = ServiceRegistration.CreateServices();
+
+        configure(services);
+
+        return services.BuildServiceProvider().GetRequiredService<T>();
+    }
 }
