@@ -43,14 +43,19 @@ public static class ServiceRegistration
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<IEditEngineWindowService, EditEngineWindowService>();
         services.AddSingleton<IMultiRunWindowService, MultiRunWindowService>();
+        services.AddSingleton<ISimulateOptionsWindowService, SimulateOptionsWindowService>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<EditEngineViewModel>();
         services.AddTransient<MultiRunViewModel>();
+        services.AddTransient<SimulateOptionsViewModel>();
         services.AddSingleton<Func<EditEngineViewModel>>(
             provider => provider.GetRequiredService<EditEngineViewModel>);
         services.AddSingleton<Func<MultiRunViewModel>>(
             provider => provider.GetRequiredService<MultiRunViewModel>);
+
+        services.AddSingleton<Func<SimulateOptionsViewModel>>(
+            provider => provider.GetRequiredService<SimulateOptionsViewModel>);
 
         return services;
     }

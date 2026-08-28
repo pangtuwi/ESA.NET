@@ -29,6 +29,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IFileDialogService _files;
     private readonly IEditEngineWindowService _editor;
     private readonly IMultiRunWindowService _multiRunEditor;
+    private readonly ISimulateOptionsWindowService _simulateOptions;
     private readonly MultiRunner _multiRunner;
 
     private CancellationTokenSource? _running;
@@ -42,7 +43,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IFileDialogService files,
         IEditEngineWindowService editor,
         IMultiRunWindowService multiRunEditor,
-        MultiRunner multiRunner)
+        MultiRunner multiRunner,
+        ISimulateOptionsWindowService simulateOptions)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
@@ -53,6 +55,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _editor = editor;
         _multiRunEditor = multiRunEditor;
         _multiRunner = multiRunner;
+        _simulateOptions = simulateOptions;
     }
 
     /// <summary>
@@ -103,9 +106,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Run options, as ESA.ini carries them.</summary>
     public SimulationSettings Settings { get; } = new();
 
-    /// <summary>Engine speed for a single-point run, in rev/min.</summary>
+    /// <summary>
+    /// Engine speed for a single-point run, in rev/min. Set from the Single Speed
+    /// Simulation dialog; the original's main form has no speed control.
+    /// </summary>
     [ObservableProperty]
     private double _engineSpeed = 4000;
+
+    /// <summary>
+    /// Which run-time charts the last run was asked for, Delphi <c>ShowGraphs</c>,
+    /// <c>ShowFlowGraphs</c>, <c>ShowPVGraphs</c> and <c>ShowCylGraphs</c>.
+    /// </summary>
+    [ObservableProperty]
+    private GraphSelection _runGraphs = new(true, true, true);
 
     /// <summary>The headline figures, shown in the top-left panel.</summary>
     public SimulationResultsViewModel Results { get; } = new();
@@ -353,6 +366,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanStartRun))]
     private async Task SinglePointSimulationAsync()
     {
+        // The original asks for speed, cycles, mass balance and the graph options in a
+        // modal dialog before doing anything, and abandons the run unless OK was pressed
+        // (Main.pas:857). Its main form carries no run controls at all.
+        var options = await _simulateOptions.ShowAsync(Settings, EngineSpeed);
+
+        if (!options.Accepted)
+        {
+            return;
+        }
+
+        EngineSpeed = options.EngineSpeed;
+        Settings.CycleCount = options.TotalCycles;
+        Settings.MassBalance = options.MassBalance;
+
+        // Delphi FormClose hard-codes No1zCycles to 1 whatever ESA.ini said.
+        Settings.OneZoneCycleCount = 1;
+
+        RunGraphs = options.Graphs;
+
         var engine = CurrentEngine!.Engine;
         engine.Rpm = EngineSpeed;
 
@@ -664,13 +696,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 LegacyInterpolation.AtSpeed(
                     engine.SparkAngle.Rpm, engine.SparkAngle.Values, engine.Rpm));
 
-        PressureVolumeChart = EngineCharts.PressureVolume(trace);
+        // The Single Speed Simulation dialog decides which of the three the run draws, as
+        // ShowFlowGraphs, ShowPVGraphs and ShowCylGraphs do in the original. A quadrant
+        // that was not asked for is left empty rather than drawn anyway.
+        PressureVolumeChart = RunGraphs.PressureVolume
+            ? EngineCharts.PressureVolume(trace)
+            : null;
 
-        GasFlowChart = ShowGasFlowVelocities
-            ? EngineCharts.GasFlowVelocity(trace, events)
-            : EngineCharts.GasFlowPressure(trace, engine?.Rpm ?? 0, events);
+        GasFlowChart = RunGraphs.GasFlow
+            ? ShowGasFlowVelocities
+                ? EngineCharts.GasFlowVelocity(trace, events)
+                : EngineCharts.GasFlowPressure(trace, engine?.Rpm ?? 0, events)
+            : null;
 
-        InCylinderChart = EngineCharts.InCylinder(trace);
+        InCylinderChart = RunGraphs.InCylinder
+            ? EngineCharts.InCylinder(trace)
+            : null;
     }
 
     // Text. Delphi: PVTTrace1Click.

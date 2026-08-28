@@ -18,10 +18,18 @@ public sealed class SimulationWiringTests
 {
     private static MainWindowViewModel Loaded() => Loaded(new StubMultiRunEditor());
 
-    private static MainWindowViewModel Loaded(StubMultiRunEditor editor)
+    private static MainWindowViewModel Loaded(StubMultiRunEditor editor) =>
+        Loaded(editor, new StubSimulateOptions());
+
+    private static MainWindowViewModel Loaded(
+        StubMultiRunEditor editor, StubSimulateOptions options)
     {
         var viewModel = TestServices.Resolve<MainWindowViewModel>(
-            services => services.AddSingleton<IMultiRunWindowService>(editor));
+            services =>
+            {
+                services.AddSingleton<IMultiRunWindowService>(editor);
+                services.AddSingleton<ISimulateOptionsWindowService>(options);
+            });
 
         viewModel.CurrentEngine = TestServices.Resolve<IEngineLoader>()
             .Load(BaselinePaths.File("A2China.eng"));
@@ -81,8 +89,14 @@ public sealed class SimulationWiringTests
 
         var viewModel = Loaded();
 
+        var options = new StubSimulateOptions();
+        viewModel = Loaded(new StubMultiRunEditor(), options);
+
         await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
-        viewModel.EngineSpeed = 3000;
+
+        // The speed for the second run is typed into the dialog, not onto the main window.
+        options.EngineSpeed = 3000;
+
         await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
 
         // Sweeping by hand is how a torque curve gets built without the multi-run grid.
@@ -91,13 +105,19 @@ public sealed class SimulationWiringTests
     }
 
     [AvaloniaFact]
-    public void TheWindowShowsTheSpeedBoxTheRunButtonAndTheStatusLine()
+    public void TheWindowCarriesNoRunControlsOfItsOwn()
     {
+        // The original's main form has no speed box and no Run, Stop or Multi-Point
+        // buttons: speed, cycles and mass balance are asked for by the Single Speed
+        // Simulation dialog, and running is driven from the Run menu.
         var window = new MainWindow { DataContext = TestServices.Resolve<MainWindowViewModel>() };
 
-        Assert.NotNull(window.FindControl<NumericUpDown>("EngineSpeedBox"));
-        Assert.NotNull(window.FindControl<Button>("RunButton"));
-        Assert.NotNull(window.FindControl<Button>("StopButton"));
+        Assert.Null(window.FindControl<NumericUpDown>("EngineSpeedBox"));
+        Assert.Null(window.FindControl<Button>("RunButton"));
+        Assert.Null(window.FindControl<Button>("StopButton"));
+        Assert.Null(window.FindControl<Button>("RunMultiPointButton"));
+
+        // The status line stays: Delphi keeps the same two facts on its status bar.
         Assert.NotNull(window.FindControl<TextBlock>("RunStatusText"));
     }
 

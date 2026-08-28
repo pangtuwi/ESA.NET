@@ -131,17 +131,12 @@
                  TextTrimming="CharacterEllipsis" />
     </Grid>
 
+    <!-- The original's main form carries no run controls: speed, cycle count and mass
+         balance are asked for by the Single Speed Simulation dialog that Run > Single Point
+         Simulation opens, and Run, Pause and Stop are menu items. The one control kept here
+         switches the embedded gas-flow quadrant, which the original does from its run-time
+         graph options form. -->
     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="8,8,8,4">
-      <TextBlock Text="Engine speed" VerticalAlignment="Center" />
-      <NumericUpDown x:Name="EngineSpeedBox" Value="{Binding EngineSpeed}"
-                     Minimum="100" Maximum="20000" Increment="250" Width="140"
-                     FormatString="0" />
-      <TextBlock Text="rev/min" VerticalAlignment="Center" />
-      <Button x:Name="RunButton" Content="Run"
-              Command="{Binding SinglePointSimulationCommand}" />
-      <Button x:Name="RunMultiPointButton" Content="Run Multi-Point"
-              Command="{Binding MultiPointSimulationCommand}" />
-      <Button x:Name="StopButton" Content="Stop" Command="{Binding StopCommand}" />
       <CheckBox x:Name="GasFlowVelocitiesBox" Content="Gas flow: velocities"
                 IsChecked="{Binding ShowGasFlowVelocities}" VerticalAlignment="Center" />
     </StackPanel>
