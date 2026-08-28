@@ -325,12 +325,23 @@ do not; fumble *Engine Speed* and the C15 clamp never runs. `NoCycles`, `No1zCyc
 `MassBalance` are unit-level variables, so "previous" means the last close that got that far
 in the same session — and on the first use of a session they are still zero.
 
-Not reproduced as a cascade: each field binds independently in the port, so one bad entry
-cannot silently stale the other two, and there is no shared mutable state carrying a previous
-session's values forward. But the port does not validate either — the three boxes bind with a
-plain `Text="{Binding …}"`, so a non-numeric entry fails to update the property and the dialog
-carries on with what it had, quietly. The edit form got per-field validation with OK disabled
-while anything is invalid (C9); this dialog should have the same, as its own change.
+**Not reproduced, and the port now validates.** The three fields are held as **text** and
+parsed explicitly, which is what makes the bad entry visible at all: a `double` property
+cannot represent "banana", so binding one to a text box turns a fumbled field into a binding
+conversion error the view model never sees. Each field validates on its own — a number, and
+for cycles a whole number of at least one — so Run is unavailable and the offending field is
+named while anything is wrong, exactly as the edit form does for C9. There is no cascade
+either: a bad *Total Cycles* leaves speed and mass balance untouched rather than abandoning
+them, and no shared mutable state carries a previous session's values forward.
+
+Note that C15's clamp is deliberately **not** validation. A speed of 9000 is a usable number,
+so Run stays available and takes the nearer limit; only an entry that will not convert stops
+the run. `SimulateOptionsTests` pins both, including that an unparseable speed is reported as
+C16's problem rather than as out of range.
+
+One wrinkle worth knowing: `CanExecute` disables the button, but `RelayCommand.Execute` does
+not consult it, so invoking the command directly would still have accepted the dialog on a bad
+field. `Run` therefore guards itself as well.
 
 
 ## D. Errors and gaps in SPEC.md

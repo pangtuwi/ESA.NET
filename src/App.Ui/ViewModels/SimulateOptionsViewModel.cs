@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using App.Core.Model;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -46,7 +48,7 @@ public enum GraphDisplayMode
 /// disables them, and <i>Selection</i> clears them and hands them to the operator.
 /// </para>
 /// </remarks>
-public sealed partial class SimulateOptionsViewModel : ObservableObject
+public sealed partial class SimulateOptionsViewModel : ObservableValidator
 {
     /// <summary>Delphi's clamp in <c>FormClose</c>, which will not let the form close outside it.</summary>
     public const double MinimumRpm = 1250;
@@ -66,18 +68,104 @@ public sealed partial class SimulateOptionsViewModel : ObservableObject
     /// </summary>
     public bool Accepted { get; private set; }
 
-    /// <summary>Delphi <c>ERPM</c>, in rev/min.</summary>
+    /// <summary>Delphi <c>ERPM.Text</c>. What the box holds, valid or not.</summary>
+    /// <remarks>
+    /// The three fields are held as text and parsed explicitly, as <c>FormClose</c> does.
+    /// A non-numeric entry cannot be represented by a <see langword="double"/> property at
+    /// all - it fails as a binding conversion before the property is ever set - so keeping
+    /// the text is what lets the dialog see the bad entry and say so. See ISSUES.md C16.
+    /// </remarks>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SpeedWarning))]
-    private double _engineSpeed = 4000;
+    [NotifyDataErrorInfo]
+    [CustomValidation(typeof(SimulateOptionsViewModel), nameof(ValidateSpeed))]
+    private string _engineSpeedText = "4000";
 
-    /// <summary>Delphi <c>ENoCycles</c>.</summary>
+    /// <summary>Delphi <c>ENoCycles.Text</c>.</summary>
     [ObservableProperty]
-    private int _totalCycles = 6;
+    [NotifyDataErrorInfo]
+    [CustomValidation(typeof(SimulateOptionsViewModel), nameof(ValidateCycles))]
+    private string _totalCyclesText = "6";
 
-    /// <summary>Delphi <c>EMassBalance</c>, in milligrams.</summary>
+    /// <summary>Delphi <c>EMassBalance.Text</c>.</summary>
     [ObservableProperty]
-    private double _massBalance = 1;
+    [NotifyDataErrorInfo]
+    [CustomValidation(typeof(SimulateOptionsViewModel), nameof(ValidateMassBalance))]
+    private string _massBalanceText = "1";
+
+    /// <summary>Delphi <c>ERPM</c>, in rev/min. <see cref="double.NaN"/> while unparseable.</summary>
+    public double EngineSpeed
+    {
+        get => Number(EngineSpeedText);
+        set => EngineSpeedText = value.ToString("G", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Delphi <c>ENoCycles</c>. Zero while unparseable.</summary>
+    public int TotalCycles
+    {
+        get => int.TryParse(
+            TotalCyclesText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : 0;
+        set => TotalCyclesText = value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Delphi <c>EMassBalance</c>, in milligrams. <see cref="double.NaN"/> while unparseable.</summary>
+    public double MassBalance
+    {
+        get => Number(MassBalanceText);
+        set => MassBalanceText = value.ToString("G", CultureInfo.InvariantCulture);
+    }
+
+    private static double Number(string text) =>
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : double.NaN;
+
+    /// <summary>
+    /// Whether Run is available. The original runs whatever the boxes hold and silently
+    /// falls back to the previous values when one will not convert (ISSUES.md C16); here a
+    /// bad field stops the run and says which one, as the edit form does for C9.
+    /// </summary>
+    public bool CanRun => !HasErrors;
+
+    public static ValidationResult? ValidateSpeed(string text, ValidationContext context) =>
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+        && value > 0
+            ? ValidationResult.Success
+            : new ValidationResult("Engine speed must be a number of rev/min.");
+
+    public static ValidationResult? ValidateCycles(string text, ValidationContext context) =>
+        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+        && value >= 1
+            ? ValidationResult.Success
+            : new ValidationResult("Total cycles must be a whole number, 1 or more.");
+
+    public static ValidationResult? ValidateMassBalance(string text, ValidationContext context) =>
+        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+        && value > 0
+            ? ValidationResult.Success
+            : new ValidationResult("Mass balance must be a number of milligrams, above zero.");
+
+    partial void OnEngineSpeedTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(EngineSpeed));
+        OnPropertyChanged(nameof(SpeedWarning));
+    }
+
+    partial void OnTotalCyclesTextChanged(string value) => OnPropertyChanged(nameof(TotalCycles));
+
+    partial void OnMassBalanceTextChanged(string value) => OnPropertyChanged(nameof(MassBalance));
+
+    protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        if (e.PropertyName != nameof(CanRun))
+        {
+            OnPropertyChanged(nameof(CanRun));
+            RunCommand.NotifyCanExecuteChanged();
+        }
+    }
 
     /// <summary>
     /// Which of the three radio buttons is chosen. Held as one value rather than three
@@ -149,7 +237,7 @@ public sealed partial class SimulateOptionsViewModel : ObservableObject
     /// Run, which is what the original does.
     /// </summary>
     public string? SpeedWarning =>
-        EngineSpeed < MinimumRpm || EngineSpeed > MaximumRpm
+        !double.IsNaN(EngineSpeed) && (EngineSpeed < MinimumRpm || EngineSpeed > MaximumRpm)
             ? $"The original clamps engine speed to {MinimumRpm.ToString("F0", CultureInfo.InvariantCulture)}"
               + $" - {MaximumRpm.ToString("F0", CultureInfo.InvariantCulture)} rev/min, and Run will"
               + " use the nearer limit."
@@ -175,6 +263,10 @@ public sealed partial class SimulateOptionsViewModel : ObservableObject
         EngineSpeed = engineSpeed;
         TotalCycles = settings.CycleCount;
         MassBalance = settings.MassBalance;
+
+        ValidateAllProperties();
+        OnPropertyChanged(nameof(CanRun));
+        RunCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -185,9 +277,17 @@ public sealed partial class SimulateOptionsViewModel : ObservableObject
     /// <c>FormClose</c> runs whichever button was pressed, that traps Cancel too. Clamping
     /// and closing gets the operator the same run without the dead end.
     /// </remarks>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanRun))]
     private void Run()
     {
+        // CanExecute disables the button, but RelayCommand.Execute does not consult it, so
+        // the guard has to be here as well for the invariant to be worth anything: nothing
+        // should be able to accept the dialog on a field that will not convert.
+        if (!CanRun)
+        {
+            return;
+        }
+
         EngineSpeed = Math.Clamp(EngineSpeed, MinimumRpm, MaximumRpm);
         Accepted = true;
         CloseRequested?.Invoke(this, EventArgs.Empty);

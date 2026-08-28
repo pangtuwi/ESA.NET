@@ -29,16 +29,16 @@
 
       <TextBlock Grid.Row="0" Grid.Column="0" Classes="field" Text="Engine Speed:" />
       <TextBox Grid.Row="0" Grid.Column="1" x:Name="EngineSpeedBox" Margin="8,3"
-               Text="{Binding EngineSpeed, Mode=TwoWay}" />
+               Text="{Binding EngineSpeedText, Mode=TwoWay}" />
       <TextBlock Grid.Row="0" Grid.Column="2" Classes="unit" Text="[rpm]" />
 
       <TextBlock Grid.Row="1" Grid.Column="0" Classes="field" Text="Total Cycles:" />
       <TextBox Grid.Row="1" Grid.Column="1" x:Name="TotalCyclesBox" Margin="8,3"
-               Text="{Binding TotalCycles, Mode=TwoWay}" />
+               Text="{Binding TotalCyclesText, Mode=TwoWay}" />
 
       <TextBlock Grid.Row="2" Grid.Column="0" Classes="field" Text="Mass Balance:" />
       <TextBox Grid.Row="2" Grid.Column="1" x:Name="MassBalanceBox" Margin="8,3"
-               Text="{Binding MassBalance, Mode=TwoWay}" />
+               Text="{Binding MassBalanceText, Mode=TwoWay}" />
       <TextBlock Grid.Row="2" Grid.Column="2" Classes="unit" Text="[mg]" />
 
     </Grid>

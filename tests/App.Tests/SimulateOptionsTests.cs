@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using App.Core;
 using App.Core.Model;
 using App.Ui.Dialogs;
@@ -129,6 +130,147 @@ public sealed class SimulateOptionsTests
         viewModel.EngineSpeed = 4000;
 
         Assert.Null(viewModel.SpeedWarning);
+    }
+
+    // --- Validation, ISSUES.md C16 -------------------------------------------
+
+    [Theory]
+    [InlineData("banana")]
+    [InlineData("")]
+    [InlineData("0")]
+    [InlineData("-3")]
+    [InlineData("2.5")]
+    public void ABadTotalCyclesBlocksTheRun(string typed)
+    {
+        var viewModel = Opened();
+
+        viewModel.TotalCyclesText = typed;
+
+        Assert.False(viewModel.CanRun);
+        Assert.False(viewModel.RunCommand.CanExecute(null));
+    }
+
+    [Theory]
+    [InlineData("banana")]
+    [InlineData("")]
+    [InlineData("0")]
+    [InlineData("-100")]
+    public void ABadEngineSpeedBlocksTheRun(string typed)
+    {
+        var viewModel = Opened();
+
+        viewModel.EngineSpeedText = typed;
+
+        Assert.False(viewModel.CanRun);
+        Assert.False(viewModel.RunCommand.CanExecute(null));
+    }
+
+    [Theory]
+    [InlineData("banana")]
+    [InlineData("")]
+    [InlineData("0")]
+    [InlineData("-1")]
+    public void ABadMassBalanceBlocksTheRun(string typed)
+    {
+        var viewModel = Opened();
+
+        viewModel.MassBalanceText = typed;
+
+        Assert.False(viewModel.CanRun);
+        Assert.False(viewModel.RunCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void CorrectingTheFieldMakesRunAvailableAgain()
+    {
+        var viewModel = Opened();
+
+        viewModel.TotalCyclesText = "banana";
+
+        Assert.False(viewModel.CanRun);
+
+        viewModel.TotalCyclesText = "8";
+
+        Assert.True(viewModel.CanRun);
+        Assert.True(viewModel.RunCommand.CanExecute(null));
+        Assert.Equal(8, viewModel.TotalCycles);
+    }
+
+    [Fact]
+    public void ABadFieldDoesNotStaleTheOthers()
+    {
+        // The C16 cascade: Delphi assigns NoCycles, MassBalance then Nrpm inside one try
+        // with an empty except, so a bad Total Cycles abandons the other two and the run
+        // silently uses the previous values for all three. Here each field stands alone.
+        var viewModel = Opened(speed: 5500, cycles: 8, massBalance: 0.5);
+
+        viewModel.TotalCyclesText = "banana";
+
+        Assert.Equal(5500, viewModel.EngineSpeed);
+        Assert.Equal(0.5, viewModel.MassBalance);
+
+        // And nothing runs on the stale values, because Run is unavailable at all.
+        Assert.False(viewModel.CanRun);
+    }
+
+    [Fact]
+    public void EveryFieldIsNamedWhenItIsTheOneAtFault()
+    {
+        var viewModel = Opened();
+
+        viewModel.EngineSpeedText = "banana";
+        viewModel.TotalCyclesText = "banana";
+        viewModel.MassBalanceText = "banana";
+
+        var errors = viewModel.GetErrors().OfType<ValidationResult>()
+            .Select(e => e.ErrorMessage ?? string.Empty)
+            .ToList();
+
+        Assert.Contains(errors, e => e.Contains("Engine speed", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.Contains("Total cycles", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.Contains("Mass balance", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void RunRefusesToAcceptOnABadFieldEvenIfItIsInvokedDirectly()
+    {
+        // The button follows CanExecute, but RelayCommand.Execute does not consult it, so
+        // the command guards itself too.
+        var viewModel = Opened();
+
+        viewModel.TotalCyclesText = "banana";
+        viewModel.RunCommand.Execute(null);
+
+        Assert.False(viewModel.Accepted);
+    }
+
+    [Fact]
+    public void AnOutOfRangeButNumericSpeedStillRuns()
+    {
+        // C15 is a clamp, not a validation error: 9000 is a number, so Run stays available
+        // and takes the nearer limit. Only an unusable entry stops the run.
+        var viewModel = Opened(speed: 9000);
+
+        Assert.True(viewModel.CanRun);
+        Assert.NotNull(viewModel.SpeedWarning);
+
+        viewModel.RunCommand.Execute(null);
+
+        Assert.True(viewModel.Accepted);
+        Assert.Equal(7000, viewModel.EngineSpeed);
+    }
+
+    [Fact]
+    public void AnUnparseableSpeedIsNotReportedAsOutOfRange()
+    {
+        // The range warning is about a number that is too big or too small; a field that is
+        // not a number at all is C16's business and gets C16's message.
+        var viewModel = Opened();
+
+        viewModel.EngineSpeedText = "banana";
+
+        Assert.Null(viewModel.SpeedWarning);
+        Assert.False(viewModel.CanRun);
     }
 
     [AvaloniaFact]
