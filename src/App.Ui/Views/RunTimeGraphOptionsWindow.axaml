@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:App.Ui.ViewModels"
+        x:Class="App.Ui.Views.RunTimeGraphOptionsWindow"
+        x:DataType="vm:RunTimeGraphOptionsViewModel"
+        Title="Run-Time Graph Options"
+        Width="320" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="12" Spacing="10">
+    <Border BorderBrush="#808080" BorderThickness="1" Padding="10,8">
+      <StackPanel Spacing="6">
+        <TextBlock Text="Gas Flow Properties" FontWeight="Bold" />
+        <RadioButton GroupName="GasFlow" Content="Nothing (fastest)" IsEnabled="False" />
+        <RadioButton GroupName="GasFlow" Content="Cyl., Inlet and Exh. Pressure"
+                     IsChecked="{Binding Pressure, Mode=TwoWay}" />
+        <RadioButton GroupName="GasFlow" Content="Inlet and Exh. Velocity"
+                     IsChecked="{Binding Velocity, Mode=TwoWay}" />
+        <RadioButton GroupName="GasFlow" Content="Mass Transfer"
+                     IsChecked="{Binding MassTransfer, Mode=TwoWay}" IsEnabled="False" />
+      </StackPanel>
+    </Border>
+
+    <Grid ColumnDefinitions="*,*">
+      <Button Grid.Column="0" Content="Cancel" Command="{Binding CancelCommand}"
+              IsCancel="True" Margin="0,0,4,0" />
+      <Button Grid.Column="1" Content="OK" Command="{Binding AcceptCommand}"
+              IsDefault="True" Margin="4,0,0,0" />
+    </Grid>
+  </StackPanel>
+</Window>

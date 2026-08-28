@@ -44,11 +44,13 @@ public static class ServiceRegistration
         services.AddSingleton<IEditEngineWindowService, EditEngineWindowService>();
         services.AddSingleton<IMultiRunWindowService, MultiRunWindowService>();
         services.AddSingleton<ISimulateOptionsWindowService, SimulateOptionsWindowService>();
+        services.AddSingleton<IRunTimeGraphOptionsWindowService, RunTimeGraphOptionsWindowService>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<EditEngineViewModel>();
         services.AddTransient<MultiRunViewModel>();
         services.AddTransient<SimulateOptionsViewModel>();
+        services.AddTransient<RunTimeGraphOptionsViewModel>();
         services.AddSingleton<Func<EditEngineViewModel>>(
             provider => provider.GetRequiredService<EditEngineViewModel>);
         services.AddSingleton<Func<MultiRunViewModel>>(
@@ -56,6 +58,8 @@ public static class ServiceRegistration
 
         services.AddSingleton<Func<SimulateOptionsViewModel>>(
             provider => provider.GetRequiredService<SimulateOptionsViewModel>);
+        services.AddSingleton<Func<RunTimeGraphOptionsViewModel>>(
+            provider => provider.GetRequiredService<RunTimeGraphOptionsViewModel>);
 
         return services;
     }

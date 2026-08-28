@@ -31,6 +31,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IMultiRunWindowService _multiRunEditor;
     private readonly ISimulateOptionsWindowService _simulateOptions;
     private readonly MultiRunner _multiRunner;
+    private readonly IRunTimeGraphOptionsWindowService _runTimeGraphOptions;
 
     private CancellationTokenSource? _running;
 
@@ -44,7 +45,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IEditEngineWindowService editor,
         IMultiRunWindowService multiRunEditor,
         MultiRunner multiRunner,
-        ISimulateOptionsWindowService simulateOptions)
+        ISimulateOptionsWindowService simulateOptions,
+        IRunTimeGraphOptionsWindowService runTimeGraphOptions)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
@@ -56,6 +58,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _multiRunEditor = multiRunEditor;
         _multiRunner = multiRunner;
         _simulateOptions = simulateOptions;
+        _runTimeGraphOptions = runTimeGraphOptions;
     }
 
     /// <summary>
@@ -623,9 +626,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     // Graph. Delphi: Options1Click, ShowTorqueCurve1Click, ValveOpening1Click, HeatLoss1Click.
 
     [RelayCommand]
-    private static void RunTimeGraphOptions()
+    private async Task RunTimeGraphOptionsAsync()
     {
-        // Phase 5.
+        var result = await _runTimeGraphOptions.ShowAsync(ShowGasFlowVelocities);
+
+        if (result.Accepted)
+        {
+            ShowGasFlowVelocities = result.ShowGasFlowVelocities;
+        }
     }
 
     /// <summary>Torque, power and volumetric efficiency against speed.</summary>

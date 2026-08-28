@@ -131,16 +131,6 @@
                  TextTrimming="CharacterEllipsis" />
     </Grid>
 
-    <!-- The original's main form carries no run controls: speed, cycle count and mass
-         balance are asked for by the Single Speed Simulation dialog that Run > Single Point
-         Simulation opens, and Run, Pause and Stop are menu items. The one control kept here
-         switches the embedded gas-flow quadrant, which the original does from its run-time
-         graph options form. -->
-    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="8,8,8,4">
-      <CheckBox x:Name="GasFlowVelocitiesBox" Content="Gas flow: velocities"
-                IsChecked="{Binding ShowGasFlowVelocities}" VerticalAlignment="Center" />
-    </StackPanel>
-
     <!-- The original's results screen: figures top left, three charts filling the rest. -->
     <Grid x:Name="ResultsGrid" RowDefinitions="*,*" ColumnDefinitions="*,*" Margin="4">
 
