@@ -17,6 +17,26 @@ namespace App.Core;
 public interface IEngineLoader
 {
     EngineLoadResult Load(string engineFilePath);
+
+    /// <summary>
+    /// Re-derives the engine from a definition already in hand, re-resolving the side
+    /// files against <paramref name="engineFilePath"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="EngineLoadResult.Engine"/> and <see cref="EngineLoadResult.Definition"/>
+    /// are two snapshots taken at load time, and editing the definition does not touch the
+    /// engine the simulation reads. The original had no such split: <c>Edit.pas</c>'s OK
+    /// handler converts and assigns straight onto <c>Engine2z</c>. This is how the port
+    /// gets back to the same place - rebuild after an edit, rather than leave the
+    /// simulation running on values the operator has already changed. See ISSUES.md C2.
+    /// </para>
+    /// <para>
+    /// The definition instance is passed straight back out, so a reference held elsewhere
+    /// - the edit window keeps one while it is open - stays live across a rebuild.
+    /// </para>
+    /// </remarks>
+    EngineLoadResult Rebuild(EngineDefinition definition, string engineFilePath);
 }
 
 /// <summary>The outcome of loading an engine: what was built, and what could not be found.</summary>

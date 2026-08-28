@@ -39,7 +39,15 @@ public sealed class EngineLoader : IEngineLoader
     {
         ArgumentNullException.ThrowIfNull(engineFilePath);
 
-        var definition = _definitions.Read(engineFilePath);
+        return Rebuild(_definitions.Read(engineFilePath), engineFilePath);
+    }
+
+    /// <inheritdoc />
+    public EngineLoadResult Rebuild(EngineDefinition definition, string engineFilePath)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(engineFilePath);
+
         var context = new LoadContext(new LegacyPathResolver(engineFilePath), []);
         var engine = new Engine();
 
@@ -51,6 +59,8 @@ public sealed class EngineLoader : IEngineLoader
         ApplyOlderSchemaValues(engine, definition);
         LoadSideFiles(engine, definition, context);
 
+        // The same definition instance goes back out, so whoever is editing it - the edit
+        // window holds a reference for as long as it is open - keeps a live one.
         return new EngineLoadResult(engine, definition, context.Problems);
     }
 

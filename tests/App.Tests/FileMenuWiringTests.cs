@@ -46,7 +46,14 @@ public sealed class FileMenuWiringTests
     {
         public int Opened { get; private set; }
 
-        public void Show(EngineDefinition definition, string path) => Opened++;
+        /// <summary>Lets a test press OK on the editor without opening a window.</summary>
+        public Action? OnApplied { get; private set; }
+
+        public void Show(EngineDefinition definition, string path, Action? onApplied = null)
+        {
+            Opened++;
+            OnApplied = onApplied;
+        }
     }
 
     private static (MainWindowViewModel ViewModel, StubFileDialog Files, StubEditor Editor) Build()

@@ -255,7 +255,31 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Opens the eight-tab editor on the current engine. Port of <c>Edit1Click</c>.</summary>
     [RelayCommand(CanExecute = nameof(HasEngine))]
-    private void EditEngine() => _editor.Show(CurrentEngine!.Definition, CurrentEngineFile);
+    private void EditEngine() =>
+        _editor.Show(CurrentEngine!.Definition, CurrentEngineFile, RebuildEngineAfterEdit);
+
+    /// <summary>
+    /// Re-derives the engine from the definition the editor has just written to, so the
+    /// next run uses what the operator actually set.
+    /// </summary>
+    /// <remarks>
+    /// <c>EngineLoadResult</c> carries an <c>Engine</c> and an <c>EngineDefinition</c> that
+    /// are separate snapshots, and the editor writes only to the definition. Without this
+    /// the simulation keeps running on the values the file was opened with, whatever the
+    /// operator changes - which is the port's own version of ISSUES.md C2, and worse than
+    /// the original's, whose OK handler assigns onto the engine directly. Rebuilding also
+    /// picks up any side file the operator renamed, and refreshes the load problems shown
+    /// in the status line.
+    /// </remarks>
+    private void RebuildEngineAfterEdit()
+    {
+        if (CurrentEngine is null || string.IsNullOrEmpty(CurrentEngineFile))
+        {
+            return;
+        }
+
+        CurrentEngine = _engineLoader.Rebuild(CurrentEngine.Definition, CurrentEngineFile);
+    }
 
     /// <summary>
     /// Opens whatever <c>ESA.ini</c> names as the default engine. Port of

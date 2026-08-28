@@ -12,12 +12,17 @@ public sealed class EditEngineWindowService : IEditEngineWindowService
     public EditEngineWindowService(Func<EditEngineViewModel> viewModels) => _viewModels = viewModels;
 
     /// <inheritdoc />
-    public void Show(EngineDefinition definition, string path)
+    public void Show(EngineDefinition definition, string path, Action? onApplied = null)
     {
         ArgumentNullException.ThrowIfNull(definition);
 
         var viewModel = _viewModels();
         viewModel.Load(definition);
+
+        if (onApplied is not null)
+        {
+            viewModel.Applied += (_, _) => onApplied();
+        }
 
         new EditEngineWindow { DataContext = viewModel, Title = $"Edit Engine - {path}" }.Show();
     }

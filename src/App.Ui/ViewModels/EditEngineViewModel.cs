@@ -536,5 +536,16 @@ public sealed partial class EditEngineViewModel : ObservableValidator
     }
 
     [RelayCommand]
-    private void Ok() => Apply();
+    private void Ok()
+    {
+        Apply();
+        Applied?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Raised after OK has written the form back to the definition, so the shell can
+    /// re-derive the engine the simulation reads. Without it the operator's edits reach
+    /// the definition and stop there - ISSUES.md C2.
+    /// </summary>
+    public event EventHandler? Applied;
 }
