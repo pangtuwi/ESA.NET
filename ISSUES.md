@@ -151,7 +151,7 @@ renumbered.
 Not port defects, but things that make the original behave in ways that look like
 breakage.
 
-**C1 ([#87](https://github.com/pangtuwi/ESA.NET/issues/87)) — Manifold output needs three conditions, not one.** The gate is
+**C1 ([#87](https://github.com/pangtuwi/ESA.NET/issues/87)) — Manifold output needs three conditions, not one.** **Fixed.** The gate is
 `(CA = 359) and (tStep = NoCycles-1) and (DataWrite = TRUE)`
 (`Manifolds.pas:3022`). Ticking *Save Manifold Data* only satisfies the third.
 `NoCycles` is `Engine2z.NCycles`, the **requested** count, fixed at
@@ -159,7 +159,9 @@ breakage.
 run reaches the final requested cycle — and a run that converges early exits
 before it. Requesting 6 cycles produced nothing; requesting 4 produced all nine.
 
-**Not reproduced.** Ticking the box is the whole gate in the port. `SimulationRunner`
+**Fixed** in
+[`24ccb0d`](https://github.com/pangtuwi/ESA.NET/commit/24ccb0d212b09e93f6185de059c89baa38fc6af0),
+and so not reproduced: ticking the box is the whole gate in the port. `SimulationRunner`
 takes an `IManifoldRecorder`, wraps it in `ManifoldCaptureWindow` — the same crank-angle
 window the original writes, so the files hold the same rows — and resets it at each cycle
 boundary, which leaves it holding the last cycle *actually* run rather than the last one
