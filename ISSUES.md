@@ -295,6 +295,28 @@ editor now reports the consequence, saying how many further rows are filled in a
 will not run.
 
 
+**C15 ([#122](https://github.com/pangtuwi/ESA.NET/issues/122)) — The simulation dialog will not close while the speed is out of range, Cancel included.**
+`TFSimulateOptions.FormClose` sets `Action := caNone` and rewrites the edit box to the
+nearer limit whenever engine speed leaves 1250 to 7000 rev/min (`FormSimul.pas:66-88`).
+`FormClose` runs on **any** close, whichever button was pressed, so an operator who types
+8000 and then thinks better of the whole thing cannot leave by pressing Cancel either. The
+window just stays put with no message. A second press does work — the box now reads 7000,
+which passes — so it is a wasted press rather than a permanent dead end, but nothing says
+so and the typed value has been silently replaced. Both limits are hard-coded in the
+handler: they are not in `ESA.ini`, and the dialog names them nowhere.
+
+Not reproduced. The port clamps on Run and names the range in the dialog as soon as the
+typed value leaves it, so the limit is visible before anything is pressed and Cancel always
+cancels. Pinned by `SimulateOptionsTests`.
+
+Note a second trap in the same handler, left unrecorded for now: the whole body sits in a
+`try ... Except end` whose except block is **empty**, and `NoCycles`, `MassBalance` and
+`Nrpm` are assigned in that order — so a non-numeric *Total Cycles* throws on the first line,
+the other two are never assigned, and the run uses the previous values for every field. The
+clamp does not run either, being below the assignment that threw. It deserves its own entry
+if anyone wants to reproduce or fix it.
+
+
 ## D. Errors and gaps in SPEC.md
 
 `SPEC.md` is the phase 1 reverse-engineering output. Where it disagrees with the
