@@ -128,7 +128,8 @@ public static class OpenEndBoundary
         do
         {
             // ---- The characteristic arriving from inside the pipe ----
-            while (true)
+            var waveFootIterations = 0;
+            while (waveFootIterations++ <= MaxIterations)
             {
                 if (iteration == 0)
                 {
@@ -166,8 +167,14 @@ public static class OpenEndBoundary
                 waveR = line.DensityAt(x);
             }
 
+            if (waveFootIterations > MaxIterations + 1)
+            {
+                throw new CfdException("ERROR : No convergence in open-end characteristic foot !!!");
+            }
+
             // ---- The path line ----
-            while (true)
+            var pathFootIterations = 0;
+            while (pathFootIterations++ <= MaxIterations)
             {
                 if (iteration == 0)
                 {
@@ -201,6 +208,11 @@ public static class OpenEndBoundary
                 pathU = line.VelocityAt(x);
                 pathP = line.PressureAt(x);
                 pathR = line.DensityAt(x);
+            }
+
+            if (pathFootIterations > MaxIterations + 1)
+            {
+                throw new CfdException("ERROR : No convergence in open-end path foot !!!");
             }
 
             // ---- Close the system, according to which way the gas is going ----

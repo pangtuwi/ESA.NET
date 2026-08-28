@@ -60,6 +60,22 @@ public sealed class MultiRunnerTests
     }
 
     [Fact]
+    public void A2500RpmRowIsRecordedAsFailedInsteadOfHanging()
+    {
+        BaselinePaths.Require();
+
+        var results = Runner().Run(
+            BaselinePaths.File("A2China.eng"),
+            SpeedSweep(2500),
+            Settings(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        Assert.Single(results);
+        Assert.Null(results[0].Result);
+        Assert.Contains("Non-finite state", results[0].Failure);
+    }
+
+    [Fact]
     public void EachRowStartsFromAFreshEngineSoOverridesDoNotLeak()
     {
         BaselinePaths.Require();

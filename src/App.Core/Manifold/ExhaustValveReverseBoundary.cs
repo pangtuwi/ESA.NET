@@ -88,7 +88,7 @@ public static class ExhaustValveReverseBoundary
         do
         {
             // ---- C- from inside the pipe ----
-            while (true)
+            for (var guard = 0; guard <= 100; guard++)
             {
                 if (iteration == 0)
                 {
@@ -124,7 +124,7 @@ public static class ExhaustValveReverseBoundary
             }
 
             // ---- The path line ----
-            while (true)
+            for (var guard = 0; guard <= 100; guard++)
             {
                 if (iteration == 0)
                 {
@@ -290,7 +290,7 @@ public static class ExhaustValveReverseBoundary
                 var probe = 1;
                 double previousProbeP = 0, previousProbeMach = 0;
 
-                while (true)
+                for (var guard = 0; guard <= 100; guard++)
                 {
                     u4 = (tMinus - p4) / qMinus;
                     r4 = (p4 - t0) / a0;

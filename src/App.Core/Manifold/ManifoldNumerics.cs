@@ -46,6 +46,11 @@ public static class ManifoldNumerics
     /// </remarks>
     public static double SpeedOfSound(double gamma, double pressure, double density)
     {
+        if (!double.IsFinite(gamma) || !double.IsFinite(pressure) || !double.IsFinite(density))
+        {
+            throw new CfdException("ERROR : Non-finite state in \"cThermo\" !!!");
+        }
+
         if (gamma * pressure / density <= 0)
         {
             if (density < 0)

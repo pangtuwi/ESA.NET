@@ -105,7 +105,7 @@ public static class InletValveOpenBoundary
         do
         {
             // ---- C+ from inside the pipe ----
-            while (true)
+            for (var guard = 0; guard <= 100; guard++)
             {
                 if (iteration == 0)
                 {
@@ -141,7 +141,7 @@ public static class InletValveOpenBoundary
             }
 
             // ---- The path line ----
-            while (true)
+            for (var guard = 0; guard <= 100; guard++)
             {
                 if (iteration == 0)
                 {
@@ -347,7 +347,7 @@ public static class InletValveOpenBoundary
                 var probe = 1;
                 double previousProbeP = 0, previousProbeMach = 0;
 
-                while (true)
+                for (var guard = 0; guard <= 100; guard++)
                 {
                     // Opposite sign to the reverse routine, and the density comes from the
                     // path line rather than from the local speed of sound.

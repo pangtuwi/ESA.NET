@@ -112,7 +112,7 @@ public static class InletValveReverseBoundary
         do
         {
             // ---- The C+ characteristic arriving from inside the pipe ----
-            while (true)
+            for (var guard = 0; guard <= 100; guard++)
             {
                 if (iteration == 0)
                 {
@@ -264,7 +264,7 @@ public static class InletValveReverseBoundary
                 var probe = 1;
                 double previousProbeP = 0, previousProbeMach = 0;
 
-                while (true)
+                for (var guard = 0; guard <= 100; guard++)
                 {
                     u4 = (p4 - tPlus) / qPlus;
                     r4 = gamma * p4 / (c4 * c4);

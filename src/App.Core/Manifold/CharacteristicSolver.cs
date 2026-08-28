@@ -36,7 +36,7 @@ public static class CharacteristicSolver
     private const double PressureTolerance = 1 * 0.001;
     private const double DensityTolerance = 1 * 0.0001;
 
-    private const int MaxIterations = 1000;
+    private const int MaxIterations = 100;
 
     /// <summary>
     /// Computes the new state at interior point <paramref name="index"/> and writes it
@@ -87,7 +87,8 @@ public static class CharacteristicSolver
         do
         {
             // ---- C+ : the foot of the forward-running characteristic ----
-            while (true)
+            var plusFootIterations = 0;
+            while (plusFootIterations++ <= MaxIterations)
             {
                 if (iteration == 0)
                 {
@@ -132,7 +133,8 @@ public static class CharacteristicSolver
             }
 
             // ---- C- : the foot of the backward-running characteristic ----
-            while (true)
+            var minusFootIterations = 0;
+            while (minusFootIterations++ <= MaxIterations)
             {
                 if (iteration == 0)
                 {
@@ -177,7 +179,8 @@ public static class CharacteristicSolver
             }
 
             // ---- C0 : the path line, carrying entropy ----
-            while (true)
+            var pathFootIterations = 0;
+            while (pathFootIterations++ <= MaxIterations)
             {
                 if (iteration == 0)
                 {

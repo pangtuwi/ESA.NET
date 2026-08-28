@@ -116,7 +116,8 @@ public static class ClosedValveBoundary
         do
         {
             // ---- The one characteristic that reaches the wall ----
-            while (true)
+            var footIterations = 0;
+            while (footIterations++ <= MaxIterations)
             {
                 if (iteration == 0)
                 {
@@ -154,6 +155,11 @@ public static class ClosedValveBoundary
                 footU = line.VelocityAt(x);
                 footP = line.PressureAt(x);
                 footR = line.DensityAt(x);
+            }
+
+            if (footIterations > MaxIterations + 1)
+            {
+                throw new CfdException("ERROR : No convergence in closed-valve characteristic foot !!!");
             }
 
             // ---- The path line, carrying entropy off the wall itself ----
