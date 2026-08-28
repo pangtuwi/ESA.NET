@@ -173,17 +173,46 @@ no second run to find out how many cycles there will be. `SimulationResult` repo
 
 The files land beside the `.eng` rather than in the working directory, which also settles
 C4 for the single-point run; with no engine path loaded there is nowhere better than the
-working directory, which is what the original always did. C2 and C3 do not arise: the port
-reads `Save Manifold Data` off the engine, so there is no form state to latch.
+working directory, which is what the original always did. C2 and C3 were dealt with
+separately: the note that first stood here, that they "do not arise", was wrong — the port
+read the flag off the engine as it says, but nothing refreshed the engine when the editor
+changed it.
 
 **A multi-run sweep still writes nothing** — see A12, which is where that now lives.
 
-**C2 ([#88](https://github.com/pangtuwi/ESA.NET/issues/88)) — The checkbox is read off the Edit form, not the engine.**
+**C2 ([#88](https://github.com/pangtuwi/ESA.NET/issues/88)) — The checkbox is read off the Edit form, not the engine.** **Fixed.**
 `TFMain.Simulate` tests `FEdit.CBSaveManfData.Checked`, so the Edit window must
 have been opened at least once in the session for it to reflect the loaded engine.
 
-**C3 ([#89](https://github.com/pangtuwi/ESA.NET/issues/89)) — And it latches.** That same line only ever assigns `TRUE`, so once set it
+The port reads `Engine.Manifold.SaveManifoldData`, which `EngineLoader` applies from the
+`.eng` whether or not the editor is ever opened. **But that was not enough on its own, and
+an earlier note here claiming C2 and C3 "do not arise" was wrong.** `EngineLoadResult`
+carries an `Engine` and an `EngineDefinition` that are separate snapshots taken at load
+time, and the editor writes only to the definition — so ticking the box, pressing OK and
+running used the value the file was opened with. Not the original's defect, but the same
+symptom and arguably worse: in the original the form at least fed the run, where here the
+edit reached nothing. It was never confined to the checkbox either; every field the editor
+writes went the same way.
+
+**Fixed** in
+[`902dc97`](https://github.com/pangtuwi/ESA.NET/commit/902dc97f0bfacc1bc607f4db2d55eebe9dba4206).
+`IEngineLoader.Rebuild` now re-derives the engine from a definition already in hand, and
+the shell calls it whenever the editor raises `Applied`, so OK puts the operator's values
+where the simulation reads them — which is what `Edit.pas`'s OK handler did by assigning
+onto `Engine2z` directly. Rebuilding also re-resolves the side files, so a renamed cam or
+manifold file is picked up and the status line's problem count refreshes. The definition
+instance is passed back out unchanged, so the open editor's reference stays live across the
+rebuild. Pinned by `EngineEditRefreshTests`, three of whose five tests fail if the rebuild
+is removed.
+
+**C3 ([#89](https://github.com/pangtuwi/ESA.NET/issues/89)) — And it latches.** **Fixed.** That same line only ever assigns `TRUE`, so once set it
 stays set until the application restarts. Unticking does not turn output off.
+
+Not reproduced, and settled by the same change as C2
+([`902dc97`](https://github.com/pangtuwi/ESA.NET/commit/902dc97f0bfacc1bc607f4db2d55eebe9dba4206)).
+The port holds the flag on the engine rather than in form state, so there is nothing to
+latch: unticking and pressing OK writes `false` through to the engine the same way ticking
+writes `true`, and `UntickingItTurnsOutputOffAgain` pins the round trip.
 
 **C4 ([#90](https://github.com/pangtuwi/ESA.NET/issues/90)) — Manifold files land in the working directory**, not beside the `.eng`.
 They are opened with bare relative names. Look where `SimulDat.txt` appears.
