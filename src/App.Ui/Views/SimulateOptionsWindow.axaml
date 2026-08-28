@@ -1,0 +1,96 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:App.Ui.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="330" d:DesignHeight="300"
+        x:Class="App.Ui.Views.SimulateOptionsWindow"
+        x:DataType="vm:SimulateOptionsViewModel"
+        Title="{Binding Title}"
+        Width="330" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Window.Styles>
+    <Style Selector="TextBlock.field">
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.unit">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="6,0,0,0" />
+    </Style>
+  </Window.Styles>
+
+  <StackPanel Margin="12" Spacing="10">
+
+    <!-- Delphi ERPM, ENoCycles and EMassBalance, in the order the form lays them out. -->
+    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" >
+
+      <TextBlock Grid.Row="0" Grid.Column="0" Classes="field" Text="Engine Speed:" />
+      <TextBox Grid.Row="0" Grid.Column="1" x:Name="EngineSpeedBox" Margin="8,3"
+               Text="{Binding EngineSpeed, Mode=TwoWay}" />
+      <TextBlock Grid.Row="0" Grid.Column="2" Classes="unit" Text="[rpm]" />
+
+      <TextBlock Grid.Row="1" Grid.Column="0" Classes="field" Text="Total Cycles:" />
+      <TextBox Grid.Row="1" Grid.Column="1" x:Name="TotalCyclesBox" Margin="8,3"
+               Text="{Binding TotalCycles, Mode=TwoWay}" />
+
+      <TextBlock Grid.Row="2" Grid.Column="0" Classes="field" Text="Mass Balance:" />
+      <TextBox Grid.Row="2" Grid.Column="1" x:Name="MassBalanceBox" Margin="8,3"
+               Text="{Binding MassBalance, Mode=TwoWay}" />
+      <TextBlock Grid.Row="2" Grid.Column="2" Classes="unit" Text="[mg]" />
+
+    </Grid>
+
+    <TextBlock x:Name="SpeedWarningText" Text="{Binding SpeedWarning}" TextWrapping="Wrap"
+               Foreground="#B03030" FontSize="11"
+               IsVisible="{Binding SpeedWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+    <!-- Delphi Bevel2 with Label6: the Graphic Display Options group. -->
+    <Border BorderBrush="#808080" BorderThickness="1" Padding="10,8">
+      <StackPanel Spacing="6">
+
+        <TextBlock Text="Graphic Display Options" FontWeight="Bold" />
+
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+
+          <RadioButton Grid.Row="0" Grid.Column="0" x:Name="GraphsOnButton"
+                       GroupName="Graphs" Content="Graphs On"
+                       IsChecked="{Binding GraphsOn, Mode=TwoWay}" />
+          <CheckBox Grid.Row="0" Grid.Column="1" x:Name="GasFlowBox" Content="Gas Flow"
+                    IsChecked="{Binding ShowGasFlow, Mode=TwoWay}"
+                    IsEnabled="{Binding CanChooseGraphs}" />
+
+          <RadioButton Grid.Row="1" Grid.Column="0" x:Name="GraphsOffButton"
+                       GroupName="Graphs" Content="Graphs Off"
+                       IsChecked="{Binding GraphsOff, Mode=TwoWay}" />
+          <CheckBox Grid.Row="1" Grid.Column="1" x:Name="PressureVolumeBox" Content="P-V"
+                    IsChecked="{Binding ShowPressureVolume, Mode=TwoWay}"
+                    IsEnabled="{Binding CanChooseGraphs}" />
+
+          <RadioButton Grid.Row="2" Grid.Column="0" x:Name="SelectionButton"
+                       GroupName="Graphs" Content="Selection"
+                       IsChecked="{Binding Selection, Mode=TwoWay}" />
+          <CheckBox Grid.Row="2" Grid.Column="1" x:Name="InCylinderBox" Content="In Cylinder"
+                    IsChecked="{Binding ShowInCylinder, Mode=TwoWay}"
+                    IsEnabled="{Binding CanChooseGraphs}" />
+
+        </Grid>
+
+      </StackPanel>
+    </Border>
+
+    <!-- Delphi BitBtn1 and BitBtn2. -->
+    <Grid ColumnDefinitions="*,*" Margin="0,2,0,0">
+      <Button Grid.Column="0" x:Name="CancelButton" Content="Cancel"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+              Margin="0,0,4,0" Command="{Binding CancelCommand}" IsCancel="True" />
+      <Button Grid.Column="1" x:Name="RunButton" Content="Run"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+              Margin="4,0,0,0" Command="{Binding RunCommand}" IsDefault="True" />
+    </Grid>
+
+  </StackPanel>
+
+</Window>
