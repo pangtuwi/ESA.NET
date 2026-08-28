@@ -25,6 +25,13 @@ public static class ServiceRegistration
         services.AddSingleton<IEngineDefinitionStore, EngineDefinitionStore>();
         services.AddSingleton<ISimulationSettingsStore, SimulationSettingsStore>();
 
+        // The data folder, resolved once from ESA.ini beside the executable - the same
+        // file and the same place LoadDefault reads. A test registers its own over the
+        // top, which is what keeps a test run out of the operator's Documents.
+        services.AddSingleton<IWorkspace>(provider => Workspace.From(
+            provider.GetRequiredService<ISimulationSettingsStore>().Read(
+                Path.Combine(AppContext.BaseDirectory, SimulationSettingsStore.FileName))));
+
         services.AddSingleton<ICamProfileReader, CamProfileReader>();
         services.AddSingleton<ISpeedKeyedTableReader, SpeedKeyedTableReader>();
         services.AddSingleton<IWallTemperatureTableReader, WallTemperatureTableReader>();

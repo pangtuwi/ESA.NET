@@ -31,6 +31,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IMultiRunWindowService _multiRunEditor;
     private readonly ISimulateOptionsWindowService _simulateOptions;
     private readonly MultiRunner _multiRunner;
+    private readonly IWorkspace _workspace;
 
     private CancellationTokenSource? _running;
 
@@ -44,7 +45,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IEditEngineWindowService editor,
         IMultiRunWindowService multiRunEditor,
         MultiRunner multiRunner,
-        ISimulateOptionsWindowService simulateOptions)
+        ISimulateOptionsWindowService simulateOptions,
+        IWorkspace workspace)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
@@ -56,38 +58,71 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _multiRunEditor = multiRunEditor;
         _multiRunner = multiRunner;
         _simulateOptions = simulateOptions;
+        _workspace = workspace;
     }
 
     /// <summary>
-    /// Writes the nine manifold output files and returns the directory they went to, or
-    /// <see langword="null"/> if they could not be written.
+    /// Everything one finished run leaves behind: a folder of its own, holding copies of
+    /// the files it read, its performance row, its PVT trace, the nine manifold files and
+    /// a manifest.
     /// </summary>
     /// <remarks>
-    /// They go beside the engine file, where the original opens them with bare relative
-    /// names and so drops them in the working directory instead (ISSUES.md C4). With no
-    /// engine path to hand there is nowhere better than the working directory, which is
-    /// what the original always did.
+    /// The original wrote the manifold files and <c>SimulDat.txt</c> under bare relative
+    /// names, so they landed in the working directory and the next run overwrote them
+    /// (ISSUES.md C4, C6). A run that failed or was stopped still gets a folder, because
+    /// the manifest saying why is the part worth keeping.
     /// </remarks>
-    private string? WriteManifoldData(ManifoldTraceWriter writer)
+    private string? ArchiveRun(
+        DateTimeOffset startedAt,
+        SimulationResult? result,
+        ManifoldTraceWriter? manifoldWriter,
+        TimeSpan elapsed,
+        string outcome)
     {
-        var directory = Path.GetDirectoryName(CurrentEngineFile);
-
-        if (string.IsNullOrEmpty(directory))
-        {
-            directory = Directory.GetCurrentDirectory();
-        }
-
         try
         {
-            writer.Write(directory);
-            return directory;
+            var archive = new RunArchive(_workspace.CreateRunDirectory(CurrentEngineFile, startedAt));
+
+            var manifest = new RunManifest(startedAt)
+                .Engine(
+                    CurrentEngineFile,
+                    CurrentEngine?.Engine.Name ?? string.Empty,
+                    CurrentEngine?.Problems ?? [])
+                .Requested(EngineSpeed, Settings)
+                .Outcome(outcome, elapsed);
+
+            if (result is not null)
+            {
+                manifest.Performance(result.Engine, result.CyclesRun);
+                archive.AppendPerformance(result.Engine);
+                archive.WriteTrace(result.Trace);
+            }
+
+            if (manifoldWriter is { RowCount: > 0 })
+            {
+                archive.WriteManifoldData(manifoldWriter);
+            }
+
+            manifest.Inputs(archive.CopyInputs(CurrentEngineFile, CurrentEngine));
+            manifest.Write(archive.ManifestFile);
+
+            LastRunDirectory = archive.Directory;
+
+            return archive.Directory;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            RunStatus = $"Manifold data could not be written to {directory}: {error.Message}";
+            RunStatus = $"The run folder could not be written: {error.Message}";
             return null;
         }
     }
+
+    /// <summary>
+    /// The folder the last run wrote to, which is where the PVT trace export offers to
+    /// save from. Empty until something has been run.
+    /// </summary>
+    [ObservableProperty]
+    private string _lastRunDirectory = string.Empty;
 
     /// <summary>
     /// The multi-run table. Carried between openings of the editor, as the original's
@@ -166,6 +201,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(GasFlowVelocityCommand))]
     [NotifyCanExecuteChangedFor(nameof(GasFlowMassCommand))]
     [NotifyCanExecuteChangedFor(nameof(InCylinderCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PvtTraceCommand))]
     private CrankAngleTrace? _trace;
 
     /// <summary>Points accumulated across a multi-run, for the torque curve.</summary>
@@ -392,7 +428,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IsRunning = true;
         RunStatus = "Simulating...";
 
+        var startedAt = DateTimeOffset.Now;
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var manifoldWriter = new ManifoldTraceWriter();
+
+        SimulationResult? result = null;
+        string outcome;
 
         try
         {
@@ -404,19 +445,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
                     $"Cycle {p.Cycle} of {p.RequestedCycles}   "
                     + $"{p.CrankAngle,4:F0}°   mass balance {p.MassBalance:F2} mg");
 
-            // Save Manifold Data on the engine is the only condition; the original also
-            // needed the run to reach the last requested cycle, which a converged run
-            // never does. See ISSUES.md C1.
-            var manifoldWriter = new ManifoldTraceWriter();
-
-            var result = await Task.Run(
+            // Every run archives its manifold files, so the engine's Save Manifold Data
+            // flag no longer gates them - see ISSUES.md C1 to C4.
+            result = await Task.Run(
                 () => _runner.Run(
-                    engine, Settings, progress, token, manifoldRecorder: manifoldWriter),
+                    engine, Settings, progress, token,
+                    manifoldRecorder: manifoldWriter, recordManifoldData: true),
                 token);
-
-            var manifoldDirectory = result.ManifoldDataCaptured
-                ? WriteManifoldData(manifoldWriter)
-                : null;
 
             Trace = result.Trace;
             Results.Update(engine, result.CyclesRun, Settings.CycleCount, stopwatch.Elapsed);
@@ -432,34 +467,30 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
             TorqueCurveCommand.NotifyCanExecuteChanged();
 
-            RunStatus = (result.Converged
-                    ? $"Converged after {result.CyclesRun} cycles.   "
-                      + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW"
-                    : $"Stopped at the requested {result.CyclesRun} cycles without converging.   "
-                      + $"Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW")
-                + (manifoldDirectory is null
-                    ? string.Empty
-                    : $"   Manifold data written to {manifoldDirectory}");
+            outcome = (result.Converged
+                          ? $"Converged after {result.CyclesRun} cycles."
+                          : $"Stopped at the requested {result.CyclesRun} cycles without converging.")
+                      + $"   Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW";
         }
         catch (OperationCanceledException)
         {
-            RunStatus = "Stopped.";
+            outcome = "Stopped.";
         }
         catch (EngineException error)
         {
-            RunStatus = $"Terminated on engine error: {error.Message}";
+            outcome = $"Terminated on engine error: {error.Message}";
         }
         catch (CfdException error)
         {
-            RunStatus = $"Terminated on CFD error: {error.Message}";
+            outcome = $"Terminated on CFD error: {error.Message}";
         }
         catch (EquilibriumException error)
         {
-            RunStatus = $"Terminated on equilibrium error: {error.Message}";
+            outcome = $"Terminated on equilibrium error: {error.Message}";
         }
         catch (GasPropertiesException error)
         {
-            RunStatus = $"Terminated on gas properties error: {error.Message}";
+            outcome = $"Terminated on gas properties error: {error.Message}";
         }
         finally
         {
@@ -467,6 +498,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
             _running.Dispose();
             _running = null;
         }
+
+        // Outside the try: a stopped or failed run is archived too, because the manifest
+        // saying what it was asked to do and how it ended is the part worth keeping.
+        var directory = ArchiveRun(startedAt, result, manifoldWriter, stopwatch.Elapsed, outcome);
+
+        RunStatus = directory is null
+            ? outcome
+            : $"{outcome}   Results in {directory}";
     }
 
     private bool CanStartRun => CurrentEngine is not null && !IsRunning;
@@ -504,7 +543,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Performance.Points.Clear();
         TorqueCurveCommand.NotifyCanExecuteChanged();
 
+        var startedAt = DateTimeOffset.Now;
         var multiStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        // One folder for the whole sweep, with a subfolder per row inside it. The sweep
+        // wrote no manifold data at all until it had somewhere to put it - ISSUES.md A12,
+        // which was left open for want of exactly this destination.
+        var sweep = OpenSweepFolder(startedAt);
+
+        var manifest = sweep is null
+            ? null
+            : new RunManifest(startedAt)
+                .Engine(CurrentEngineFile, CurrentEngine!.Engine.Name, CurrentEngine.Problems)
+                .RequestedSweep(MultiRun.RunCount, Settings);
+
+        var results = new List<MultiRunRowResult>();
+        string outcome;
 
         try
         {
@@ -520,17 +574,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
             // proceeds - the original adds its performance point and redraws inside the
             // loop. Driving the loop from here rather than passing a callback into the
             // runner keeps every collection touch on this thread.
-            var results = new List<MultiRunRowResult>();
             var rows = MultiRun.RunCount;
 
             for (var row = 0; row < rows; row++)
             {
                 var index = row;
+                var manifoldWriter = new ManifoldTraceWriter();
+
                 var completed = await Task.Run(
-                    () => _multiRunner.RunRow(path, MultiRun, index, Settings, progress, token),
+                    () => _multiRunner.RunRow(
+                        path, MultiRun, index, Settings, progress, token, manifoldWriter),
                     token);
 
                 results.Add(completed);
+                ArchiveRow(sweep, manifest, completed, manifoldWriter);
                 RowFinished(completed, multiStopwatch);
             }
 
@@ -549,7 +606,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
             var failed = results.Count(r => r.Failure is not null);
 
-            RunStatus = failed == 0
+            outcome = failed == 0
                 ? $"Completed {results.Count} runs."
                 : $"Completed {results.Count - failed} of {results.Count} runs; "
                   + $"{failed} failed. First failure: "
@@ -557,13 +614,95 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            RunStatus = $"Stopped after {Performance.Points.Count} runs.";
+            outcome = $"Stopped after {Performance.Points.Count} runs.";
         }
         finally
         {
             IsRunning = false;
             _running.Dispose();
             _running = null;
+        }
+
+        CloseSweepFolder(sweep, manifest, outcome, multiStopwatch.Elapsed);
+
+        RunStatus = sweep is null
+            ? outcome
+            : $"{outcome}   Results in {sweep.Directory}";
+    }
+
+    /// <summary>Creates the folder a whole sweep writes into, or null if it cannot be.</summary>
+    private RunArchive? OpenSweepFolder(DateTimeOffset startedAt)
+    {
+        try
+        {
+            return new RunArchive(_workspace.CreateRunDirectory(CurrentEngineFile, startedAt));
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            RunStatus = $"The run folder could not be written: {error.Message}";
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Writes one row's output into a subfolder of the sweep's, and its performance row
+    /// into the sweep's own <c>SimulDat.txt</c> - the one place the original's appending
+    /// (ISSUES.md C6) earns its keep, since every row there belongs to the same sweep.
+    /// </summary>
+    private void ArchiveRow(
+        RunArchive? sweep, RunManifest? manifest, MultiRunRowResult row, ManifoldTraceWriter manifoldWriter)
+    {
+        if (sweep is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var folder = RunFolderName.ForRow(row.Row, row.Speed);
+            manifest?.Row(row.Row, row.Speed, folder, row);
+
+            if (row.Result is not { } result)
+            {
+                return;
+            }
+
+            var archive = sweep.Row(row.Row, row.Speed);
+
+            archive.WriteTrace(result.Trace);
+            sweep.AppendPerformance(result.Engine);
+
+            if (manifoldWriter.RowCount > 0)
+            {
+                archive.WriteManifoldData(manifoldWriter);
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            RunStatus = $"Row {row.Row + 1} could not be written: {error.Message}";
+        }
+    }
+
+    /// <summary>Copies the sweep's inputs in and writes its manifest.</summary>
+    private void CloseSweepFolder(
+        RunArchive? sweep, RunManifest? manifest, string outcome, TimeSpan elapsed)
+    {
+        if (sweep is null || manifest is null)
+        {
+            return;
+        }
+
+        try
+        {
+            manifest.Outcome(outcome, elapsed);
+            manifest.Inputs(sweep.CopyInputs(CurrentEngineFile, CurrentEngine));
+            manifest.Write(sweep.ManifestFile);
+
+            LastRunDirectory = sweep.Directory;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            RunStatus = $"The run folder could not be completed: {error.Message}";
         }
     }
 
@@ -716,10 +855,34 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     // Text. Delphi: PVTTrace1Click.
 
-    [RelayCommand]
-    private static void PvtTrace()
+    /// <summary>
+    /// Saves the last run's full-cycle PVT trace where the operator asks. Port of
+    /// <c>PVTTrace1Click</c>, which shows the trace in a window with a Save As of its own
+    /// (<c>TCAList.SendToFile</c>).
+    /// </summary>
+    /// <remarks>
+    /// Every run already writes this file into its own run folder, so this is a copy out
+    /// of the archive rather than the only chance to keep it - which is what the original
+    /// offered, and why <c>Lastcyc.txt</c> was so easily lost.
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(HasTrace))]
+    private async Task PvtTraceAsync()
     {
-        // Phase 5.
+        if (await _files.SaveTextAsync("PVT Trace", RunArchive.TraceFileName, LastRunDirectory)
+            is not { } path)
+        {
+            return;
+        }
+
+        try
+        {
+            new CrankAngleTraceWriter().Write(path, Trace!);
+            RunStatus = $"PVT trace written to {path}.";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            RunStatus = $"The PVT trace could not be written: {error.Message}";
+        }
     }
 
     // Help. Delphi: Contents1Click, About1Click.

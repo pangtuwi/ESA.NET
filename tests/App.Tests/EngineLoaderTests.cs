@@ -46,6 +46,43 @@ public sealed class EngineLoaderTests
     }
 
     [Fact]
+    public void EverySideFileItReadIsReportedWithWhereItWasFound()
+    {
+        RequireLegacy();
+
+        // What a run folder copies into its inputs: without this list there is no way to
+        // say afterwards which files a result was computed from, since the .eng entries
+        // are bare names, backslash-relative paths and absolute paths to dead drives.
+        var result = CreateLoader().Load(Data("Example2", "ChinaBora98.eng"));
+
+        Assert.True(result.IsComplete, string.Join("; ", result.Problems));
+        Assert.NotEmpty(result.SideFiles);
+        Assert.All(result.SideFiles, side => Assert.True(File.Exists(side.Path), side.Path));
+        Assert.All(result.SideFiles, side => Assert.True(Path.IsPathRooted(side.Path), side.Path));
+
+        // Named the way the load problems name them, so a manifest reads the same either
+        // way.
+        Assert.Contains(result.SideFiles, side => side.Kind == "inlet cam profile");
+        Assert.Contains(result.SideFiles, side => side.Kind == "exhaust manifold area");
+    }
+
+    [Fact]
+    public void AMissingSideFileIsAProblemRatherThanAnEntry()
+    {
+        RequireLegacy();
+
+        var loader = CreateLoader();
+        var definition = new EngineDefinitionStore().Read(Data("Example2", "ChinaBora98.eng"));
+
+        definition.InletValveProfileFile = "nowhere-at-all.cam";
+
+        var result = loader.Rebuild(definition, Data("Example2", "ChinaBora98.eng"));
+
+        Assert.Contains(result.Problems, p => p.Contains("nowhere-at-all.cam", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.SideFiles, side => side.Kind == "inlet cam profile");
+    }
+
+    [Fact]
     public void ExhaustDischargeTablesAreWiredCrossed()
     {
         RequireLegacy();

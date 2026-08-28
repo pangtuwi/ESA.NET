@@ -39,6 +39,37 @@ public sealed class SimulationSettingsStoreTests
     }
 
     [Fact]
+    public void TheDataFolderIsReadAndWrittenUnderFolders()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".ini");
+
+        try
+        {
+            // No [Folders] section: every ESA.ini that predates the data folder, which is
+            // all of them. That must not invent one.
+            File.WriteAllText(path, "[Simulation]\r\nEngineSpeed=4000\r\n");
+
+            var settings = Store.Read(path);
+
+            Assert.Equal(string.Empty, settings.DataFolder);
+
+            Store.Write(path, settings);
+
+            Assert.DoesNotContain("Folders", File.ReadAllText(path), StringComparison.Ordinal);
+
+            // Set one, and it survives a round trip.
+            settings.DataFolder = "/data/esa";
+            Store.Write(path, settings);
+
+            Assert.Equal("/data/esa", Store.Read(path).DataFolder);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void WritingUnchangedSettingsLeavesTheFileByteIdentical()
     {
         Assert.SkipWhen(TestPaths.Legacy is null, "Not running from a repository checkout.");

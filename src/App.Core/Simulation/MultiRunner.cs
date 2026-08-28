@@ -1,3 +1,4 @@
+using App.Core.Manifold;
 using App.Core.Model;
 
 namespace App.Core.Simulation;
@@ -37,12 +38,18 @@ public sealed class MultiRunner
 
     /// <summary>Runs every populated row of <paramref name="grid"/>.</summary>
     /// <param name="enginePath">The engine each row starts from.</param>
+    /// <param name="manifoldRecorderFor">
+    /// Where each row's manifold rows go, asked for by row index so a sweep can give every
+    /// row a recorder of its own. Null records nothing, which is what the sweep did for as
+    /// long as it had nowhere to put the files (ISSUES.md A12).
+    /// </param>
     public IReadOnlyList<MultiRunRowResult> Run(
         string enginePath,
         MultiRunGrid grid,
         SimulationSettings settings,
         IProgress<MultiRunProgress>? progress = null,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default,
+        Func<int, IManifoldRecorder?>? manifoldRecorderFor = null)
     {
         ArgumentNullException.ThrowIfNull(grid);
 
@@ -50,7 +57,9 @@ public sealed class MultiRunner
 
         for (var row = 0; row < grid.RunCount; row++)
         {
-            results.Add(RunRow(enginePath, grid, row, settings, progress, cancellation));
+            results.Add(RunRow(
+                enginePath, grid, row, settings, progress, cancellation,
+                manifoldRecorderFor?.Invoke(row)));
         }
 
         return results;
@@ -66,13 +75,19 @@ public sealed class MultiRunner
     /// </remarks>
     /// <param name="enginePath">The engine the row starts from.</param>
     /// <param name="row">Zero-based grid row, which must be below <see cref="MultiRunGrid.RunCount"/>.</param>
+    /// <param name="manifoldRecorder">
+    /// Where this row's manifold rows go. The sweep wrote none at all until it had a
+    /// folder per row to put them in - see ISSUES.md A12, which was left open for want of
+    /// exactly that destination.
+    /// </param>
     public MultiRunRowResult RunRow(
         string enginePath,
         MultiRunGrid grid,
         int row,
         SimulationSettings settings,
         IProgress<MultiRunProgress>? progress = null,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default,
+        IManifoldRecorder? manifoldRecorder = null)
     {
         ArgumentNullException.ThrowIfNull(enginePath);
         ArgumentNullException.ThrowIfNull(grid);
@@ -96,7 +111,11 @@ public sealed class MultiRunner
             return new MultiRunRowResult(
                 row,
                 engine.Rpm,
-                _runner.Run(engine, rowSettings, inner, cancellation, afterInitialise),
+                _runner.Run(
+                    engine, rowSettings, inner, cancellation, afterInitialise, manifoldRecorder,
+                    // Every row archives its manifold files, as every single-point run
+                    // does; the engine's own flag no longer gates them.
+                    recordManifoldData: manifoldRecorder is not null),
                 null);
         }
         catch (OperationCanceledException)

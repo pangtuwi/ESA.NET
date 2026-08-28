@@ -31,6 +31,7 @@ public sealed class SimulationSettingsStore : ISimulationSettingsStore
 {
     private const string DefaultFiles = "DefaultFiles";
     private const string Simulation = "Simulation";
+    private const string Folders = "Folders";
 
     /// <summary>The file the original keeps beside its executable.</summary>
     public const string FileName = "ESA.ini";
@@ -52,6 +53,7 @@ public sealed class SimulationSettingsStore : ISimulationSettingsStore
         settings.ErrorLogFileName = document.GetValue(DefaultFiles, "ErrorLog") ?? settings.ErrorLogFileName;
         settings.TextSaveFileName = document.GetValue(DefaultFiles, "TextSave") ?? settings.TextSaveFileName;
         settings.EngineFileName = document.GetValue(DefaultFiles, "Engine") ?? settings.EngineFileName;
+        settings.DataFolder = document.GetValue(Folders, "Data") ?? settings.DataFolder;
 
         settings.EngineSpeed = ReadDouble(document, Simulation, "EngineSpeed", settings.EngineSpeed);
         settings.CycleCount = ReadInt32(document, Simulation, "Nocycles", settings.CycleCount);
@@ -73,6 +75,13 @@ public sealed class SimulationSettingsStore : ISimulationSettingsStore
         document.SetValue(DefaultFiles, "ErrorLog", settings.ErrorLogFileName);
         document.SetValue(DefaultFiles, "TextSave", settings.TextSaveFileName);
         document.SetValue(DefaultFiles, "Engine", settings.EngineFileName);
+
+        // Only written once there is one, so every ESA.ini that predates the data folder
+        // - which is all of them - keeps its existing bytes.
+        if (!string.IsNullOrWhiteSpace(settings.DataFolder))
+        {
+            document.SetValue(Folders, "Data", settings.DataFolder);
+        }
 
         document.SetValue(Simulation, "EngineSpeed", Text(settings.EngineSpeed));
         document.SetValue(Simulation, "Nocycles", Text(settings.CycleCount));

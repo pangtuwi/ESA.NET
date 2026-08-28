@@ -79,6 +79,30 @@ Unlike the output scattered through `legacy/ESA/Data/`, this set carries its own
 provenance. Treat every file in it as read-only: regenerating it means running
 the original application on Windows.
 
+## Where the data lives
+
+The application has a data folder of its own, which the Delphi original did not: it opened
+its output under bare relative names and wrote wherever the working directory happened to
+be (`ISSUES.md` C4).
+
+- **The root** is `Documents/ESA`, overridden by `[Folders] Data` in `ESA.ini` and, above
+  that, by the `ESA_DATA_ROOT` environment variable. `Workspace.ResolveRoot` is the order.
+- **`Engines/`** holds input files. **`Runs/`** holds one folder per run, named
+  `2026-08-28_141530_A2China`; a sweep is one folder with a `Row01_4000rpm` subfolder per
+  grid row.
+- **A run folder holds copies of its inputs** — the `.eng` and every side file it read,
+  byte for byte — plus `SimulDat.txt`, `Lastcyc.txt`, the nine manifold files and a
+  `run.txt` manifest. Nothing reads any of it back except the engines.
+- `IWorkspace` and `RunFolderName` are in Core; `Workspace`, `RunArchive` and `RunManifest`
+  are in Persistence. The output **formats** live where they always did — this routes the
+  existing writers, it does not add formats.
+- **`ESA_DATA_ROOT` is how the tests stay out of `Documents`.** `TestServices` registers a
+  temp-folder `IWorkspace` over the real one, and several tests drive a whole simulation
+  through the view model; a test that builds its own service graph must do the same.
+- *Save Manifold Data* no longer gates anything: every run archives its manifold files. The
+  gate still exists on `SimulationRunner` and is still pinned by `ManifoldOutputGateTests`;
+  the application overrides it with `recordManifoldData: true`.
+
 ## Naming conventions
 
 - Namespaces mirror project names: `App.Core`, `App.Persistence`, `App.Ui`,
@@ -204,7 +228,7 @@ pressing OK must not restyle a single byte.
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | **Complete** |
 | 3 | Remaining file formats (`.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, `.exh`, `ESA.ini`), an expression evaluator to replace `TAdCalc`, and the engine Edit form | **Complete** |
 | 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against the `data/baseline/` reference run (see `BASELINE.md`) | **Complete.** A converged whole-cycle run matches the reference trace to 0.33 % at every crank angle; see `ISSUES.md` A8 and A10 for what is still open |
-| 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | **Complete.** The Run menu drives the simulation, the results screen is the original's four quadrants, and the multi-run grid can be typed in as well as loaded |
+| 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | **Complete.** The Run menu drives the simulation, the results screen is the original's four quadrants, and the multi-run grid can be typed in as well as loaded. The text exports were finished with the data folder: every run writes its performance row, PVT trace and manifold files into a folder of its own, and `Text ▸ PVT Trace` saves a copy where the operator asks |
 | 6 | Packaging and distribution | Not started |
 
 ### What phase 2 delivered
