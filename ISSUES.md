@@ -309,12 +309,28 @@ Not reproduced. The port clamps on Run and names the range in the dialog as soon
 typed value leaves it, so the limit is visible before anything is pressed and Cancel always
 cancels. Pinned by `SimulateOptionsTests`.
 
-Note a second trap in the same handler, left unrecorded for now: the whole body sits in a
-`try ... Except end` whose except block is **empty**, and `NoCycles`, `MassBalance` and
-`Nrpm` are assigned in that order — so a non-numeric *Total Cycles* throws on the first line,
-the other two are never assigned, and the run uses the previous values for every field. The
-clamp does not run either, being below the assignment that threw. It deserves its own entry
-if anyone wants to reproduce or fix it.
+The same handler carries a second trap, which is C16 — and it is why the clamp above can be
+bypassed altogether.
+
+
+**C16 ([#124](https://github.com/pangtuwi/ESA.NET/issues/124)) — One bad field in the simulation dialog silently runs the previous values.**
+`TFSimulateOptions.FormClose` wraps its whole body in a `try ... Except end` whose except
+block is **empty**, and assigns the four run parameters in a fixed order: `NoCycles`,
+`No1zCycles`, `MassBalance`, then `Engine2z.Nrpm` and the C15 clamp (`FormSimul.pas:66-88`).
+A conversion failure on any line abandons every line below it and is swallowed without a
+word, and the form still closes — `Action` was never touched — so the run proceeds on
+whatever those variables last held. Fumble *Total Cycles* and nothing the dialog shows is
+applied, speed included; fumble *Mass Balance* and the cycle count takes but the other two
+do not; fumble *Engine Speed* and the C15 clamp never runs. `NoCycles`, `No1zCycles` and
+`MassBalance` are unit-level variables, so "previous" means the last close that got that far
+in the same session — and on the first use of a session they are still zero.
+
+Not reproduced as a cascade: each field binds independently in the port, so one bad entry
+cannot silently stale the other two, and there is no shared mutable state carrying a previous
+session's values forward. But the port does not validate either — the three boxes bind with a
+plain `Text="{Binding …}"`, so a non-numeric entry fails to update the property and the dialog
+carries on with what it had, quietly. The edit form got per-field validation with OK disabled
+while anything is invalid (C9); this dialog should have the same, as its own change.
 
 
 ## D. Errors and gaps in SPEC.md
