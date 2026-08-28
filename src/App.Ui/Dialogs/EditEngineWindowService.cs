@@ -19,11 +19,16 @@ public sealed class EditEngineWindowService : IEditEngineWindowService
         var viewModel = _viewModels();
         viewModel.Load(definition);
 
-        if (onApplied is not null)
+        var window = new EditEngineWindow { DataContext = viewModel, Title = $"Edit Engine - {path}" };
+
+        void Applied(object? sender, EventArgs args)
         {
-            viewModel.Applied += (_, _) => onApplied();
+            onApplied?.Invoke();
+            window.Close();
         }
 
-        new EditEngineWindow { DataContext = viewModel, Title = $"Edit Engine - {path}" }.Show();
+        viewModel.Applied += Applied;
+
+        window.Show();
     }
 }
