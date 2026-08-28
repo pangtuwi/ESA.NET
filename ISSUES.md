@@ -53,6 +53,8 @@ Ours, and ours to fix.
 | A11 ([#119](https://github.com/pangtuwi/ESA.NET/issues/119)) | **The manifold file bounds were measured from physics the app never runs.** `ManifoldTraceWriterTests.RunAndWrite` counts cycles with `solver.RunCycles`, which sets `ZoneCount` to 1 and then 2 as the original does, then records from a second pass of bare `RunOneCycle` calls that never set `ZoneCount` at all — it stays at 0, its uninitialised value, so every cycle of the recording pass is single-zone. `SimulationRunner` runs cycle 1 single-zone and the rest two-zone, so the bounds in `TheValuesAgreeWithTheOriginalsToTheMeasuredBounds` describe a run the application never performs. **Measured**: routing `RunAndWrite` through `SimulationRunner` — same engine, settings, three cycles and 620-row window — moves `MassFlow.txt` column 1 to 0.466 against its recorded bound of 0.25, everything else staying inside. The wrong physics passes and the right physics does not, which is either a real loss of accuracy in the two-zone gas-exchange path (B37 has overlap running a single-zone constant-gamma pressure equation, exactly where a mass-flow discrepancy would come from) or a bound that needs re-measuring against the real path. Not established which. Found while wiring up C1 and left alone there rather than re-measure a documented bound as a side effect | Open |
 | A12 ([#120](https://github.com/pangtuwi/ESA.NET/issues/120)) | **A multi-run sweep writes no manifold data at all.** `MultiRunner.RunRow` calls `_runner.Run` without a `manifoldRecorder` (`MultiRunner.cs:99`), so `SaveManifoldData` is ignored for every row, where a single-point run of the same engine writes all nine files. The original is not much better: `DataWrite := SaveManifoldData` sits inside `Main_Prog` (`Manifolds.pas:2701`), which every row runs, and the files are opened with bare relative names (C4) — so each row overwrites the last and what survives is one unlabelled row, and under C1's gate not even the last one but the last that reached its final requested cycle. Left out of the C1 fix rather than guessed at, because it needs a destination and a naming decision: a subdirectory or a filename prefix per row, whether every row is written at all (100 rows × 9 files is 900 of them), and how the row's speed and overrides get recorded when the filenames cannot carry them | Open |
 | A13 ([#121](https://github.com/pangtuwi/ESA.NET/issues/121)) | **The editor's changes never reached the engine the simulation reads.** `EngineLoadResult` carries an `Engine` and an `EngineDefinition` that are two snapshots taken at load time; `EditEngine` handed the editor the definition, `Apply` wrote to the definition, and the run read the engine, with nothing reconciling them. Bore, stroke, cam and manifold file names, valve timing and `Save Manifold Data` alike reached the definition and stopped there — the only way to get an edit into a run was to save the file and reopen it. The original has no such split: `Edit.pas`'s OK handler converts and assigns straight onto `Engine2z` (`Edit.pas:412-419, 448-466`); the port grew the split when it separated the format-preserving INI model from the domain model, and nothing was put back to bridge them. **Fixed** by `IEngineLoader.Rebuild` plus the editor's `Applied` event, which the shell rebuilds `CurrentEngine` on. Found while working on C2, where it surfaced narrowly as the checkbox having no effect | **Fixed** |
+| A14 ([#125](https://github.com/pangtuwi/ESA.NET/issues/125)) | **The main window carried run controls the original does not have.** An engine-speed box and Run, Stop and Run Multi-Point buttons sat on a toolbar of the shell's own. The original's main form has none: `Run > Single Point Simulation` opens the modal Single Speed Simulation dialog (`FormSimul.pas`) for speed, total cycles, mass balance and the graphic display options, and abandons the run unless OK was pressed (`Main.pas:857`); running, pausing and stopping are menu items. So the port asked for two of the three run parameters nowhere at all — cycle count and mass balance came from `ESA.ini` with no way to change them per run — and offered a speed box the original lacks. **Fixed** in [#123](https://github.com/pangtuwi/ESA.NET/pull/123), which ports `TFSimulateOptions` and honours its graph options rather than leaving them inert; the two deliberate departures it produced are C15 and C16. The *Gas flow: velocities* box is still on the main window, since the original switches that quadrant from a run-time graph options form (`FflowGraphOptions.pas`) the port has not built | **Fixed** |
+| A15 ([#127](https://github.com/pangtuwi/ESA.NET/issues/127)) | **Intermittent: a converged run reported as not converged.** `SimulationWiringTests.RunningPopulatesTheTraceThePerformancePointAndTheStatus` failed once inside a full-suite run at `368544d`, on `Assert.Contains("Converged", viewModel.RunStatus)`. It reached that line, so every earlier assertion passed — trace populated, one torque point inside the 140-165 N·m band — meaning the run produced sound physics but came back `Converged: false`: the mass balance never fell below 1 mg inside the 6 requested cycles, on settings that converge in 3 every other time. **Ruled out**: not a code path (passes 3/3 under `--filter`, only ever fails in the full suite); not the expression cache (`ConcurrentDictionary`); not the manifold status text (assigned earlier, and `A2China.eng` has `SaveManfData=0`). **Hypothesis, unproven**: shared mutable state under xUnit's parallelism — `IEngineLoader`, `SimulationRunner` and all six table stores are singletons, and four test classes load `A2China.eng` and simulate concurrently. That would matter beyond the suite, since a multi-run sweep drives rows through the same singletons. Next sighting: report `Converged`, `CyclesRun` and the balance reached in the assertion, and re-run with `xUnit.parallelizeTestCollections=false`. One failure in about a dozen full runs | Open, seen once, watching |
 
 ## B. Legacy defects reproduced on purpose
 
@@ -309,12 +311,39 @@ Not reproduced. The port clamps on Run and names the range in the dialog as soon
 typed value leaves it, so the limit is visible before anything is pressed and Cancel always
 cancels. Pinned by `SimulateOptionsTests`.
 
-Note a second trap in the same handler, left unrecorded for now: the whole body sits in a
-`try ... Except end` whose except block is **empty**, and `NoCycles`, `MassBalance` and
-`Nrpm` are assigned in that order — so a non-numeric *Total Cycles* throws on the first line,
-the other two are never assigned, and the run uses the previous values for every field. The
-clamp does not run either, being below the assignment that threw. It deserves its own entry
-if anyone wants to reproduce or fix it.
+The same handler carries a second trap, which is C16 — and it is why the clamp above can be
+bypassed altogether.
+
+
+**C16 ([#124](https://github.com/pangtuwi/ESA.NET/issues/124)) — One bad field in the simulation dialog silently runs the previous values.** **Fixed.**
+`TFSimulateOptions.FormClose` wraps its whole body in a `try ... Except end` whose except
+block is **empty**, and assigns the four run parameters in a fixed order: `NoCycles`,
+`No1zCycles`, `MassBalance`, then `Engine2z.Nrpm` and the C15 clamp (`FormSimul.pas:66-88`).
+A conversion failure on any line abandons every line below it and is swallowed without a
+word, and the form still closes — `Action` was never touched — so the run proceeds on
+whatever those variables last held. Fumble *Total Cycles* and nothing the dialog shows is
+applied, speed included; fumble *Mass Balance* and the cycle count takes but the other two
+do not; fumble *Engine Speed* and the C15 clamp never runs. `NoCycles`, `No1zCycles` and
+`MassBalance` are unit-level variables, so "previous" means the last close that got that far
+in the same session — and on the first use of a session they are still zero.
+
+**Not reproduced, and the port now validates.** The three fields are held as **text** and
+parsed explicitly, which is what makes the bad entry visible at all: a `double` property
+cannot represent "banana", so binding one to a text box turns a fumbled field into a binding
+conversion error the view model never sees. Each field validates on its own — a number, and
+for cycles a whole number of at least one — so Run is unavailable and the offending field is
+named while anything is wrong, exactly as the edit form does for C9. There is no cascade
+either: a bad *Total Cycles* leaves speed and mass balance untouched rather than abandoning
+them, and no shared mutable state carries a previous session's values forward.
+
+Note that C15's clamp is deliberately **not** validation. A speed of 9000 is a usable number,
+so Run stays available and takes the nearer limit; only an entry that will not convert stops
+the run. `SimulateOptionsTests` pins both, including that an unparseable speed is reported as
+C16's problem rather than as out of range.
+
+One wrinkle worth knowing: `CanExecute` disables the button, but `RelayCommand.Execute` does
+not consult it, so invoking the command directly would still have accepted the dialog on a bad
+field. `Run` therefore guards itself as well.
 
 
 ## D. Errors and gaps in SPEC.md
