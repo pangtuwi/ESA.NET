@@ -35,6 +35,9 @@ public sealed class MultiRunEditorTests
             SuggestedName = suggestedName;
             return Task.FromResult(SaveGridResult);
         }
+
+        public Task<string?> SaveTextAsync(string title, string suggestedName, string startIn) =>
+            Task.FromResult<string?>(null);
     }
 
     private static (MultiRunViewModel ViewModel, StubFiles Files) Build()

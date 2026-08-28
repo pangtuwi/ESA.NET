@@ -460,6 +460,50 @@ opening `ESA.NET.slnx` in Visual Studio or Rider.
 
 ---
 
+## Where your data goes
+
+The application keeps its own data folder, `Documents/ESA`, created the first
+time you run a simulation:
+
+```
+Documents/ESA/
+  README.txt                      what the folders are for
+  Engines/                        your .eng files and the side files they name
+  Runs/
+    2026-08-28_141530_A2China/    one folder per run, newest last
+      run.txt                     what was run, and what came out
+      inputs/                     copies of the .eng and every side file it read
+      SimulDat.txt                the performance row
+      Lastcyc.txt                 the full-cycle PVT trace, 720 rows
+      Inlet.txt Exhaust.txt Pcyl.txt Tcyl.txt MassFlow.txt
+      InlPress.m InlVel.m ExhPress.m ExhVel.m
+```
+
+A multi-point sweep puts every row in one folder, each row in a
+`Row01_4000rpm` subfolder of its own, with a single `SimulDat.txt` at the top
+carrying all of them.
+
+Nothing in `Runs` is ever read back, so old runs can be deleted or moved
+freely. Nothing is written next to your engine files.
+
+To put the folder somewhere else, set `Data` under `[Folders]` in `ESA.ini`
+beside the executable:
+
+```ini
+[Folders]
+Data=D:\Engine Work
+```
+
+or set the `ESA_DATA_ROOT` environment variable, which wins over both:
+
+```bash
+ESA_DATA_ROOT=/tmp/esa dotnet run --project src/App.Ui
+```
+
+The original had none of this: it opened its output files under bare relative
+names, so they landed in whatever the working directory happened to be and the
+next run overwrote them — see `ISSUES.md` C4.
+
 ## Repository layout
 
 ```
@@ -483,7 +527,7 @@ The layering table above is enforced, not merely documented:
 
 ## Tests
 
-`dotnet test ESA.NET.slnx` runs 417 tests. The ones that matter most guard user
+`dotnet test ESA.NET.slnx` runs 444 tests. The ones that matter most guard user
 data and the ported semantics:
 
 - `EngRoundTripTests`, `TableRoundTripTests`, `EditEngineViewModelTests` — every
@@ -497,6 +541,8 @@ data and the ported semantics:
   Delphi source, notably that `^` is left-associative.
 - `LayeringTests` — `App.Core` and `App.Persistence` must never reference a UI
   framework.
+- `RunArchiveTests`, `RunFolderWiringTests` — every run leaves a folder holding
+  its results and byte-identical copies of the files it read.
 
 ## Credits
 

@@ -17,4 +17,12 @@ public interface IFileDialogService
 
     /// <summary>Asks where to save a multi-run grid, or null if the user cancelled.</summary>
     Task<string?> SaveMultiRunAsync(string suggestedName);
+
+    /// <summary>
+    /// Asks where to save a text export, or null if the user cancelled.
+    /// </summary>
+    /// <param name="startIn">
+    /// Where the picker opens - the run folder the file came from, when there is one.
+    /// </param>
+    Task<string?> SaveTextAsync(string title, string suggestedName, string startIn);
 }

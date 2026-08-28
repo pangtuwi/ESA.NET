@@ -39,14 +39,27 @@ public interface IEngineLoader
     EngineLoadResult Rebuild(EngineDefinition definition, string engineFilePath);
 }
 
+/// <summary>
+/// A side file the engine names, and where it was found on this machine.
+/// </summary>
+/// <param name="Kind">What it is, in the words the load problems use - "inlet cam profile".</param>
+/// <param name="Stored">The entry as the <c>.eng</c> file writes it, quirks and all.</param>
+/// <param name="Path">Where <c>LegacyPathResolver</c> found it.</param>
+public sealed record ResolvedSideFile(string Kind, string Stored, string Path);
+
 /// <summary>The outcome of loading an engine: what was built, and what could not be found.</summary>
 public sealed class EngineLoadResult
 {
-    public EngineLoadResult(Engine engine, EngineDefinition definition, IReadOnlyList<string> problems)
+    public EngineLoadResult(
+        Engine engine,
+        EngineDefinition definition,
+        IReadOnlyList<string> problems,
+        IReadOnlyList<ResolvedSideFile>? sideFiles = null)
     {
         Engine = engine;
         Definition = definition;
         Problems = problems;
+        SideFiles = sideFiles ?? [];
     }
 
     public Engine Engine { get; }
@@ -60,6 +73,13 @@ public sealed class EngineLoadResult
     /// the caller decides whether to show a warning or refuse to run.
     /// </summary>
     public IReadOnlyList<string> Problems { get; }
+
+    /// <summary>
+    /// Every side file that was found and read, in load order. This is what a run folder
+    /// copies into its <c>inputs</c> directory: a result whose inputs travel with it can
+    /// still be accounted for after the engine has been edited.
+    /// </summary>
+    public IReadOnlyList<ResolvedSideFile> SideFiles { get; }
 
     public bool IsComplete => Problems.Count == 0;
 }

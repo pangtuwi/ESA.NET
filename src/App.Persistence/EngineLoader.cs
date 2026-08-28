@@ -48,7 +48,7 @@ public sealed class EngineLoader : IEngineLoader
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(engineFilePath);
 
-        var context = new LoadContext(new LegacyPathResolver(engineFilePath), []);
+        var context = new LoadContext(new LegacyPathResolver(engineFilePath), [], []);
         var engine = new Engine();
 
         ApplyGeometry(engine, definition);
@@ -61,10 +61,11 @@ public sealed class EngineLoader : IEngineLoader
 
         // The same definition instance goes back out, so whoever is editing it - the edit
         // window holds a reference for as long as it is open - keeps a live one.
-        return new EngineLoadResult(engine, definition, context.Problems);
+        return new EngineLoadResult(engine, definition, context.Problems, context.SideFiles);
     }
 
-    private sealed record LoadContext(LegacyPathResolver Resolver, List<string> Problems);
+    private sealed record LoadContext(
+        LegacyPathResolver Resolver, List<string> Problems, List<ResolvedSideFile> SideFiles);
 
     private static void ApplyGeometry(Engine engine, EngineDefinition definition)
     {
@@ -291,7 +292,13 @@ public sealed class EngineLoader : IEngineLoader
 
         try
         {
-            return read(path);
+            var table = read(path);
+
+            // Recorded only once it has read, so the list holds the files a run actually
+            // used rather than every path that happened to resolve.
+            context.SideFiles.Add(new ResolvedSideFile(what, stored.Trim(), Path.GetFullPath(path)));
+
+            return table;
         }
         catch (Exception ex) when (ex is LegacyDataException or IOException)
         {

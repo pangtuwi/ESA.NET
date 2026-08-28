@@ -37,6 +37,41 @@ public sealed class MultiRunnerTests
         return grid;
     }
 
+    /// <summary>Counts what a row recorded, standing in for the file writer.</summary>
+    private sealed class CountingRecorder : App.Core.Manifold.IManifoldRecorder
+    {
+        public int Rows { get; private set; }
+
+        public void Record(in App.Core.Manifold.ManifoldRow row) => Rows++;
+
+        public void Reset() => Rows = 0;
+    }
+
+    [Fact]
+    public void EachRowRecordsItsOwnManifoldData()
+    {
+        BaselinePaths.Require();
+
+        // The sweep recorded nothing at all until it was given somewhere to put it, where
+        // a single-point run of the same engine wrote all nine files (ISSUES.md A12). Note
+        // that A2China.eng has SaveManfData=0: a recorder passed in is the whole gate now,
+        // as it is for a single-point run.
+        var recorders = new[] { new CountingRecorder(), new CountingRecorder() };
+
+        var results = Runner().Run(
+            BaselinePaths.File("A2China.eng"),
+            SpeedSweep(3000, 4000),
+            Settings(),
+            cancellation: TestContext.Current.CancellationToken,
+            manifoldRecorderFor: row => recorders[row]);
+
+        Assert.Equal(2, results.Count);
+
+        // One cycle's window each, and each row's own - not one recorder overwritten by
+        // the next, which is what bare relative filenames left the original with.
+        Assert.All(recorders, recorder => Assert.InRange(recorder.Rows, 600, 640));
+    }
+
     [Fact]
     public void ASpeedSweepProducesOnePointPerRow()
     {
