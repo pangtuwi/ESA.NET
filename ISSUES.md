@@ -204,7 +204,7 @@ outright, losing whatever the operator had loaded, after a single message box
 (`ICEngine2Z.pas:296-300`). The port throws instead, the same trade
 `TWallTemps.Load` gets.
 
-**C13 ([#99](https://github.com/pangtuwi/ESA.NET/issues/99)) — 43 of the 49 shipped `.msr` files load with their columns shifted.**
+**C13 ([#99](https://github.com/pangtuwi/ESA.NET/issues/99)) — 43 of the 49 shipped `.msr` files loaded with their columns shifted.** **Fixed.**
 The multi-run grid has fourteen editable columns, so `SaveGrid` writes fifteen
 comma-separated fields per line. Only six of the shipped files are in that format;
 the other forty-three carry fourteen fields, a column short, from before **Burn
@@ -213,8 +213,11 @@ every value lands one column over, and the row number itself ends up in the **Sp
 column. The giveaway is a speed column counting 1, 2, 3 up the grid. Loading one of
 these and pressing OK would sweep an engine from 1 rpm upwards.
 
-**No longer reproduced.** The doubt was whether a short line means "a column was
-added since" or "the first column is deliberately blank", and the data settles it.
+**Fixed** in [#2](https://github.com/pangtuwi/ESA.NET/pull/2), merged as
+[`ae00484`](https://github.com/pangtuwi/ESA.NET/commit/ae00484c7e47ec3b801369356acdb426b307600c);
+the loader no longer reproduces it. The doubt was whether a short line means "a
+column was added since" or "the first column is deliberately blank", and the data
+settles it.
 `SaveGrid` has always written the row number first, and twenty-eight of the
 forty-three short files — every one that overrides anything past Iters — carry an
 inlet manifold `.maf` name in their fourth field, which is `IManfFile` under
