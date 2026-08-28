@@ -75,11 +75,13 @@ public sealed class ChartRenderingTests
         var plot = new ScottPlot.Plot();
 
         ChartRenderer.Apply(plot, Sample());
+        var axisCount = plot.Axes.GetAxes().Count();
         ChartRenderer.Apply(plot, Sample());
 
         // Redrawing is how the original refreshes a chart after a run, so it must clear
         // first or every run would leave its predecessor behind.
         Assert.Equal(2, plot.GetPlottables().OfType<ScottPlot.Plottables.Scatter>().Count());
+        Assert.Equal(axisCount, plot.Axes.GetAxes().Count());
     }
 
     [AvaloniaFact]

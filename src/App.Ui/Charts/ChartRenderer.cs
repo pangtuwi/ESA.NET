@@ -22,6 +22,11 @@ public static class ChartRenderer
 
         plot.Clear();
 
+        foreach (var axis in plot.Axes.GetAxes(Edge.Right).ToArray())
+        {
+            plot.Axes.Remove(axis);
+        }
+
         // A second vertical axis, added only when a series asks for one, so charts that
         // do not need it keep a plain single-axis frame.
         var right = definition.Series.Any(s => s.UseRightAxis)
