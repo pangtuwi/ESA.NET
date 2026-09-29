@@ -36,6 +36,14 @@ public sealed class RunArchive
     /// <summary>The manifest, which is the port's own and has no legacy counterpart.</summary>
     public const string ManifestFileName = "run.txt";
 
+    /// <summary>
+    /// Why a sweep row produced no results - the port's own, like <c>run.txt</c>. The
+    /// nearest the original came was appending <c>Error in Multirun Command Line n</c> to
+    /// <c>SimulDat.txt</c>, and only when a grid cell would not convert (<c>Main.pas:1382-1390</c>).
+    /// See ISSUES.md A16.
+    /// </summary>
+    public const string FailureFileName = "failure.txt";
+
     private readonly PerformanceResultWriter _performance = new();
     private readonly CrankAngleTraceWriter _trace = new();
 
@@ -175,6 +183,17 @@ public sealed class RunArchive
         // back to gauge, which is ISSUES.md B69 and reproduced there.
         return (LegacyInterpolation.AtSpeed(table.Rpm, table.Pressure, engine.Rpm) * 1000)
                + engine.Atmosphere.PGas;
+    }
+
+    /// <summary>
+    /// Records why the run produced nothing, so a folder that holds no results still says
+    /// what happened in it.
+    /// </summary>
+    public void WriteFailure(string failure)
+    {
+        ArgumentNullException.ThrowIfNull(failure);
+
+        File.WriteAllText(Path.Combine(Directory, FailureFileName), failure + "\r\n");
     }
 
     /// <summary>Writes the full-cycle PVT trace.</summary>
