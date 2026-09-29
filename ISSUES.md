@@ -8,7 +8,7 @@ miss.
 **Every entry below is mirrored as a GitHub issue**, linked from its number.
 The issues carry the same text; this file stays the place the entries are written
 and revised. Entries already resolved — A1, A2, A3, A7, A9, A12, A13, A14, A16, A17,
-B68, B69, B72, B73, B74, C1, C2, C3, C4, C13 and C16 — have their issues closed.
+B68, B69, B72, B73, B74, C1, C2, C3, C4, C6, C13 and C16 — have their issues closed.
 
 Sections A and F are work now. B, C, D and E are reference during the port: they
 exist so nobody "fixes" something that is load-bearing, or rediscovers it the
@@ -264,8 +264,8 @@ to have ticked anything to keep the output of a run.
 top of the loop body, before the `repeat` that runs the cycle, and exits outright.
 Stopping at `i = 4` means cycles 1 to 3 ran and cycle 4 never did.
 
-**C6 ([#92](https://github.com/pangtuwi/ESA.NET/issues/92)) — The performance data file accumulates.** Rows are appended per run, so one
-file can hold several unrelated runs. `Example1/Simuldat.txt` has two 5000 rpm
+**C6 ([#92](https://github.com/pangtuwi/ESA.NET/issues/92)) — The performance data file accumulates.** **Fixed** by C4. Rows are appended per
+run, so one file can hold several unrelated runs. `Example1/Simuldat.txt` has two 5000 rpm
 rows with different values.
 
 The appending is reproduced and is now harmless: since C4 each run writes into a folder of
