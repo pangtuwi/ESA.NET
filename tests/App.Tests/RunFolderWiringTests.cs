@@ -173,6 +173,51 @@ public sealed class RunFolderWiringTests
         Assert.Contains("2 row(s)", manifest, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task AFailedSweepRowStillGetsAFolderSayingWhy()
+    {
+        BaselinePaths.Require();
+
+        // 2500 rev/min fails on this engine with a non-finite state - MultiRunnerTests
+        // pins that - so the middle row fails and the two either side of it do not.
+        var editor = new StubMultiRunEditor { Grid = Grid(3000, 2500, 4000) };
+        var (viewModel, workspace) = Loaded(editor);
+
+        await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
+
+        var sweep = OnlyRunFolder(workspace);
+
+        // Every row the manifest names exists, the failed one included. Before ISSUES.md
+        // A16 the failed row had no folder at all, while run.txt still named one.
+        foreach (var row in new[] { "Row01_3000rpm", "Row02_2500rpm", "Row03_4000rpm" })
+        {
+            Assert.True(Directory.Exists(Path.Combine(sweep, row)), $"{row} has no folder.");
+        }
+
+        var failed = Path.Combine(sweep, "Row02_2500rpm");
+        var failure = Path.Combine(failed, RunArchive.FailureFileName);
+
+        Assert.True(File.Exists(failure), "The failed row does not say why it failed.");
+        Assert.Contains("Non-finite state", File.ReadAllText(failure), StringComparison.Ordinal);
+
+        // Nothing presented as a result from a row that produced none.
+        Assert.False(File.Exists(Path.Combine(failed, RunArchive.TraceFileName)));
+        Assert.False(File.Exists(Path.Combine(failed, "Pcyl.txt")));
+
+        // SimulDat.txt stays a numeric table: no line for the failed row, and the speed
+        // leading each line shows the gap.
+        var performance = File.ReadAllLines(Path.Combine(sweep, RunArchive.PerformanceFileName));
+
+        Assert.Equal(3, performance.Length);
+        Assert.StartsWith("3000", performance[1].TrimStart(), StringComparison.Ordinal);
+        Assert.StartsWith("4000", performance[2].TrimStart(), StringComparison.Ordinal);
+
+        Assert.Contains(
+            File.ReadAllLines(Path.Combine(sweep, RunArchive.ManifestFileName)),
+            line => line.StartsWith("Row02_2500rpm", StringComparison.Ordinal)
+                    && line.Contains("failed:", StringComparison.Ordinal));
+    }
+
     /// <summary>Answers the Save As with a path a test chose, so no dialog opens.</summary>
     private sealed class StubFiles : IFileDialogService
     {

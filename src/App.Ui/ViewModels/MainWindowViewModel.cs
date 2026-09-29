@@ -652,6 +652,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// into the sweep's own <c>SimulDat.txt</c> - the one place the original's appending
     /// (ISSUES.md C6) earns its keep, since every row there belongs to the same sweep.
     /// </summary>
+    /// <remarks>
+    /// A row that failed still gets its folder, holding <c>failure.txt</c> with the reason,
+    /// for the same reason <see cref="ArchiveRun"/> keeps the folder of a failed run: the
+    /// failure is the case the operator most wants something to look at (ISSUES.md A16).
+    /// It writes no line to <c>SimulDat.txt</c>, which stays a plain numeric table; every
+    /// line there starts with its speed, so the gap is visible, and <c>run.txt</c> names
+    /// the row that failed. Nor does it write the manifold files, whose capture window may
+    /// hold part of a cycle that never finished.
+    /// </remarks>
     private void ArchiveRow(
         RunArchive? sweep, RunManifest? manifest, MultiRunRowResult row, ManifoldTraceWriter manifoldWriter)
     {
@@ -662,15 +671,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            var folder = RunFolderName.ForRow(row.Row, row.Speed);
-            manifest?.Row(row.Row, row.Speed, folder, row);
+            // The folder first, so the manifest never names one that was not created.
+            var archive = sweep.Row(row.Row, row.Speed);
+
+            manifest?.Row(row.Row, row.Speed, RunFolderName.ForRow(row.Row, row.Speed), row);
 
             if (row.Result is not { } result)
             {
+                archive.WriteFailure(row.Failure ?? "The row failed without saying why.");
                 return;
             }
-
-            var archive = sweep.Row(row.Row, row.Speed);
 
             archive.WriteTrace(result.Trace);
             sweep.AppendPerformance(result.Engine);
