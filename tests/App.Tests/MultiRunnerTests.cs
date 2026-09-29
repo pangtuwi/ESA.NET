@@ -229,4 +229,72 @@ public sealed class MultiRunnerTests
         Assert.Null(document.Grid.Number(0, MultiRunGrid.ColumnCount - 1));
         Assert.True(document.Grid.RunCount > 1);
     }
+
+    [Fact]
+    public void OverridingWithTheEnginesOwnValuesChangesNothing()
+    {
+        BaselinePaths.Require();
+
+        // Every valve column set to exactly what A2China.eng already says. A row that
+        // restates the engine must run the engine: the grid is typed in the units of the
+        // Cams tab and the .eng, and nothing may convert them twice or not at all. The
+        // original converted the timings and the exhaust lift not at all (ISSUES.md B72,
+        // B74); the port divided the inlet lift twice (A17).
+        var grid = SpeedSweep(4000, 4000);
+
+        string[] own = ["19", "80", "64", "37", "8.62", "10.4"];
+
+        for (var column = 0; column < own.Length; column++)
+        {
+            grid[1, 6 + column] = own[column];
+        }
+
+        var results = Runner().Run(
+            BaselinePaths.File("A2China.eng"), grid, Settings(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        Assert.All(results, r => Assert.Null(r.Failure));
+        Assert.Equal(results[0].Result!.Engine.Torque, results[1].Result!.Engine.Torque);
+    }
+
+    [Fact]
+    public void TheInletLiftOverrideLeavesTheExhaustLiftAlone()
+    {
+        BaselinePaths.Require();
+
+        var grid = SpeedSweep(4000);
+        grid[0, 10] = "9";
+
+        var results = Runner().Run(
+            BaselinePaths.File("A2China.eng"), grid, Settings(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        var manifold = results[0].Result!.Engine.Manifold;
+
+        // Millimetres, as the .eng holds them. The original also copied the inlet lift
+        // onto the exhaust valve (ISSUES.md B73), which is no longer reproduced.
+        Assert.Equal(9, manifold.InletValve.MaxLift);
+        Assert.Equal(10.4, manifold.ExhaustValve.MaxLift);
+    }
+
+    [Fact]
+    public void ValveTimingOverridesUseTheEditorsUnits()
+    {
+        BaselinePaths.Require();
+
+        var grid = SpeedSweep(4000);
+        grid[0, 6] = "25";
+
+        var results = Runner().Run(
+            BaselinePaths.File("A2China.eng"), grid, Settings(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        var inlet = results[0].Result!.Engine.Manifold.InletValve;
+
+        // 25 degrees before top dead centre, as the Cams tab reads it, opening at 335 on
+        // the solver's crank-angle scale. The original assigned 25 straight onto the
+        // converted angle (ISSUES.md B72).
+        Assert.Equal(25, inlet.OpenAngle);
+        Assert.Equal(335, ValveMotion.Inlet(inlet).OpenAngle);
+    }
 }

@@ -30,11 +30,9 @@ public sealed class PerformanceResultWriter
     /// Appends <paramref name="engine"/>'s current results, creating the file with its
     /// heading if it is not already there.
     /// </summary>
-    /// <param name="atmosphericPressure">
-    /// Only used to note that the original does not use it: the reported back pressure
-    /// subtracts a hard-coded 101.325 kPa to undo the conversion in
-    /// <c>TExhaustPandT.Pres</c>, so an engine run at a different ambient pressure
-    /// reports the wrong figure here. See ISSUES.md B69.
+    /// <param name="exhaustBackPressure">
+    /// The absolute exhaust back pressure in pascals, as <c>TExhaustPandT.Pres</c> returns
+    /// it. Reported as gauge kilopascals.
     /// </param>
     public void Append(string path, Engine engine, double exhaustBackPressure)
     {
@@ -88,9 +86,11 @@ public sealed class PerformanceResultWriter
             Field(fuel.Lambda, 5, 2),
             Field(engine.Cylinder.ThetaSpark * -1, 5, 1),
 
-            // Back to gauge kilopascals, by subtracting the same hard-coded atmospheric
-            // pressure the original does.
-            Field((exhaustBackPressure / 1e3) - 101.325, 5, 1),
+            // Back to gauge kilopascals against the engine's own atmosphere, which is what
+            // TExhaustPandT.Pres added. The original subtracted a hard-coded 101.325, so
+            // any other ambient pressure reported the wrong figure (ISSUES.md B69). At
+            // 101325 Pa the two are the same double, so the baseline row is unchanged.
+            Field((exhaustBackPressure / 1e3) - (engine.Atmosphere.PGas / 1e3), 5, 1),
 
             Field(engine.QHeat, 5, 1),
             Field(engine.QWork, 5, 1),

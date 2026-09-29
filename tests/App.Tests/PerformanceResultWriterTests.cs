@@ -78,8 +78,24 @@ public sealed class PerformanceResultWriterTests
         var produced = PerformanceResultWriter.Row(PreparedEngine(), BackPressureAbsolute);
         var fields = produced.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-        // 119.125 kPa absolute reported as 17.8 gauge, by subtracting a hard-coded
-        // 101.325 rather than the engine's own ambient pressure. See ISSUES.md B69.
+        // 119.125 kPa absolute reported as 17.8 gauge.
+        Assert.Equal("17.8", fields[17]);
+    }
+
+    [Fact]
+    public void BackPressureIsGaugeAgainstTheEnginesOwnAtmosphere()
+    {
+        BaselinePaths.Require();
+
+        var engine = PreparedEngine();
+        engine.Atmosphere.PGas = 90000;
+
+        // The same 17.8 kPa of gauge back pressure, on an engine run at 90 kPa ambient.
+        // The original subtracted a hard-coded 101.325 kPa whatever the engine's own
+        // atmosphere was, and would have reported 6.5 here (ISSUES.md B69).
+        var produced = PerformanceResultWriter.Row(engine, BackPressureAbsolute - 101325 + 90000);
+        var fields = produced.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
         Assert.Equal("17.8", fields[17]);
     }
 

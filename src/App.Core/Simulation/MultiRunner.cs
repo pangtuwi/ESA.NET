@@ -137,13 +137,21 @@ public sealed class MultiRunner
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Three things here are wrong in the original and are reproduced. The valve timings
-    /// in columns 7 to 10 are assigned <b>raw</b>, bypassing the conversion the edit form
-    /// applies, so a row saying IVO 19 sets the opening angle to 19 rather than 341
-    /// (ISSUES.md B72). Setting the inlet lift in column 11 also overwrites the
-    /// <b>exhaust</b> lift with the same value (B73). And column 12's exhaust lift is not
-    /// divided by a thousand as column 11's is, so it stays in millimetres where
-    /// everything else is metres (B74).
+    /// Every override is written in the units of the Cams tab and the <c>.eng</c> file -
+    /// degrees before or after a dead centre, millimetres of lift - because that is what
+    /// <see cref="Engine"/> holds, and the conversion to solver angles and metres happens
+    /// downstream in <see cref="ValveMotion"/> and <see cref="CrankAngleStateMap"/>
+    /// (ISSUES.md A6). A row that restates the engine's own values therefore runs the
+    /// engine unchanged.
+    /// </para>
+    /// <para>
+    /// The original got three of these wrong, and none is reproduced. It assigned the
+    /// timings in columns 7 to 10 raw onto its already-converted angles, so IVO 19 opened
+    /// the valve at 19 rather than 341 (B72); copied column 11's inlet lift onto the
+    /// exhaust valve as well (B73); and left column 12's exhaust lift in millimetres where
+    /// everything else was metres (B74). The port's first version divided column 11 by a
+    /// thousand on top of the downstream conversion, leaving the inlet lift a thousand
+    /// times too small (A17).
     /// </para>
     /// <para>
     /// The cycle counts follow the original's arithmetic: <c>No2z := NoCycles-1</c> then
@@ -179,7 +187,7 @@ public sealed class MultiRunner
             manifold.ExhaustValve.ProfileFile = exhaustCam;
         }
 
-        // Raw, as the original assigns them. See B72.
+        // In the file's units, converted downstream like the editor's values. See B72.
         if (grid.Number(row, 6) is { } inletOpen)
         {
             manifold.InletValve.OpenAngle = inletOpen;
@@ -200,16 +208,15 @@ public sealed class MultiRunner
             manifold.ExhaustValve.CloseAngle = exhaustClose;
         }
 
+        // Millimetres, as the .eng holds them; each lift touches its own valve only.
+        // See B73, B74 and A17.
         if (grid.Number(row, 10) is { } inletLift)
         {
-            // Both of these, in this order. See B73.
-            manifold.InletValve.MaxLift = inletLift / 1000;
-            manifold.ExhaustValve.MaxLift = manifold.InletValve.MaxLift;
+            manifold.InletValve.MaxLift = inletLift;
         }
 
         if (grid.Number(row, 11) is { } exhaustLift)
         {
-            // Not divided. See B74.
             manifold.ExhaustValve.MaxLift = exhaustLift;
         }
 
