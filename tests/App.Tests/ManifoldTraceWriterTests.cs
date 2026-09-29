@@ -177,6 +177,13 @@ public sealed class ManifoldTraceWriterTests
     /// that, so it sits near the limit of what this reference data can resolve. The inlet
     /// bound is well inside it and is a real measurement.
     /// </para>
+    /// <para>
+    /// The bounds have to hold on every platform the tests run on, not just the one they
+    /// were measured on. The last bits of the transcendental functions differ between
+    /// runtimes and CPUs, and a converged run carries those differences through several
+    /// cycles, so the worst exhaust-valve mass flow is 0.141 mg on Linux x64 and 0.208 mg
+    /// on macOS. Its bound is 0.25, the same as the inlet valve's.
+    /// </para>
     /// </remarks>
     [Fact]
     public void TheValuesAgreeWithTheOriginalsToTheMeasuredBounds()
@@ -219,7 +226,7 @@ public sealed class ManifoldTraceWriterTests
             Compare("Tcyl.txt", 5.0, 1e-12);
 
             // Mass through each valve per step, in milligrams.
-            Compare("MassFlow.txt", 0.25, 0.2);
+            Compare("MassFlow.txt", 0.25, 0.25);
 
             // Pressure in bar and velocity in m/s at three stations along each pipe.
             Compare("Inlet.txt", 0.01, 4.0, 0.01, 4.0, 0.01, 10.0);
