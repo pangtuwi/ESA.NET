@@ -452,7 +452,7 @@ hit a difference and want a known-good reference point.
 | Platform | Toolchain | Exercised |
 |---|---|---|
 | Windows 10 | VS Code with the C# Dev Kit, .NET SDK 10.0.400 | Build and run |
-| macOS on Apple Silicon (arm64) | .NET SDK 10.0.401, command line | Build, all tests passing, app run with `dotnet run` |
+| macOS 15.7.9 Sequoia on Apple Silicon (arm64) | .NET SDK 10.0.401, command line | Build, all tests passing, app run with `dotnet run` |
 | Ubuntu 24.04 (the Mint 22 base) | .NET SDK 10.0.111 from `noble-updates/universe`, command line | Release build (0 warnings), 417 tests passing, app run under Xvfb, `dotnet publish -r linux-x64 --self-contained` and the resulting binary run |
 
 Everything in the Ubuntu row applies to Mint 22, which is the same base with the
