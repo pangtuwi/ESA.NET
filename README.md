@@ -441,7 +441,8 @@ dotnet run   --project src/App.Ui
 ```
 
 Install the SDK with `brew install --cask dotnet-sdk` or the installer from
-<https://dotnet.microsoft.com/download/dotnet/10.0>. Not exercised — see below.
+<https://dotnet.microsoft.com/download/dotnet/10.0>. Pick the Arm64 installer on
+Apple Silicon and x64 on an Intel Mac. Verified on Apple Silicon — see below.
 
 ## Verified on
 
@@ -451,12 +452,13 @@ hit a difference and want a known-good reference point.
 | Platform | Toolchain | Exercised |
 |---|---|---|
 | Windows 10 | VS Code with the C# Dev Kit, .NET SDK 10.0.400 | Build and run |
+| macOS on Apple Silicon (arm64) | .NET SDK 10.0.401, command line | Build, all tests passing, app run with `dotnet run` |
 | Ubuntu 24.04 (the Mint 22 base) | .NET SDK 10.0.111 from `noble-updates/universe`, command line | Release build (0 warnings), 417 tests passing, app run under Xvfb, `dotnet publish -r linux-x64 --self-contained` and the resulting binary run |
 
 Everything in the Ubuntu row applies to Mint 22, which is the same base with the
 same `universe` repo enabled. Not yet exercised anywhere: Mint 21 / LMDE and the
-`dotnet-install.sh` fallback, the VS Code route end to end on Linux, macOS, and
-opening `ESA.NET.slnx` in Visual Studio or Rider.
+`dotnet-install.sh` fallback, the VS Code route end to end on Linux, macOS on Intel,
+`dotnet publish` for macOS, and opening `ESA.NET.slnx` in Visual Studio or Rider.
 
 ---
 
