@@ -179,8 +179,8 @@ public sealed class RunArchive
         var table = engine.Manifold.ExhaustBack;
 
         // Gauge kPa in the file; TExhaustPandT.Pres makes it absolute pascals
-        // (ExhBackPandT.pas:72). The writer then subtracts a hard-coded atmosphere to get
-        // back to gauge, which is ISSUES.md B69 and reproduced there.
+        // (ExhBackPandT.pas:72). The writer takes the same atmosphere off again to report
+        // gauge; the original took off a hard-coded one instead (ISSUES.md B69).
         return (LegacyInterpolation.AtSpeed(table.Rpm, table.Pressure, engine.Rpm) * 1000)
                + engine.Atmosphere.PGas;
     }
