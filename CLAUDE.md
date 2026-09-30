@@ -227,7 +227,7 @@ pressing OK must not restyle a single byte.
 | 1 | Reverse-engineer the Delphi application into `SPEC.md` | **Complete** |
 | 2 | Project skeleton: solution, layering, domain models, `.eng` round-trip, shell window | **Complete** |
 | 3 | Remaining file formats (`.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, `.exh`, `ESA.ini`), an expression evaluator to replace `TAdCalc`, and the engine Edit form | **Complete** |
-| 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against the `data/baseline/` reference run (see `BASELINE.md`) | **Complete.** A converged whole-cycle run matches the reference trace to 0.33 % at every crank angle; see `ISSUES.md` A8 and A10 for what is still open |
+| 4 | Simulation core: RKF5 integrator, gas and equilibrium models, manifold CFD, performance calculations, validated against the `data/baseline/` reference run (see `BASELINE.md`) | **Complete.** A converged whole-cycle run matches the reference trace to 0.33 % at every crank angle; see `ISSUES.md` A8 for what is still open |
 | 5 | ScottPlot charts, the multi-run grid, PVT and manifold text exports | **Complete.** The Run menu drives the simulation, the results screen is the original's four quadrants, and the multi-run grid can be typed in as well as loaded. The text exports were finished with the data folder: every run writes its performance row, PVT trace and manifold files into a folder of its own, and `Text ▸ PVT Trace` saves a copy where the operator asks |
 | 6 | Packaging and distribution | Not started |
 

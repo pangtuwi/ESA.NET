@@ -1,3 +1,4 @@
+using App.Core.Expressions;
 using App.Core.Manifold;
 using App.Core.Model;
 using App.Core.Simulation;
@@ -31,58 +32,46 @@ public sealed class ManifoldTraceWriterTests
     }
 
     /// <summary>
-    /// Runs to convergence, recording the last cycle's capture window, and writes the nine
-    /// files into a temporary directory.
+    /// Runs the reference case the way the application does, and writes the nine files
+    /// into a temporary directory.
     /// </summary>
+    /// <remarks>
+    /// Through <see cref="SimulationRunner"/>, not a hand-driven cycle loop. The first
+    /// version found the cycle count with <c>RunCycles</c> and then recorded from a second
+    /// pass of bare <c>RunOneCycle</c> calls that never set <c>ZoneCount</c>, leaving it at
+    /// 0 - neither the single-zone model nor the two-zone one, but a hybrid the application
+    /// never runs - and its bounds described that (ISSUES.md A11). At the reference's own
+    /// settings, 6 cycles requested at 1 mg, the run converges after three cycles, which
+    /// is the cycle the original's files hold: see ISSUES.md F1.
+    /// </remarks>
     private static string RunAndWrite()
     {
-        var engine = BaselineEngine();
-        var manifold = new ManifoldSolver(engine);
-        var solver = new CycleSolver(engine, manifold);
-
-        solver.Initialise();
-
-        var inletClose = -180 + engine.Manifold.InletValve.CloseAngle;
-        var settings = new SimulationSettings
-        {
-            CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1,
-        };
-
-        // Find how many cycles the run takes, then repeat it recording the last one. The
-        // original decides this with a tStep test inside Main_Prog; doing it from outside
-        // avoids reproducing the write-gate defects of ISSUES.md C1 to C4.
-        var cycles = solver.RunCycles(settings);
-
-        engine = BaselineEngine();
-        manifold = new ManifoldSolver(engine);
-        solver = new CycleSolver(engine, manifold);
-        solver.Initialise();
-
         var writer = new ManifoldTraceWriter();
-        var cycle = 0;
 
-        solver.StepCompleted += s =>
-        {
-            if (Math.Abs(s.Engine.CrankAngle - (-180 + s.Engine.Manifold.InletValve.CloseAngle)) < 1e-9)
-            {
-                cycle++;
-            }
-        };
+        var result = new SimulationRunner(new CachingExpressionEvaluator()).Run(
+            BaselineEngine(),
+            new SimulationSettings { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 },
+            cancellation: TestContext.Current.CancellationToken,
+            manifoldRecorder: writer,
+            recordManifoldData: true);
 
-        for (var i = 1; i <= cycles; i++)
-        {
-            manifold.Recorder = i == cycles
-                ? new ManifoldCaptureWindow(writer, inletClose)
-                : null;
-
-            solver.RunOneCycle();
-        }
+        // The comparison is only meaningful against the cycle the reference holds. Fail
+        // loudly if the run stops anywhere else rather than quietly comparing the wrong one.
+        Assert.True(result.Converged);
+        Assert.Equal(ReferenceCycle, result.CyclesRun);
+        Assert.True(result.ManifoldDataCaptured);
 
         var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         writer.Write(directory);
 
         return directory;
     }
+
+    /// <summary>
+    /// The cycle the original's manifold files and PVT trace both hold: the third, which is
+    /// the last the reference run simulated before converging (BASELINE.md, ISSUES.md F1).
+    /// </summary>
+    private const int ReferenceCycle = 3;
 
     [Fact]
     public void AllNineFilesAreWrittenWithTheOriginalsRowAndColumnCounts()
@@ -161,7 +150,7 @@ public sealed class ManifoldTraceWriterTests
 
     /// <summary>
     /// The values in the nine files, against the originals, at the accuracy actually
-    /// achieved.
+    /// achieved on the reference cycle.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -170,19 +159,26 @@ public sealed class ManifoldTraceWriterTests
     /// division by nearly nothing and says more about the crossings than the physics.
     /// </para>
     /// <para>
-    /// The inlet wave field agrees far more closely than the exhaust one - 0.006 bar
-    /// against 0.098. Some of that gap is not the port's: ISSUES.md F1 records that the
-    /// manifold files and the PVT trace come from adjacent cycles, and that gas exchange
-    /// differs by up to 0.07 bar between them. The exhaust bound here is the same order as
-    /// that, so it sits near the limit of what this reference data can resolve. The inlet
-    /// bound is well inside it and is a real measurement.
+    /// Two bounds per column. The <b>rms</b> bound is the accuracy check: it is what the
+    /// port's agreement actually is, and it does not move between platforms. The
+    /// <b>worst</b> bound only catches something gross. The worst differences are all at
+    /// discrete switches - the inlet valve's flow reversing, a regime change in a valve
+    /// routine - that land one crank degree apart in the port and the original, and a
+    /// one-step shift in a switch is worth the whole jump across it. MassFlow.txt column 1
+    /// shows it: the reference reverses at 186 and the port at 187, and the two agree to
+    /// 0.001 mg either side, so the worst difference is 0.47 mg against an rms of 0.026.
+    /// Last-bit differences between runtimes can move a switch by a step, which is what
+    /// made the old single-bound test fail on macOS (ISSUES.md A11), so the worst bounds
+    /// leave room for the whole jump.
     /// </para>
     /// <para>
-    /// The bounds have to hold on every platform the tests run on, not just the one they
-    /// were measured on. The last bits of the transcendental functions differ between
-    /// runtimes and CPUs, and a converged run carries those differences through several
-    /// cycles, so the worst exhaust-valve mass flow is 0.141 mg on Linux x64 and 0.208 mg
-    /// on macOS. Its bound is 0.25, the same as the inlet valve's.
+    /// Measured on Linux x64, rms then worst: cylinder pressure 0.047 and 0.195 bar, the
+    /// worst in the combustion bias of ISSUES.md A8; temperature 0.48 and 1.9 K; mass flow
+    /// 0.026 and 0.47 mg in, 0.014 and 0.21 mg out; inlet field 0.0018 and 0.027 bar,
+    /// 0.54 and 11.5 m/s; exhaust field 0.0008 and 0.006 bar, 0.34 and 6.9 m/s. The rms
+    /// bounds are about twice those. The exhaust agrees better than the inlet on this
+    /// cycle; the order-of-magnitude gap A10 recorded the other way round came from
+    /// comparing a later cycle.
     /// </para>
     /// </remarks>
     [Fact]
@@ -194,63 +190,122 @@ public sealed class ManifoldTraceWriterTests
 
         try
         {
-            void Compare(string name, params double[] bounds)
+            // One (rms, worst) pair per value column, in file order.
+            void Compare(string name, params (double Rms, double Worst)[] bounds)
             {
                 var produced = Rows(Path.Combine(directory, name));
                 var original = Rows(BaselinePaths.File(name));
 
                 Assert.Equal(original.Count, produced.Count);
 
-                var worst = new double[bounds.Length];
-
-                foreach (var (mine, theirs) in produced.Zip(original))
-                {
-                    for (var column = 0; column < bounds.Length; column++)
-                    {
-                        worst[column] = Math.Max(
-                            worst[column], Math.Abs(mine[column + 1] - theirs[column + 1]));
-                    }
-                }
-
                 for (var column = 0; column < bounds.Length; column++)
                 {
-                    Assert.True(
-                        worst[column] <= bounds[column],
-                        $"{name} column {column + 1}: worst difference {worst[column]:G4} "
-                        + $"exceeds {bounds[column]:G4}.");
+                    var differences = produced.Zip(original, (mine, theirs) =>
+                        mine[column + 1] - theirs[column + 1]).ToList();
+
+                    Check($"{name} column {column + 1}", differences, bounds[column]);
                 }
             }
 
             // Cylinder pressure in bar, temperature in kelvin, volume in cubic metres.
-            Compare("Pcyl.txt", 0.5);
-            Compare("Tcyl.txt", 5.0, 1e-12);
+            Compare("Pcyl.txt", (0.1, 0.4));
+            Compare("Tcyl.txt", (1.0, 4.0), (1e-12, 1e-12));
 
             // Mass through each valve per step, in milligrams.
-            Compare("MassFlow.txt", 0.25, 0.25);
+            Compare("MassFlow.txt", (0.05, 1.0), (0.03, 0.5));
 
             // Pressure in bar and velocity in m/s at three stations along each pipe.
-            Compare("Inlet.txt", 0.01, 4.0, 0.01, 4.0, 0.01, 10.0);
-            Compare("Exhaust.txt", 0.01, 40.0, 0.1, 25.0, 0.15, 10.0);
+            Compare(
+                "Inlet.txt",
+                (0.002, 0.01), (1.5, 8.0), (0.004, 0.02), (1.0, 6.0), (0.004, 0.05), (1.5, 20.0));
+            Compare(
+                "Exhaust.txt",
+                (0.0005, 0.002), (1.0, 4.0), (0.002, 0.01), (0.6, 2.0), (0.002, 0.012), (1.0, 12.0));
 
             // And the full field files, one column per grid point.
-            CompareField("InlPress.m", 0.03);
-            CompareField("InlVel.m", 10.0);
-            CompareField("ExhPress.m", 0.15);
-            CompareField("ExhVel.m", 40.0);
+            CompareField("InlPress.m", (0.004, 0.05));
+            CompareField("InlVel.m", (1.0, 20.0));
+            CompareField("ExhPress.m", (0.0015, 0.012));
+            CompareField("ExhVel.m", (0.7, 12.0));
 
-            void CompareField(string name, double bound)
+            void CompareField(string name, (double Rms, double Worst) bound)
             {
                 var produced = Rows(Path.Combine(directory, name));
                 var original = Rows(BaselinePaths.File(name));
 
                 Assert.Equal(original.Count, produced.Count);
 
-                var worst = produced.Zip(original)
-                    .SelectMany(pair => pair.First.Zip(pair.Second, (a, b) => Math.Abs(a - b)))
-                    .Max();
-
-                Assert.True(worst <= bound, $"{name}: worst difference {worst:G4} exceeds {bound:G4}.");
+                Check(
+                    name,
+                    [.. produced.Zip(original).SelectMany(pair => pair.First.Zip(pair.Second, (a, b) => a - b))],
+                    bound);
             }
+
+            static void Check(string what, List<double> differences, (double Rms, double Worst) bound)
+            {
+                var rms = Math.Sqrt(differences.Average(d => d * d));
+                var worst = differences.Max(Math.Abs);
+
+                Assert.True(rms <= bound.Rms, $"{what}: rms difference {rms:G4} exceeds {bound.Rms:G4}.");
+                Assert.True(
+                    worst <= bound.Worst, $"{what}: worst difference {worst:G4} exceeds {bound.Worst:G4}.");
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// The manifold files and the PVT trace are the same cycle, sampled at different points
+    /// in the step - not adjacent cycles, as BASELINE.md first had it (ISSUES.md F1).
+    /// </summary>
+    /// <remarks>
+    /// The manifold row takes the cylinder pressure going into the manifold step; the
+    /// trace records it after the mass-transfer pressure correction, which applies during
+    /// valve overlap. So the two files differ only on the overlap angles either side of
+    /// top dead centre - 55 of them, by up to 0.071 bar - and the port's own pair differs
+    /// from each other in the same places by the same amounts.
+    /// </remarks>
+    [Fact]
+    public void TheManifoldPressureDiffersFromTheTraceOnlyWhereTheOriginalsDo()
+    {
+        BaselinePaths.Require();
+
+        var writer = new ManifoldTraceWriter();
+
+        var result = new SimulationRunner(new CachingExpressionEvaluator()).Run(
+            BaselineEngine(),
+            new SimulationSettings { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 },
+            cancellation: TestContext.Current.CancellationToken,
+            manifoldRecorder: writer,
+            recordManifoldData: true);
+
+        var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        writer.Write(directory);
+
+        try
+        {
+            // Pcyl.txt's crank angle is offset by 360 from the trace's.
+            var trace = BaselinePaths.TraceColumn("PCyl")
+                .ToDictionary(r => (int)r.CrankAngle, r => r.Value / 1e5);
+
+            var theirs = Rows(BaselinePaths.File("Pcyl.txt"))
+                .Select(r => r[1] - trace[(int)r[0] - 360])
+                .ToList();
+
+            var mine = Rows(Path.Combine(directory, "Pcyl.txt"))
+                .Select(r => r[1] - (result.Trace[(int)r[0] - 360][2] / 1e5))
+                .ToList();
+
+            Assert.Equal(55, theirs.Count(d => Math.Abs(d) > 0.001));
+            Assert.Equal(55, mine.Count(d => Math.Abs(d) > 0.001));
+
+            // The same gap at every angle, to within a hundredth of the gap itself.
+            Assert.All(mine.Zip(theirs), pair => Assert.True(
+                Math.Abs(pair.First - pair.Second) <= 0.001,
+                $"The port's gap {pair.First:F4} bar differs from the original's {pair.Second:F4}."));
         }
         finally
         {
