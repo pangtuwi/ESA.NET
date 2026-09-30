@@ -221,4 +221,45 @@ public sealed class SimulationWiringTests
         var point = Assert.Single(viewModel.Performance.Points);
         Assert.Equal(3000, point.Speed);
     }
+
+    [Fact]
+    public async Task ALateProgressReportDoesNotOverwriteTheFinalStatus()
+    {
+        BaselinePaths.Require();
+
+        var viewModel = Loaded();
+        var context = new LateProgressContext();
+
+        // Every progress report is held until the run has finished and written its final
+        // status, then released - the ordering that failed once in about a dozen full-suite
+        // runs when the thread pool happened to produce it (ISSUES.md A15).
+        await context.Start(() => viewModel.SinglePointSimulationCommand.ExecuteAsync(null));
+
+        Assert.True(context.Held > 0, "The run made no progress reports, so this proves nothing.");
+
+        await context.ReleaseAsync();
+
+        Assert.Contains("Converged", viewModel.RunStatus, StringComparison.Ordinal);
+        Assert.Contains("Torque", viewModel.RunStatus, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ALateProgressReportDoesNotOverwriteTheSweepsFinalStatus()
+    {
+        BaselinePaths.Require();
+
+        var editor = new StubMultiRunEditor { Grid = Grid(("4000", "6")) };
+        var viewModel = Loaded(editor);
+        viewModel.CurrentEngineFile = BaselinePaths.File("A2China.eng");
+
+        var context = new LateProgressContext();
+
+        await context.Start(() => viewModel.MultiPointSimulationCommand.ExecuteAsync(null));
+
+        Assert.True(context.Held > 0, "The sweep made no progress reports, so this proves nothing.");
+
+        await context.ReleaseAsync();
+
+        Assert.Contains("Completed 1 runs", viewModel.RunStatus, StringComparison.Ordinal);
+    }
 }
