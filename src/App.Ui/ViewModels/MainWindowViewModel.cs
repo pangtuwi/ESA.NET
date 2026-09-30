@@ -431,6 +431,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IsRunning = true;
         RunStatus = "Simulating...";
 
+        var status = new RunStatusGate(text => RunStatus = text);
+
         var startedAt = DateTimeOffset.Now;
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var manifoldWriter = new ManifoldTraceWriter();
@@ -442,11 +444,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             var token = _running.Token;
 
-            // Progress<T> marshals back to the UI thread for us.
+            // Progress<T> posts each report to the context it was made on. Only the gate
+            // stops one that arrives late from overwriting the final status: see
+            // RunStatusGate.
             var progress = new Progress<SimulationProgress>(
-                p => RunStatus =
+                p => status.Report(
                     $"Cycle {p.Cycle} of {p.RequestedCycles}   "
-                    + $"{p.CrankAngle,4:F0}°   mass balance {p.MassBalance:F2} mg");
+                    + $"{p.CrankAngle,4:F0}°   mass balance {p.MassBalance:F2} mg"));
 
             // Every run archives its manifold files, so the engine's Save Manifold Data
             // flag no longer gates them - see ISSUES.md C1 to C4.
@@ -506,9 +510,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         // saying what it was asked to do and how it ended is the part worth keeping.
         var directory = ArchiveRun(startedAt, result, manifoldWriter, stopwatch.Elapsed, outcome);
 
-        RunStatus = directory is null
+        status.Finish(directory is null
             ? outcome
-            : $"{outcome}   Results in {directory}";
+            : $"{outcome}   Results in {directory}");
     }
 
     private bool CanStartRun => CurrentEngine is not null && !IsRunning;
@@ -541,6 +545,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _running = new CancellationTokenSource();
         IsRunning = true;
 
+        var status = new RunStatusGate(text => RunStatus = text);
+
         // The original clears the curve before a sweep, so it shows this run and not an
         // accumulation of every run before it.
         Performance.Points.Clear();
@@ -568,10 +574,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
             var token = _running.Token;
             var path = CurrentEngineFile;
 
+            // Through the gate, as the single-point run's are: see RunStatusGate.
             var progress = new Progress<MultiRunProgress>(
-                p => RunStatus =
+                p => status.Report(
                     $"Run {p.Row + 1} of {p.TotalRows} at {p.Speed:F0} rev/min   "
-                    + $"cycle {p.Inner.Cycle}   {p.Inner.CrankAngle,4:F0}°");
+                    + $"cycle {p.Inner.Cycle}   {p.Inner.CrankAngle,4:F0}°"));
 
             // A row at a time, awaited individually, so the curve builds as the sweep
             // proceeds - the original adds its performance point and redraws inside the
@@ -628,9 +635,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         CloseSweepFolder(sweep, manifest, outcome, multiStopwatch.Elapsed);
 
-        RunStatus = sweep is null
+        status.Finish(sweep is null
             ? outcome
-            : $"{outcome}   Results in {sweep.Directory}";
+            : $"{outcome}   Results in {sweep.Directory}");
     }
 
     /// <summary>Creates the folder a whole sweep writes into, or null if it cannot be.</summary>
@@ -915,5 +922,47 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private static void About()
     {
         // Phase 3.
+    }
+
+    /// <summary>
+    /// The status line for one run: progress while it runs, then its outcome, and nothing
+    /// after that.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Progress{T}"/> posts each report to the synchronization context it was
+    /// created on, so a report made near the end of a run can be delivered after the run's
+    /// <c>await</c> has returned and its final status has been written. Avalonia's
+    /// dispatcher happens to deliver them in order; the thread pool does not, and under the
+    /// test runner once in about a dozen full-suite runs a late report replaced
+    /// "Converged after 3 cycles" with "Cycle 3 of 6" (ISSUES.md A15). Once
+    /// <see cref="Finish"/> has run, reports are dropped, whatever context delivers them.
+    /// </remarks>
+    private sealed class RunStatusGate(Action<string> write)
+    {
+        private readonly Lock _gate = new();
+
+        private bool _finished;
+
+        /// <summary>Shows progress, unless the run has already finished.</summary>
+        public void Report(string status)
+        {
+            lock (_gate)
+            {
+                if (!_finished)
+                {
+                    write(status);
+                }
+            }
+        }
+
+        /// <summary>Shows the run's outcome, which nothing reported later replaces.</summary>
+        public void Finish(string status)
+        {
+            lock (_gate)
+            {
+                _finished = true;
+                write(status);
+            }
+        }
     }
 }
