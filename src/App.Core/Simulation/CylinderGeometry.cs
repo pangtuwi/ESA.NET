@@ -10,12 +10,9 @@ namespace App.Core.Simulation;
 /// <remarks>
 /// <para>
 /// <b>Units.</b> Everything here is SI: metres in, cubic metres out, exactly as the
-/// Delphi engine object works. <see cref="Model.Engine"/> is not: it carries the values
-/// as the <c>.eng</c> file writes them, which for bore, stroke and conrod length is
-/// millimetres. Delphi converts on the way out of the edit form
-/// (<c>Edit.pas:417-419</c>, <c>Bore := StrToFloatf(EBore.Text)/1000</c>), and the port
-/// has no edit form in the loop, so <see cref="FromEngine"/> is where that conversion
-/// happens. See ISSUES.md A6.
+/// Delphi engine object works - and as <see cref="Model.Engine"/> does, since the
+/// <c>.eng</c> file's millimetres are converted when the engine is loaded
+/// (<see cref="EngineFileUnits"/>, after <c>Edit.pas:417-419</c>). See ISSUES.md A6.
 /// </para>
 /// <para>
 /// The original's <c>VCyl</c> opens with a guard that pops a dialog when handed a crank
@@ -51,19 +48,16 @@ public sealed class CylinderGeometry
         _cylinderCount = cylinderCount;
     }
 
-    /// <summary>
-    /// Builds the geometry from a loaded engine, converting the three length fields from
-    /// the millimetres the <c>.eng</c> file holds into the metres the physics needs.
-    /// </summary>
+    /// <summary>Builds the geometry from a loaded engine.</summary>
     public static CylinderGeometry FromEngine(Engine engine)
     {
         ArgumentNullException.ThrowIfNull(engine);
 
         return new CylinderGeometry(
-            engine.Bore / 1000,
-            engine.Stroke / 1000,
+            engine.Bore,
+            engine.Stroke,
             engine.CompressionRatio,
-            engine.ConrodLength / 1000,
+            engine.ConrodLength,
             engine.CylinderCount);
     }
 

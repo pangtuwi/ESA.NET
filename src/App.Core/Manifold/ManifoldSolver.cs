@@ -72,8 +72,8 @@ public sealed class ManifoldSolver : IManifoldSource
 
         _inletPipe = new PipeGeometry(manifold.InletPipe.AreaVersusLength);
         _exhaustPipe = new PipeGeometry(manifold.ExhaustPipe.AreaVersusLength);
-        _inletValve = ValveMotion.Inlet(manifold.InletValve);
-        _exhaustValve = ValveMotion.Exhaust(manifold.ExhaustValve);
+        _inletValve = ValveMotion.FromValve(manifold.InletValve);
+        _exhaustValve = ValveMotion.FromValve(manifold.ExhaustValve);
 
         var grids = new GridSizeCalculator(expressions);
         var inletPoints = grids.InletGridSize(manifold.InletGrid.Expression, _inletPipe.Length, rpm);
@@ -191,8 +191,8 @@ public sealed class ManifoldSolver : IManifoldSource
             : (0, 0, 0);
 
         // Inlet valve closing brings the cycle counter round.
-        var inletClose = -180 + _engine.Manifold.InletValve.CloseAngle + 360;
-        var exhaustOpenAngle = 180 - _engine.Manifold.ExhaustValve.OpenAngle + 360;
+        var inletClose = _engine.Manifold.InletValve.CloseAngle + 360;
+        var exhaustOpenAngle = _engine.Manifold.ExhaustValve.OpenAngle + 360;
 
         if (crankAngle == inletClose)
         {

@@ -808,8 +808,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var manifold = CurrentEngine!.Engine.Manifold;
 
         _charts.Show(EngineCharts.ValveLift(
-            ValveMotion.Inlet(manifold.InletValve),
-            ValveMotion.Exhaust(manifold.ExhaustValve)));
+            ValveMotion.FromValve(manifold.InletValve),
+            ValveMotion.FromValve(manifold.ExhaustValve)));
     }
 
     private bool HasEngine => CurrentEngine is not null;

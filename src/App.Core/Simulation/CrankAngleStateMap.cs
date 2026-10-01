@@ -18,8 +18,8 @@ namespace App.Core.Simulation;
 /// <b>Valve angles are the converted ones.</b> The <c>.eng</c> file stores the timings as
 /// the operator enters them, in degrees before or after a dead centre; Delphi converts
 /// on the way out of the edit form (<c>Edit.pas:448-451</c>) to the signed crank angles
-/// used here. <see cref="FromEngine"/> applies that conversion, so callers pass a loaded
-/// engine rather than doing the arithmetic themselves.
+/// used here, and the port converts when the engine is loaded
+/// (<see cref="EngineFileUnits"/>, ISSUES.md A6), so a loaded engine already holds them.
 /// </para>
 /// <para>
 /// Nothing here bounds the answer to one cycle: a crank angle past
@@ -67,8 +67,9 @@ public sealed class CrankAngleStateMap
     public double BurnAngle { get; }
 
     /// <summary>
-    /// Builds the map from a loaded engine, converting the valve timings the way the edit
-    /// form does and negating the spark advance the way <c>InitVars</c> does.
+    /// Builds the map from a loaded engine, whose valve timings are already on the
+    /// solver's scale (ISSUES.md A6), negating the spark advance the way <c>InitVars</c>
+    /// does.
     /// </summary>
     /// <param name="engine">The loaded engine.</param>
     /// <param name="sparkAdvance">
@@ -84,10 +85,10 @@ public sealed class CrankAngleStateMap
         var exhaust = engine.Manifold.ExhaustValve;
 
         return new CrankAngleStateMap(
-            inletOpen: 360 - inlet.OpenAngle,
-            inletClose: -180 + inlet.CloseAngle,
-            exhaustOpen: 180 - exhaust.OpenAngle,
-            exhaustClose: -360 + exhaust.CloseAngle,
+            inletOpen: inlet.OpenAngle,
+            inletClose: inlet.CloseAngle,
+            exhaustOpen: exhaust.OpenAngle,
+            exhaustClose: exhaust.CloseAngle,
             sparkAngle: -sparkAdvance,
             burnAngle: engine.Cylinder.Fuel.BurnAngle);
     }

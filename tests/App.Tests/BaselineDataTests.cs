@@ -102,22 +102,24 @@ public sealed class BaselineDataTests
     {
         RequireBaseline();
 
-        var engine = CreateLoader().Load(File("A2China.eng")).Engine;
+        var loaded = CreateLoader().Load(File("A2China.eng"));
+        var engine = loaded.Engine;
+        var definition = loaded.Definition;
 
-        // Cylinders tab: the form displays 1595 cc, computed from these.
+        // Cylinders tab: the form displays 1595 cc, computed from these. The engine holds
+        // them in metres, as Delphi's did (ISSUES.md A6).
         Assert.Equal(4, engine.CylinderCount);
-        Assert.Equal(81.0, engine.Bore);
-        Assert.Equal(77.4, engine.Stroke);
+        Assert.Equal(0.081, engine.Bore, 15);
+        Assert.Equal(0.0774, engine.Stroke, 15);
         Assert.Equal(9.2, engine.CompressionRatio);
 
-        var capacity = engine.CylinderCount * Math.PI / 4.0 * engine.Bore * engine.Bore * engine.Stroke / 1000.0;
+        var capacity = engine.CylinderCount * Math.PI / 4.0 * engine.Bore * engine.Bore * engine.Stroke * 1e6;
         Assert.Equal(1595, capacity, 0);
 
-        // Cams tab: durations are Open + 180 + Close, shown as 279 and 281.
-        var inlet = engine.Manifold.InletValve;
-        var exhaust = engine.Manifold.ExhaustValve;
-        Assert.Equal(279, inlet.OpenAngle + 180 + inlet.CloseAngle);
-        Assert.Equal(281, exhaust.OpenAngle + 180 + exhaust.CloseAngle);
+        // Cams tab: durations are Open + 180 + Close in the form's own units, shown as
+        // 279 and 281. That is what the operator typed, so it is the definition's.
+        Assert.Equal(279, definition.InletValveOpen + 180 + definition.InletValveClose);
+        Assert.Equal(281, definition.ExhaustValveOpen + 180 + definition.ExhaustValveClose);
 
         // Fuel tab: C 7, H 17, O 0, N 0. No .eng file stores composition, so the
         // screenshot is the only record that the original ran on these.
@@ -255,9 +257,10 @@ public sealed class BaselineDataTests
         Assert.Equal(-7, crankAngles[burntTemperatures.IndexOf(peakTemperature)]);
 
         // The accumulator reset sits at inlet valve closing: IVC is 80 degrees after
-        // bottom dead centre, and the trace counts from firing TDC, so -180 + 80.
+        // bottom dead centre, and the trace counts from firing TDC, so -180 + 80, which is
+        // what the engine holds once loaded.
         var engine = CreateLoader().Load(File("A2China.eng")).Engine;
-        var expectedReset = -180 + engine.Manifold.InletValve.CloseAngle;
+        var expectedReset = engine.Manifold.InletValve.CloseAngle;
         Assert.Equal(-100, expectedReset);
 
         // At the reset each accumulator drops to zero and then picks up that step's

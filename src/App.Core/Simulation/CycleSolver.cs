@@ -51,8 +51,8 @@ public sealed class CycleSolver
         _atmosphere = new TwoZoneGas(engine.Atmosphere);
 
         Geometry = CylinderGeometry.FromEngine(engine);
-        InletValve = ValveMotion.Inlet(engine.Manifold.InletValve);
-        ExhaustValve = ValveMotion.Exhaust(engine.Manifold.ExhaustValve);
+        InletValve = ValveMotion.FromValve(engine.Manifold.InletValve);
+        ExhaustValve = ValveMotion.FromValve(engine.Manifold.ExhaustValve);
 
         SparkAdvance = LegacyInterpolation.AtSpeed(
             engine.SparkAngle.Rpm, engine.SparkAngle.Values, engine.Rpm);
@@ -96,10 +96,6 @@ public sealed class CycleSolver
     /// Whether both cam profiles loaded, Delphi's <c>AllOK</c>. The original returns this
     /// through a <c>var</c> parameter and the caller refuses to run when it is false.
     /// </returns>
-    /// <remarks>
-    /// This is also where the <c>.eng</c> file's units become SI, because the port has no
-    /// edit form in the simulation path to do it. See ISSUES.md A6.
-    /// </remarks>
     public bool Initialise()
     {
         var engine = _engine;

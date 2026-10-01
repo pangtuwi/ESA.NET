@@ -30,7 +30,7 @@ public sealed class CylinderHeatTransferTests
     private const double DegreeStep = 1.0;
 
     // A2China at 4000 rpm. ThetaSpark is -SparkAngle.GetVal(4000) and A2ChinaVar.spk
-    // gives 21 at 4000; the valve angles are converted by CrankAngleStateMap.FromEngine.
+    // gives 21 at 4000; the valve angles are converted as EngineFileUnits converts them.
     private static readonly CrankAngleStateMap States = new(
         inletOpen: 360 - 19,
         inletClose: -180 + 80,

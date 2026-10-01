@@ -30,7 +30,7 @@ public sealed class EngineLoaderTests
         var engine = result.Engine;
 
         Assert.Equal(4, engine.CylinderCount);
-        Assert.Equal(81.0, engine.Bore);
+        Assert.Equal(0.081, engine.Bore, 15);
 
         // Every side file this engine names sits beside it or below it.
         Assert.True(result.IsComplete, string.Join("; ", result.Problems));

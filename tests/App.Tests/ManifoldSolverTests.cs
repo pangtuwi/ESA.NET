@@ -138,7 +138,7 @@ public sealed class ManifoldSolverTests
 
         var engine = BaselineEngine();
         var solver = new ManifoldSolver(engine);
-        var exhaustValve = ValveMotion.Exhaust(engine.Manifold.ExhaustValve);
+        var exhaustValve = ValveMotion.FromValve(engine.Manifold.ExhaustValve);
 
         solver.Step(Request(-100, 200000, 400, 0, 0));
 

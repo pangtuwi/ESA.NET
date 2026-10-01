@@ -25,8 +25,8 @@ public sealed class ValveMotionTests
     {
         var engine = Loader().Load(BaselinePaths.File("A2China.eng")).Engine;
 
-        return (ValveMotion.Inlet(engine.Manifold.InletValve),
-                ValveMotion.Exhaust(engine.Manifold.ExhaustValve));
+        return (ValveMotion.FromValve(engine.Manifold.InletValve),
+                ValveMotion.FromValve(engine.Manifold.ExhaustValve));
     }
 
     private static void AssertMatchesTrace(ValveMotion valve, string column)
