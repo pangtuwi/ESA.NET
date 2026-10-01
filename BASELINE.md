@@ -227,14 +227,18 @@ left-associative `^`, `DelphiMath.Power`'s integer path, round-half-to-even, the
 `.maf` reader and the pipe length derived from it — a slip in any one of them
 would almost certainly have shifted the rounded count.
 
-**These come from an adjacent cycle to `A2China.txt`, not the same one.** Through
-the closed period, crank angles 0 to 250, the cylinder pressures in `Pcyl.txt` and
-the PVT trace agree to 0.0001 bar over 251 angles — that stretch is fixed by the
-mass trapped at inlet valve closing, which has converged. Through gas exchange
-they diverge by up to 0.07 bar, because that depends on the manifold wave state,
-which is still settling. 565 of the 620 angles agree to within 0.001 bar; the 55
-that do not are all in the exhaust stroke. Phase 4 must not assume the two files
-describe the same cycle.
+**These come from the same cycle as `A2China.txt` — the third — sampled at a
+different point in the step.** This paragraph first said they were adjacent cycles,
+and that was wrong (`ISSUES.md` F1). Through the closed period, crank angles 0 to 250,
+the cylinder pressures in `Pcyl.txt` and the PVT trace agree to 0.0001 bar over 251
+angles. 565 of the 620 angles agree to within 0.001 bar; the 55 that do not, by up to
+0.07 bar, are the valve-overlap angles either side of top dead centre. That is where
+the mass-transfer pressure correction applies, and the manifold row takes the cylinder
+pressure going into the manifold step while the trace records it after the
+correction. The port's own two files, written from a single cycle, differ from each
+other on the same 55 angles by the same amounts. Scored cycle by cycle, both files
+match the port's third cycle best, which is the last one the reference run
+simulated.
 
 ### Screenshots
 
