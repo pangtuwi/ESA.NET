@@ -180,7 +180,7 @@
       <TabItem Header="Cams">
         <StackPanel Margin="12">
           <HeaderedContentControl Header="Inlet Valve Cam">
-            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,4">
               <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Profile" />
               <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding InletValveProfileFile}" />
 
@@ -195,11 +195,17 @@
               <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Total Valve Lift" />
               <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding InletValveLift}" />
               <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="[mm]" />
+
+              <!-- Read-only and derived, as the original's greyed EIVD/EEVD boxes are. -->
+              <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="Duration" />
+              <TextBlock Grid.Row="4" Grid.Column="1" Classes="label"
+                         Text="{Binding InletValveDuration, StringFormat='{}{0:F0}'}" />
+              <TextBlock Grid.Row="4" Grid.Column="2" Classes="label" Text="[°CA]" />
             </Grid>
           </HeaderedContentControl>
 
           <HeaderedContentControl Header="Exhaust Valve Cam">
-            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,4">
               <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Profile" />
               <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding ExhaustValveProfileFile}" />
 
@@ -214,6 +220,12 @@
               <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Total Valve Lift" />
               <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExhaustValveLift}" />
               <TextBlock Grid.Row="3" Grid.Column="2" Classes="label" Text="[mm]" />
+
+              <!-- Read-only and derived, as the original's greyed EIVD/EEVD boxes are. -->
+              <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="Duration" />
+              <TextBlock Grid.Row="4" Grid.Column="1" Classes="label"
+                         Text="{Binding ExhaustValveDuration, StringFormat='{}{0:F0}'}" />
+              <TextBlock Grid.Row="4" Grid.Column="2" Classes="label" Text="[°CA]" />
             </Grid>
           </HeaderedContentControl>
         </StackPanel>

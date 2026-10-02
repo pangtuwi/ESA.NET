@@ -138,11 +138,13 @@ public sealed partial class EditEngineViewModel : ObservableValidator
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
+    [NotifyPropertyChangedFor(nameof(InletValveDuration))]
     [Range(-180.0, 180.0, ErrorMessage = "Degrees before top dead centre.")]
     private double _inletValveOpen;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
+    [NotifyPropertyChangedFor(nameof(InletValveDuration))]
     [Range(-180.0, 180.0, ErrorMessage = "Degrees after bottom dead centre.")]
     private double _inletValveClose;
 
@@ -156,11 +158,13 @@ public sealed partial class EditEngineViewModel : ObservableValidator
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
+    [NotifyPropertyChangedFor(nameof(ExhaustValveDuration))]
     [Range(-180.0, 180.0, ErrorMessage = "Degrees before bottom dead centre.")]
     private double _exhaustValveOpen;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
+    [NotifyPropertyChangedFor(nameof(ExhaustValveDuration))]
     [Range(-180.0, 180.0, ErrorMessage = "Degrees after top dead centre.")]
     private double _exhaustValveClose;
 
@@ -168,6 +172,19 @@ public sealed partial class EditEngineViewModel : ObservableValidator
     [NotifyDataErrorInfo]
     [Range(0.0, 50.0, ErrorMessage = "Total valve lift in mm.")]
     private double _exhaustValveLift;
+
+    /// <summary>
+    /// Inlet valve open period in degrees of crank angle, recalculated as the user types.
+    /// Read-only, like <see cref="Capacity"/>. Port of <c>EIVDChanged</c>:
+    /// <c>IVO + 180 + IVC</c>, shown as 279 on the baseline engine.
+    /// </summary>
+    public double InletValveDuration => InletValveOpen + 180 + InletValveClose;
+
+    /// <summary>
+    /// Exhaust valve open period in degrees of crank angle. Port of <c>EEVDChanged</c>:
+    /// <c>EVO + 180 + EVC</c>, shown as 281 on the baseline engine.
+    /// </summary>
+    public double ExhaustValveDuration => ExhaustValveOpen + 180 + ExhaustValveClose;
 
     // --- Valves --------------------------------------------------------------
 

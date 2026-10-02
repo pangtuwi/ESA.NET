@@ -64,6 +64,30 @@ public sealed class EditEngineViewModelTests
     }
 
     [Fact]
+    public void CamDurationsFollowTheDelphiFormulaAndTrackEdits()
+    {
+        BaselinePaths.Require();
+
+        var viewModel = LoadedFrom(Store.Read(BaselinePaths.File("A2China.eng")));
+
+        // IVO + 180 + IVC and EVO + 180 + EVC, as EIVDChanged and EEVDChanged compute
+        // them: 279 and 281 on the Cams tab screenshot (ISSUES.md A4).
+        Assert.Equal(279, viewModel.InletValveDuration);
+        Assert.Equal(281, viewModel.ExhaustValveDuration);
+
+        var raised = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        viewModel.InletValveOpen = 25;
+        viewModel.ExhaustValveClose = 40;
+
+        Assert.Equal(285, viewModel.InletValveDuration);
+        Assert.Equal(284, viewModel.ExhaustValveDuration);
+        Assert.Contains(nameof(EditEngineViewModel.InletValveDuration), raised);
+        Assert.Contains(nameof(EditEngineViewModel.ExhaustValveDuration), raised);
+    }
+
+    [Fact]
     public void LoadingAndSavingWithNoEditsLeavesTheFileByteIdentical()
     {
         // The whole point of the changed-check in Apply: opening an engine and pressing
