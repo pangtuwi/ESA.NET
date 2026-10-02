@@ -17,3 +17,7 @@ data/baseline/** -text -diff
 *.bmp binary
 *.hlp binary
 *.doc binary
+
+# Shell scripts must keep LF endings, or bash on macOS and Linux will not run a
+# copy checked out on Windows with core.autocrlf=true.
+*.sh text eol=lf
