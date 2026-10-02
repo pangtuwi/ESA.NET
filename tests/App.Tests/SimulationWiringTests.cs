@@ -262,4 +262,58 @@ public sealed class SimulationWiringTests
 
         Assert.Contains("Completed 1 runs", viewModel.RunStatus, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task SwitchingToVelocitiesAfterARunRedrawsTheGasFlowChart()
+    {
+        BaselinePaths.Require();
+
+        // ISSUES.md C7: in the original, switching the gas-flow chart to velocities after
+        // a run changed the panel title but not the plot, because the mode was read on a
+        // refresh timer that had stopped, and the axis still read Pressure [bar]. The
+        // port's Graph Options dialog redraws from the last run's trace instead.
+        var options = new StubGraphOptions { Velocities = true };
+
+        var viewModel = TestServices.Resolve<MainWindowViewModel>(services =>
+        {
+            services.AddSingleton<IMultiRunWindowService>(new StubMultiRunEditor());
+            services.AddSingleton<ISimulateOptionsWindowService>(new StubSimulateOptions());
+            services.AddSingleton<IRunTimeGraphOptionsWindowService>(options);
+        });
+
+        viewModel.CurrentEngine = TestServices.Resolve<IEngineLoader>()
+            .Load(BaselinePaths.File("A2China.eng"));
+        viewModel.EngineSpeed = 4000;
+        viewModel.Settings.CycleCount = 6;
+        viewModel.Settings.OneZoneCycleCount = 1;
+        viewModel.Settings.MassBalance = 1;
+
+        await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
+
+        Assert.Equal("Pressure [bar]", viewModel.GasFlowChart!.YAxisLabel);
+
+        // The run is over, so nothing else will redraw: the switch has to do it.
+        await viewModel.RunTimeGraphOptionsCommand.ExecuteAsync(null);
+
+        var chart = viewModel.GasFlowChart!;
+        Assert.Equal("Gas Flow : Velocities", chart.Title);
+        Assert.Equal("Velocity [m/s]", chart.YAxisLabel);
+        Assert.Equal(["Inlet", "Exhaust"], chart.Series.Select(s => s.Name));
+        Assert.All(chart.Series, s => Assert.NotEmpty(s.Y));
+
+        // And back again.
+        options.Velocities = false;
+        await viewModel.RunTimeGraphOptionsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Pressure [bar]", viewModel.GasFlowChart!.YAxisLabel);
+    }
+
+    /// <summary>Answers the Graph Options dialog with OK and a chosen mode.</summary>
+    private sealed class StubGraphOptions : IRunTimeGraphOptionsWindowService
+    {
+        public bool Velocities { get; set; }
+
+        public Task<RunTimeGraphOptionsResult> ShowAsync(bool showGasFlowVelocities) =>
+            Task.FromResult(new RunTimeGraphOptionsResult(Accepted: true, Velocities));
+    }
 }
