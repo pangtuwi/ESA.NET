@@ -377,8 +377,9 @@ public sealed class SimulateOptionsTests
         Assert.Equal(PhysicsMode.Legacy, viewModel.Physics);
         Assert.False(viewModel.CorrectedPhysics);
 
-        // Until a correction lands, the dialog says plainly that the choice changes nothing.
-        Assert.Contains("No corrections are implemented yet", viewModel.PhysicsNote, StringComparison.Ordinal);
+        // The dialog says how many corrections Corrected applies.
+        Assert.Contains(
+            $"applies {CorrectionCatalogue.All.Count} correction(s)", viewModel.PhysicsNote, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -22,9 +22,10 @@ public sealed class Rkf5IntegratorTests
     }
 
     /// <summary>Integrates from <paramref name="x0"/> to 1 in <paramref name="steps"/> steps.</summary>
-    private static double Integrate(DerivativeFunction f, double y0, double x0, int steps, Integrator method)
+    private static double Integrate(
+        DerivativeFunction f, double y0, double x0, int steps, Integrator method, bool fehlberg = false)
     {
-        var integrator = new Rkf5Integrator();
+        var integrator = new Rkf5Integrator { FehlbergCoefficient = fehlberg };
         var h = (1.0 - x0) / steps;
         var state = State(1, x0, h, y0);
         state.Integrator = method;
@@ -49,8 +50,10 @@ public sealed class Rkf5IntegratorTests
     /// <c>845/4104</c> — a transposed digit.
     /// </summary>
     /// <remarks>
-    /// Reproduced deliberately: the reference run in <c>data/baseline/</c> was produced
-    /// by it. This test exists so nobody corrects it by accident. See ISSUES.md B14.
+    /// Reproduced as Legacy: the reference run in <c>data/baseline/</c> was produced by
+    /// it, and this test is what keeps Legacy that way. The correction is a switch, not an
+    /// edit - see <see cref="FehlbergsCoefficientRestoresFifthOrderConvergence"/> and
+    /// ISSUES.md B14.
     /// </remarks>
     [Fact]
     public void TheFifthStageRowDoesNotSumToItsNode()
@@ -96,9 +99,35 @@ public sealed class Rkf5IntegratorTests
         var observedOrder = Math.Log2(coarse / fine);
 
         // Halving the step halves the error: first order. A true RKF5 would divide it
-        // by about 32. If this test starts reporting ~5, someone has "fixed" the
-        // coefficient and the port no longer matches its own reference data.
+        // by about 32. If this test starts reporting ~5, Legacy has stopped being the
+        // original's method and the port no longer matches its own reference data.
         Assert.InRange(observedOrder, 0.9, 1.2);
+    }
+
+    /// <summary>
+    /// The B14 correction's oracle: with Fehlberg's published <c>845/4104</c> the fifth
+    /// stage is consistent again and the method converges at fifth order, as its name
+    /// promises. Physics, not the reference run, is the check here - the original carries
+    /// the transposed digit, so nothing it produced can say whether the correction is right.
+    /// </summary>
+    [Fact]
+    public void FehlbergsCoefficientRestoresFifthOrderConvergence()
+    {
+        static double Exponential(double x, ReadOnlySpan<double> y) => y[0];
+
+        var coarse = Math.Abs(Integrate(Exponential, 1, 0, 20, Integrator.Rkf5, fehlberg: true) - Math.E);
+        var fine = Math.Abs(Integrate(Exponential, 1, 0, 40, Integrator.Rkf5, fehlberg: true) - Math.E);
+
+        // Halving the step divides the error by about 32.
+        Assert.InRange(Math.Log2(coarse / fine), 4.5, 5.5);
+
+        // And the fifth stage's row now sums to its node of 1.
+        var seen = new List<double>();
+        var state = State(1, 0, 1, 0);
+        new Rkf5Integrator { FehlbergCoefficient = true }
+            .Step(state, [(_, y) => { seen.Add(y[0]); return 1; }]);
+
+        Assert.Equal(1.0, seen[4], 12);
     }
 
     // ---------------------------------------------------------------------------

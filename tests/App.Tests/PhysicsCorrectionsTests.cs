@@ -4,13 +4,13 @@ using App.Persistence;
 namespace App.Tests;
 
 /// <summary>
-/// The Legacy/Corrected switch of <c>CORRECTIONS.md</c>, before any correction stands behind
+/// The Legacy/Corrected switch of <c>CORRECTIONS.md</c>, independent of the corrections behind
 /// it: the mode, the per-entry overrides, and where the choice is kept and recorded.
 /// </summary>
 public sealed class PhysicsCorrectionsTests
 {
-    /// <summary>A correction for these tests only; the catalogue itself is still empty.</summary>
-    private static readonly Correction Example = new("B14", "The RKF5 coefficient Fehlberg published");
+    /// <summary>A correction for these tests only, independent of what the catalogue holds.</summary>
+    private static readonly Correction Example = new("B99", "A correction for testing the switch");
 
     [Fact]
     public void LegacyIsTheDefault()
@@ -28,23 +28,30 @@ public sealed class PhysicsCorrectionsTests
 
         Assert.True(physics.IsOn(Example));
 
-        physics.Overrides["b14"] = false;
+        physics.Overrides["b99"] = false;
         Assert.False(physics.IsOn(Example));
 
         physics.Mode = PhysicsMode.Legacy;
-        physics.Overrides["B14"] = true;
+        physics.Overrides["B99"] = true;
         Assert.True(physics.IsOn(Example));
     }
 
     [Fact]
-    public void WithNoCorrectionsImplementedCorrectedSaysItIsTheSameAsLegacy()
+    public void TheCatalogueHoldsTheCorrectionsThatHaveLandedAndDescribeNamesThem()
     {
-        Assert.Empty(CorrectionCatalogue.All);
-        Assert.Equal("Legacy", new PhysicsCorrections().Describe());
-        Assert.Contains(
-            "no corrections implemented yet",
-            new PhysicsCorrections { Mode = PhysicsMode.Corrected }.Describe(),
-            StringComparison.Ordinal);
+        // B14 was the first. Each tier 3 correction adds itself here when it lands.
+        Assert.Contains(CorrectionCatalogue.Rkf5Coefficient, CorrectionCatalogue.All);
+        Assert.Equal("B14", CorrectionCatalogue.Rkf5Coefficient.Entry);
+
+        Assert.Equal("Legacy, no corrections on", new PhysicsCorrections().Describe());
+
+        var corrected = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
+        Assert.Equal(
+            $"Corrected, all {CorrectionCatalogue.All.Count} corrections on", corrected.Describe());
+
+        // An override that switches B14 back off is named, not hidden.
+        corrected.Overrides["B14"] = false;
+        Assert.DoesNotContain(CorrectionCatalogue.Rkf5Coefficient, corrected.Active);
     }
 
     [Fact]
