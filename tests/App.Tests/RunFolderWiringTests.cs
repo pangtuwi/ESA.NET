@@ -99,6 +99,16 @@ public sealed class RunFolderWiringTests
         // The status line says where it all went.
         Assert.Contains(folder, viewModel.RunStatus, StringComparison.Ordinal);
 
+        // The manifest carries the solvers' counts even when there is nothing to warn
+        // about, so a clean run is visibly clean (ISSUES.md B21, B22, B51-B53).
+        var manifest = File.ReadAllLines(Path.Combine(folder, RunArchive.ManifestFileName));
+
+        Assert.Contains("Solver diagnostics", manifest);
+        Assert.Contains(manifest, line => line.StartsWith("Equilibrium solves", StringComparison.Ordinal));
+        Assert.Contains(manifest, line => line.StartsWith("Negative states", StringComparison.Ordinal)
+                                          && line.EndsWith(" 0", StringComparison.Ordinal));
+        Assert.DoesNotContain("Solver warnings", viewModel.RunStatus, StringComparison.Ordinal);
+
         // Nothing was written beside the engine file, which is where the port used to put
         // the manifold files and where the original put them if you were lucky.
         Assert.False(File.Exists(Path.Combine(BaselinePaths.Directory!, RunArchive.ManifestFileName)));

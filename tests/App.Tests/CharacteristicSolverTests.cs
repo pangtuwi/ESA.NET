@@ -164,4 +164,44 @@ public sealed class CharacteristicSolverTests
         Assert.Equal(1.3, CharacteristicSolver.ExhaustGamma);
         Assert.NotEqual(CharacteristicSolver.InletGamma, CharacteristicSolver.ExhaustGamma);
     }
+
+    [Fact]
+    public void EveryInteriorPointIsCountedAndAStagnantPipeRaisesNoWarnings()
+    {
+        BaselinePaths.Require();
+
+        var pipe = BaselineInletPipe();
+        var (current, next) = Grids(pipe, 39, 99000, 298.15);
+        var diagnostics = new ManifoldDiagnostics();
+
+        for (var i = 1; i <= 37; i++)
+        {
+            CharacteristicSolver.UpdateInteriorPoint(current, next, pipe, Gamma, TimeStep(), i, diagnostics);
+        }
+
+        Assert.Equal(37, diagnostics.InteriorPoints);
+        Assert.InRange(diagnostics.WorstOuterIterations, 1, 10);
+        Assert.False(diagnostics.HasWarnings, diagnostics.ToString());
+    }
+
+    [Fact]
+    public void ANegativeFootStateIsCountedBeforeTheSpeedOfSoundRefusesIt()
+    {
+        BaselinePaths.Require();
+
+        var pipe = BaselineInletPipe();
+        var (current, next) = Grids(pipe, 39, 99000, 298.15);
+        var diagnostics = new ManifoldDiagnostics();
+
+        // A negative pressure at the C+ foot. The original raised a dialog here and carried
+        // on into cThermo (ISSUES.md B53); the port counts it, and cThermo still refuses a
+        // negative pressure with a positive density.
+        current.Pressure[18] = -1000;
+
+        Assert.Throws<CfdException>(() => CharacteristicSolver.UpdateInteriorPoint(
+            current, next, pipe, Gamma, TimeStep(), 19, diagnostics));
+
+        Assert.Equal(1, diagnostics.NegativeFootStates);
+        Assert.True(diagnostics.HasWarnings);
+    }
 }

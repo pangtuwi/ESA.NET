@@ -30,7 +30,8 @@ public sealed record SimulationResult(
     CrankAngleTrace Trace,
     int CyclesRun,
     bool Converged,
-    bool ManifoldDataCaptured = false);
+    bool ManifoldDataCaptured = false,
+    RunDiagnostics? Diagnostics = null);
 
 /// <summary>
 /// Runs a complete simulation: initialise, simulate to convergence, capture the last
@@ -144,7 +145,8 @@ public sealed class SimulationRunner
                 // one before it - which is the last cycle there was.
                 return new SimulationResult(
                     engine, recorder.Trace, cycle - 1, Converged: true,
-                    ManifoldDataCaptured: capturing && cycle > 1);
+                    ManifoldDataCaptured: capturing && cycle > 1,
+                    Diagnostics: RunDiagnostics.From(solver.EquilibriumDiagnostics, manifold.Diagnostics));
             }
 
             // Keep only the cycle in hand, so whichever turns out to be the last one run
@@ -158,6 +160,7 @@ public sealed class SimulationRunner
         new PerformanceCalculator().Calculate(engine);
 
         return new SimulationResult(
-            engine, recorder.Trace, requested, Converged: false, ManifoldDataCaptured: capturing);
+            engine, recorder.Trace, requested, Converged: false, ManifoldDataCaptured: capturing,
+            Diagnostics: RunDiagnostics.From(solver.EquilibriumDiagnostics, manifold.Diagnostics));
     }
 }

@@ -90,6 +90,16 @@ public sealed class CycleSolver
     // -----------------------------------------------------------------------
 
     /// <summary>
+    /// The burnt-gas equilibrium solvers' counters, one per gas zone, for
+    /// <see cref="RunDiagnostics"/>.
+    /// </summary>
+    public IEnumerable<EquilibriumDiagnostics> EquilibriumDiagnostics =>
+        new[] { _cylinder, _plenum, _exhaust, _atmosphere }
+            .Select(gas => gas.Burnt.Equilibrium)
+            .OfType<EquilibriumSolver>()
+            .Select(solver => solver.Diagnostics);
+
+    /// <summary>
     /// Sets up every gas and the integrator. Port of <c>TEngine2z.InitVars</c>.
     /// </summary>
     /// <returns>

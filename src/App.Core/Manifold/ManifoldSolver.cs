@@ -61,6 +61,13 @@ public sealed class ManifoldSolver : IManifoldSource
     /// </remarks>
     public IManifoldRecorder? Recorder { get; set; }
 
+    /// <summary>
+    /// What the interior-point iteration did not manage, counted across the whole run:
+    /// capped foot searches, abandoned outer iterations and negative foot states
+    /// (ISSUES.md B51-B53).
+    /// </summary>
+    public ManifoldDiagnostics Diagnostics { get; } = new();
+
     public ManifoldSolver(Engine engine, IExpressionEvaluator? evaluator = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
@@ -250,7 +257,7 @@ public sealed class ManifoldSolver : IManifoldSource
         for (var i = 1; i <= _inlet.ActiveCount - 2; i++)
         {
             CharacteristicSolver.UpdateInteriorPoint(
-                _inlet, _inletNext, _inletPipe, CharacteristicSolver.InletGamma, dt, i);
+                _inlet, _inletNext, _inletPipe, CharacteristicSolver.InletGamma, dt, i, Diagnostics);
         }
 
         if (open)
@@ -291,7 +298,7 @@ public sealed class ManifoldSolver : IManifoldSource
         for (var i = 1; i <= _exhaust.ActiveCount - 2; i++)
         {
             CharacteristicSolver.UpdateInteriorPoint(
-                _exhaust, _exhaustNext, _exhaustPipe, CharacteristicSolver.ExhaustGamma, dt, i);
+                _exhaust, _exhaustNext, _exhaustPipe, CharacteristicSolver.ExhaustGamma, dt, i, Diagnostics);
         }
 
         OpenEndBoundary.ApplyExhaust(
