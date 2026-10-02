@@ -14,6 +14,7 @@ data/baseline/** -text -diff
 *.res binary
 *.dcr binary
 *.ico binary
+*.icns binary
 *.bmp binary
 *.hlp binary
 *.doc binary

@@ -50,6 +50,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # (AppContext.BaseDirectory), so in a bundle it lives in Contents/MacOS.
 cp -R "$PUBLISH/." "$APP/Contents/MacOS/"
 chmod +x "$APP/Contents/MacOS/App.Ui"
+cp packaging/macos/ESA.icns "$APP/Contents/Resources/ESA.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -64,6 +65,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>com.pangtuwi.esa</string>
     <key>CFBundleExecutable</key>
     <string>App.Ui</string>
+    <key>CFBundleIconFile</key>
+    <string>ESA</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleVersion</key>

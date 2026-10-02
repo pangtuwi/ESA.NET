@@ -461,7 +461,9 @@ version Finder shows; the default is 1.0.
 - An ad-hoc signature satisfies the Mac that built the app. Another Mac will block
   it until it is signed with an Apple Developer ID and notarised. For a copy you
   trust, `xattr -dr com.apple.quarantine ESA.app` lets it run.
-- There is no icon yet, so Finder shows the generic one.
+- The icon is the original ESA's: the car in `legacy/ESA/FERRARI.ICO`, which was
+  compiled into `ESA.exe`. `packaging/icon/make-icons.py` regenerates `ESA.icns`
+  and the Windows `ESA.ico` from it if it ever changes.
 
 ## Verified on
 
@@ -539,7 +541,8 @@ SPEC.md               Reverse-engineered specification of the Delphi application
 BASELINE.md           What the reference run contains and how to validate against it.
 ISSUES.md             Known issues: port defects, reproduced legacy defects, SPEC errors.
 CLAUDE.md             Layering rules, naming conventions, port caveats, phase plan.
-packaging/macos/      make-app.sh, which builds ESA.app.
+packaging/macos/      make-app.sh, which builds ESA.app, and its icon.
+packaging/icon/       make-icons.py, which draws every icon from the original ESA one.
 archive/              Working notes that produced SPEC.md.
 ```
 
