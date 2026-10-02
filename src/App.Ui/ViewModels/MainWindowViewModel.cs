@@ -806,10 +806,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void ValveOpening()
     {
         var manifold = CurrentEngine!.Engine.Manifold;
+        var inlet = ValveMotion.FromValve(manifold.InletValve);
+        var exhaust = ValveMotion.FromValve(manifold.ExhaustValve);
 
-        _charts.Show(EngineCharts.ValveLift(
-            ValveMotion.FromValve(manifold.InletValve),
-            ValveMotion.FromValve(manifold.ExhaustValve)));
+        // The original drew an unusable profile as a negative lift curve. Say so instead
+        // (ISSUES.md B41).
+        if (!inlet.HasUsableProfile || !exhaust.HasUsableProfile)
+        {
+            RunStatus = "The valve lift chart needs both cam profiles, and "
+                        + (inlet.HasUsableProfile ? "the exhaust" : "the inlet")
+                        + " profile did not load.";
+            return;
+        }
+
+        _charts.Show(EngineCharts.ValveLift(inlet, exhaust));
     }
 
     private bool HasEngine => CurrentEngine is not null;

@@ -56,15 +56,16 @@ public sealed class TwoZoneGas
     /// <c>TGas2z.Tgas</c>.
     /// </summary>
     /// <remarks>
-    /// This is a function in the original and it has a side effect: it recomputes and
-    /// stores <c>xb</c> before using it. Reproduced, because the callers in
-    /// <c>ICEngine2Z.pas</c> read <c>Tgas</c> at points where nothing else has
-    /// refreshed <c>xb</c>. See ISSUES.md B27.
+    /// The original's <c>Tgas</c> is a function that writes: it recomputes <c>xb</c> from
+    /// the zone masses and <b>stores</b> it before weighting the temperatures. This one
+    /// computes the same fraction from the same masses and stores nothing. The write was
+    /// never load-bearing in the port: the only reader of the stored fraction is
+    /// <see cref="UpdateB"/>, which assigns it first. See ISSUES.md B27.
     /// </remarks>
     public double GasTemperature()
     {
-        State.Xb = State.Mb == 0 ? 0 : State.Mb / State.MGas;
-        return (State.Xb * State.Tb) + ((1 - State.Xb) * State.Tu);
+        var burntFraction = State.Mb == 0 ? 0 : State.Mb / State.MGas;
+        return (burntFraction * State.Tb) + ((1 - burntFraction) * State.Tu);
     }
 
     /// <summary>

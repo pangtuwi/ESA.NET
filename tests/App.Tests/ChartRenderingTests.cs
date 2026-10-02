@@ -5,6 +5,7 @@ using App.Ui.ViewModels;
 using App.Ui.Views;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Microsoft.Extensions.DependencyInjection;
 using ScottPlot.Avalonia;
 
 namespace App.Tests;
@@ -144,5 +145,35 @@ public sealed class ChartRenderingTests
         Assert.True(viewModel.EnergyBalanceCommand.CanExecute(null));
         Assert.True(viewModel.PressureVolumeCommand.CanExecute(null));
         Assert.True(notified, "Setting the trace did not raise CanExecuteChanged.");
+    }
+
+    [Fact]
+    public void TheValveLiftChartReportsAProfileThatDidNotLoad()
+    {
+        BaselinePaths.Require();
+
+        var charts = new RecordingCharts();
+        var viewModel = TestServices.Resolve<MainWindowViewModel>(
+            services => services.AddSingleton<App.Ui.Charts.IChartWindowService>(charts));
+
+        viewModel.CurrentEngine = TestServices.Resolve<App.Core.IEngineLoader>()
+            .Load(BaselinePaths.File("A2China.eng"));
+
+        // As though the inlet .cam file had been missing when the engine was opened.
+        viewModel.CurrentEngine.Engine.Manifold.InletValve.Profile.ProfileOk = false;
+
+        viewModel.ValveOpeningCommand.Execute(null);
+
+        // The original drew it as a negative lift curve (ISSUES.md B41); now nothing is
+        // drawn and the status line says why.
+        Assert.Empty(charts.Shown);
+        Assert.Contains("inlet profile did not load", viewModel.RunStatus, StringComparison.Ordinal);
+    }
+
+    private sealed class RecordingCharts : App.Ui.Charts.IChartWindowService
+    {
+        public List<App.Core.Charts.ChartDefinition> Shown { get; } = [];
+
+        public void Show(App.Core.Charts.ChartDefinition definition) => Shown.Add(definition);
     }
 }

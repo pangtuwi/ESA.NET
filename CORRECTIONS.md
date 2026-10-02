@@ -3,8 +3,8 @@
 How to work through the legacy defects in `ISSUES.md` section B now that the port
 reproduces the original end to end.
 
-**Status: agreed on 2026-10-02**, with the decisions recorded in section 5. Nothing has
-been implemented yet; section 4 is the order of work.
+**Status: agreed on 2026-10-02**, with the decisions recorded in section 5. Section 4 is
+the order of work and section 7 tracks progress.
 
 ---
 
@@ -42,16 +42,20 @@ what a converged run computes.
 | [B24](https://github.com/pangtuwi/ESA.NET/issues/36) | Make the negative-mole-fraction guard and its clamps agree on exact zero | An exact zero divides by zero downstream, so no completed run contains one |
 | [B27](https://github.com/pangtuwi/ESA.NET/issues/39) | Split `Tgas`'s hidden `xb` refresh into an explicit call | Refactor: the same refresh at the same points |
 | [B41](https://github.com/pangtuwi/ESA.NET/issues/53) | Refuse an unusable cam profile instead of answering −1 | The loader already reports it; a run on it is meaningless |
-| [B48](https://github.com/pangtuwi/ESA.NET/issues/60) | Make `cThermo`'s zero result deliberate | The port already returns 0; this documents it as a decision |
 | [B51](https://github.com/pangtuwi/ESA.NET/issues/63) | Cap the characteristic foot loops and report when the cap is hit | Uncapped, a non-converging foot hangs, so no completed run has hit it |
 | [B52](https://github.com/pangtuwi/ESA.NET/issues/64) | Count the grid points where the outer iteration gave up | Counting changes nothing computed |
 | [B53](https://github.com/pangtuwi/ESA.NET/issues/65) | Report a negative pressure or density at a foot as a diagnostic | The port already drops the dialog; this adds the report |
-| [B57](https://github.com/pangtuwi/ESA.NET/issues/69) | Make the seated-valve zero deliberate | The port already returns 0 |
 
-Two more need only a register update: **[B26](https://github.com/pangtuwi/ESA.NET/issues/38)**
-(`ValveMotion.Lift` already takes the evident intent) and
-**[B67](https://github.com/pangtuwi/ESA.NET/issues/79)** (`CrankAngleTraceWriter` already
-indexes the last column correctly). Both can be closed as they stand.
+Four more needed only a register update, because the port already does the right thing:
+- **[B26](https://github.com/pangtuwi/ESA.NET/issues/38)**: `ValveMotion.Lift` takes the
+  evident intent;
+- **[B48](https://github.com/pangtuwi/ESA.NET/issues/60)**: `cThermo`'s zero result is
+  already deliberate and documented;
+- **[B57](https://github.com/pangtuwi/ESA.NET/issues/69)**: so is the seated-valve zero;
+- **[B67](https://github.com/pangtuwi/ESA.NET/issues/79)**: `CrankAngleTraceWriter` indexes
+  the last column correctly.
+
+All four are closed as they stand.
 
 **Gate:** the full-precision fingerprint used for A6 must stay **bit-identical**. It
 covers torque, IMEP, volumetric efficiency, SFC and trapped mass at 3000, 4000 and
@@ -167,7 +171,24 @@ Agreed on 2026-10-02.
 
 ## 6. Register housekeeping found while writing this
 
-- **B69**'s verdict cell still begins "**Fix**". The entry was fixed by #133, and its
-  text says so.
-- **B26** and **B67** are already correct in the port (tier 1 above), and their entries
-  can say so.
+Both items were done with the first tier 1 change:
+- **B69**'s verdict cell began "**Fix**", although #133 had fixed it.
+- **B26**, **B48**, **B57** and **B67** were already right in the port.
+
+## 7. Progress
+
+| Step | Entries | State |
+|---|---|---|
+| Tier 1a: no new plumbing | B24, B27, B41 fixed; B26, B48, B57, B67 closed as already right | **Done**, with the fingerprint bit-identical |
+| Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 | Next |
+| Tier 2 | B1, B6, B20 | — |
+| The switch | — | — |
+| Tier 3 | 23 entries | — |
+
+Tier 1b is grouped because all five entries need the same new piece: somewhere for a solver
+to **report** what it used to throw, hang or pop a dialog over. That means a per-run counter
+of clamped equilibrium temperatures, suppressed equilibrium errors, capped foot loops,
+abandoned outer iterations and negative foot states. It would live on the run, be returned
+with `SimulationResult` and written into `run.txt`. It is threaded from `CycleSolver` through
+`TwoZoneGas` and `GasPropertyModel` into `EquilibriumSolver`, and through `ManifoldSolver`
+into the wave solver. It holds instance state only, with no statics, per `CLAUDE.md`.
