@@ -93,6 +93,14 @@ public sealed class CycleSolver
     /// The burnt-gas equilibrium solvers' counters, one per gas zone, for
     /// <see cref="RunDiagnostics"/>.
     /// </summary>
+    /// <summary>
+    /// Gas-property curve-fit evaluations clamped to their range, summed over both zones of
+    /// every gas, for <see cref="RunDiagnostics"/> (ISSUES.md B20).
+    /// </summary>
+    public long GasPropertyTemperatureClamps =>
+        new[] { _cylinder, _plenum, _exhaust, _atmosphere }
+            .Sum(gas => gas.Burnt.TemperatureClamps + gas.Unburnt.TemperatureClamps);
+
     public IEnumerable<EquilibriumDiagnostics> EquilibriumDiagnostics =>
         new[] { _cylinder, _plenum, _exhaust, _atmosphere }
             .Select(gas => gas.Burnt.Equilibrium)

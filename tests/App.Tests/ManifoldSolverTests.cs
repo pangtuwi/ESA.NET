@@ -289,4 +289,18 @@ public sealed class ManifoldSolverTests
         Within(560.38, engine.TotalMassOutExhaustValve * 1e6, "Mass out");
         Within(580.11, engine.Cylinder.MGas * 1e6, "Trapped charge");
     }
+
+    [Fact]
+    public void TheInletForwardTuningIsTheOperatorsExpressionAtEverySpeed()
+    {
+        BaselinePaths.Require();
+
+        var engine = BaselineEngine();
+        var evaluator = new App.Core.Expressions.CachingExpressionEvaluator();
+
+        // A2China's IVFFn is (0.645). At or below 1000 rpm the original ignored it for a
+        // hard-coded -3.66666E-05 * N + 0.725, which gives 0.692 at 900 (ISSUES.md B6).
+        Assert.Equal(0.645, ManifoldSolver.InletForwardTuning(engine.Manifold, evaluator, 900), 12);
+        Assert.Equal(0.645, ManifoldSolver.InletForwardTuning(engine.Manifold, evaluator, 4000), 12);
+    }
 }

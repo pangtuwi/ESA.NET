@@ -157,6 +157,7 @@ public sealed class RunManifest
         Line("Above 4000 K", diagnostics.EquilibriumTemperatureClamps.ToString(CultureInfo.InvariantCulture));
         Line("Iteration caps", diagnostics.EquilibriumCapHits.ToString(CultureInfo.InvariantCulture));
         Line("Estimate caps", diagnostics.EquilibriumEstimateCapHits.ToString(CultureInfo.InvariantCulture));
+        Line("Outside fits", diagnostics.GasPropertyTemperatureClamps.ToString(CultureInfo.InvariantCulture));
         Line("Pipe points", manifold.InteriorPoints.ToString(CultureInfo.InvariantCulture));
         Line("Worst iterations", manifold.WorstOuterIterations.ToString(CultureInfo.InvariantCulture));
         Line("Not converged", manifold.OuterIterationCapHits.ToString(CultureInfo.InvariantCulture));

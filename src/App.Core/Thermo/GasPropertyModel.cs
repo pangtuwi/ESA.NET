@@ -63,6 +63,13 @@ public sealed class GasPropertyModel
     public double FuelMoleFraction { get; private set; }
 
     /// <summary>
+    /// Species curve-fit evaluations made outside 260-5000 K and answered at the nearer end
+    /// of the fit (ISSUES.md B20). Counted per species per evaluation, so the size says how
+    /// often; that it is not zero is what matters.
+    /// </summary>
+    public long TemperatureClamps { get; private set; }
+
+    /// <summary>
     /// Establishes the fuel and the operating point. Port of <c>SetUp</c>.
     /// </summary>
     /// <param name="fuelType">
@@ -431,7 +438,7 @@ public sealed class GasPropertyModel
     // ---------------------------------------------------------------------------
 
     /// <summary>Molar specific heat of one species, J/(kmol.K). Port of <c>SpecHeat</c>.</summary>
-    private static double SpecieSpecificHeat(int species, double gasTemperature)
+    private double SpecieSpecificHeat(int species, double gasTemperature)
     {
         gasTemperature = ClampToFitRange(gasTemperature);
 
@@ -448,7 +455,7 @@ public sealed class GasPropertyModel
     }
 
     /// <summary>Molar enthalpy of one species, J/kmol. Port of <c>Enthalpy</c>.</summary>
-    private static double SpecieEnthalpy(int species, double gasTemperature)
+    private double SpecieEnthalpy(int species, double gasTemperature)
     {
         gasTemperature = ClampToFitRange(gasTemperature);
 
@@ -467,13 +474,29 @@ public sealed class GasPropertyModel
 
     /// <summary>
     /// The curve fits cover 300 K to 5000 K. The original widened the lower guard to
-    /// 260 K "to avoid error messages for now" and clamps rather than extrapolating.
-    /// See ISSUES.md B20.
+    /// 260 K "to avoid error messages for now", and below it answers for 300 K, above
+    /// 5000 K for 5000 K.
     /// </summary>
-    private static double ClampToFitRange(double gasTemperature) =>
-        gasTemperature is < 260 or > 5000
-            ? gasTemperature > 5000 ? 5000 : 300
-            : gasTemperature;
+    /// <remarks>
+    /// That clamp never ran in the original: <c>TProp.Error(2)</c> raised "Run will be
+    /// terminated" on the line before it. The port clamped silently from the start, so a
+    /// run the original stopped carried on here without a word (ISSUES.md A19). Now the
+    /// clamp the original was written to do is kept, values and all, and every clamped
+    /// evaluation is counted in <see cref="TemperatureClamps"/> and reported with the run,
+    /// as an out-of-range equilibrium temperature is (B21). See ISSUES.md B20.
+    /// </remarks>
+    private double ClampToFitRange(double gasTemperature)
+    {
+        // The original's test exactly, so a non-finite temperature passes through as it did.
+        if (gasTemperature is not (< 260 or > 5000))
+        {
+            return gasTemperature;
+        }
+
+        TemperatureClamps++;
+
+        return gasTemperature > 5000 ? 5000 : 300;
+    }
 
     private double FuelSpecificHeat(double gasTemperature)
     {

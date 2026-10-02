@@ -58,14 +58,18 @@ public sealed class PerformanceCalculator
         engine.VolumetricEfficiency = engine.TotalMassInInletValve / engine.AtmosphericMass * 100;
         engine.MechanicalEfficiency = engine.Bmep / engine.Imep * 100;
 
-        // Both of these hard-code four cylinders: the factor is 2 * Nrpm where the
-        // physics wants NCyl * Nrpm / 2, and the two agree only at NCyl = 4. Every
-        // shipped engine is a four-cylinder, so the original never exercised it.
-        // Ported verbatim to stay in agreement with data/baseline/. See ISSUES.md B1.
-        engine.FuelMassFlow = fuel.M * 2 * engine.Rpm * 60;
+        // A four-stroke cylinder fires every other revolution, so the engine admits fuel
+        // NCyl * Nrpm / 2 times a minute. The original wrote 2 * Nrpm, which is the same
+        // only at four cylinders - every shipped engine, so it was never exercised - and
+        // left fuel flow, SFC and thermal efficiency wrong by 4 / NCyl for any other
+        // engine (ISSUES.md B1). The factor is kept as one term so that at four cylinders
+        // it is exactly 2.0 and the arithmetic is the original's to the last bit.
+        var firingsPerRevolution = engine.CylinderCount / 2;
+
+        engine.FuelMassFlow = fuel.M * firingsPerRevolution * engine.Rpm * 60;
         engine.Sfc = engine.FuelMassFlow * 1000 / engine.BrakePower * 1000;
         engine.ThermalEfficiency =
-            engine.BrakePower / (fuel.Q * fuel.M * 2 * engine.Rpm / 60) * 100;
+            engine.BrakePower / (fuel.Q * fuel.M * firingsPerRevolution * engine.Rpm / 60) * 100;
 
         CalculateEnergyBalance(engine);
     }

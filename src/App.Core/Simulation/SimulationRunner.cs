@@ -146,7 +146,8 @@ public sealed class SimulationRunner
                 return new SimulationResult(
                     engine, recorder.Trace, cycle - 1, Converged: true,
                     ManifoldDataCaptured: capturing && cycle > 1,
-                    Diagnostics: RunDiagnostics.From(solver.EquilibriumDiagnostics, manifold.Diagnostics));
+                    Diagnostics: RunDiagnostics.From(
+                        solver.EquilibriumDiagnostics, solver.GasPropertyTemperatureClamps, manifold.Diagnostics));
             }
 
             // Keep only the cycle in hand, so whichever turns out to be the last one run
@@ -161,6 +162,7 @@ public sealed class SimulationRunner
 
         return new SimulationResult(
             engine, recorder.Trace, requested, Converged: false, ManifoldDataCaptured: capturing,
-            Diagnostics: RunDiagnostics.From(solver.EquilibriumDiagnostics, manifold.Diagnostics));
+            Diagnostics: RunDiagnostics.From(
+                        solver.EquilibriumDiagnostics, solver.GasPropertyTemperatureClamps, manifold.Diagnostics));
     }
 }
