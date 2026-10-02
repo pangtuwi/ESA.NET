@@ -271,10 +271,11 @@ public sealed class MultiRunnerTests
 
         var manifold = results[0].Result!.Engine.Manifold;
 
-        // Millimetres, as the .eng holds them. The original also copied the inlet lift
-        // onto the exhaust valve (ISSUES.md B73), which is no longer reproduced.
-        Assert.Equal(9, manifold.InletValve.MaxLift);
-        Assert.Equal(10.4, manifold.ExhaustValve.MaxLift);
+        // Typed in millimetres, held in metres (ISSUES.md A6). The original also copied
+        // the inlet lift onto the exhaust valve (ISSUES.md B73), which is no longer
+        // reproduced, so the exhaust keeps the .eng's 10.4 mm.
+        Assert.Equal(0.009, manifold.InletValve.MaxLift, 15);
+        Assert.Equal(0.0104, manifold.ExhaustValve.MaxLift, 15);
     }
 
     [Fact]
@@ -292,9 +293,10 @@ public sealed class MultiRunnerTests
         var inlet = results[0].Result!.Engine.Manifold.InletValve;
 
         // 25 degrees before top dead centre, as the Cams tab reads it, opening at 335 on
-        // the solver's crank-angle scale. The original assigned 25 straight onto the
-        // converted angle (ISSUES.md B72).
-        Assert.Equal(25, inlet.OpenAngle);
-        Assert.Equal(335, ValveMotion.Inlet(inlet).OpenAngle);
+        // the solver's crank-angle scale - converted as the loader converts the .eng's
+        // own 19. The original assigned 25 straight onto the converted angle (ISSUES.md
+        // B72).
+        Assert.Equal(335, inlet.OpenAngle);
+        Assert.Equal(335, ValveMotion.FromValve(inlet).OpenAngle);
     }
 }

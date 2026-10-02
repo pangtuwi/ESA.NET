@@ -106,7 +106,7 @@ public sealed class SimulationRunner
         if (capturing)
         {
             manifold.Recorder = new ManifoldCaptureWindow(
-                manifoldRecorder!, -180 + engine.Manifold.InletValve.CloseAngle);
+                manifoldRecorder!, engine.Manifold.InletValve.CloseAngle);
         }
 
         solver.StepCompleted += s =>

@@ -9,10 +9,10 @@ namespace App.Core.Simulation;
 /// <c>TProfile.Gety</c> (Profiles.pas:105-142) for the profile lookup.
 /// </summary>
 /// <remarks>
-/// <b>Units.</b> As with <see cref="CylinderGeometry"/>, the angles and lengths are the
-/// converted, SI ones: the <c>.eng</c> file holds valve timings as degrees before or
-/// after a dead centre and lift and diameter in millimetres, and Delphi converts on the
-/// way out of the edit form. <see cref="FromValve"/> is that boundary.
+/// <b>Units.</b> SI throughout, with angles on the solver's crank-angle scale - the same
+/// units <see cref="Valve"/> holds, since the <c>.eng</c> file's degrees either side of a
+/// dead centre and millimetres are converted when the engine is loaded
+/// (<see cref="EngineFileUnits"/>, ISSUES.md A6).
 /// </remarks>
 public sealed class ValveMotion
 {
@@ -20,8 +20,8 @@ public sealed class ValveMotion
     private readonly DischargeCoefficientTable _forward;
     private readonly DischargeCoefficientTable _reverse;
 
-    /// <param name="openAngle">Delphi <c>O</c>, converted: <c>360 - IVO</c> or <c>180 - EVO</c>.</param>
-    /// <param name="closeAngle">Delphi <c>C</c>, converted: <c>-180 + IVC</c> or <c>-360 + EVC</c>.</param>
+    /// <param name="openAngle">Delphi <c>O</c>, in degrees on the solver's scale.</param>
+    /// <param name="closeAngle">Delphi <c>C</c>, in degrees on the solver's scale.</param>
     /// <param name="maxLift">Delphi <c>MaxLift</c>, in metres.</param>
     /// <param name="diameter">Delphi <c>D</c>, in metres.</param>
     /// <param name="count">Delphi <c>No</c>, valves of this kind per cylinder.</param>
@@ -57,25 +57,19 @@ public sealed class ValveMotion
     public int Count { get; }
 
     /// <summary>
-    /// Builds the motion for the inlet valve, converting from the file's units and
-    /// timing convention.
+    /// Builds the motion for either valve. There used to be one factory per valve, each
+    /// converting the <c>.eng</c> file's timing convention its own way; the engine now holds
+    /// the converted values, so there is nothing left to tell them apart (ISSUES.md A6).
     /// </summary>
-    public static ValveMotion Inlet(Valve valve) =>
-        Convert(valve, openAngle: 360 - valve.OpenAngle, closeAngle: -180 + valve.CloseAngle);
-
-    /// <summary>Builds the motion for the exhaust valve.</summary>
-    public static ValveMotion Exhaust(Valve valve) =>
-        Convert(valve, openAngle: 180 - valve.OpenAngle, closeAngle: -360 + valve.CloseAngle);
-
-    private static ValveMotion Convert(Valve valve, double openAngle, double closeAngle)
+    public static ValveMotion FromValve(Valve valve)
     {
         ArgumentNullException.ThrowIfNull(valve);
 
         return new ValveMotion(
-            openAngle,
-            closeAngle,
-            valve.MaxLift / 1000,
-            valve.Diameter / 1000,
+            valve.OpenAngle,
+            valve.CloseAngle,
+            valve.MaxLift,
+            valve.Diameter,
             valve.Count,
             valve.Profile,
             valve.CdForward,

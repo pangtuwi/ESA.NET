@@ -53,13 +53,19 @@ public sealed class Engine
     /// <summary>Cylinder count, Delphi <c>NCyl</c> (a Double in the original).</summary>
     public double CylinderCount { get; set; }
 
+    /// <summary>
+    /// Bore in metres, Delphi <c>Bore</c>. The <c>.eng</c> file's millimetres are converted
+    /// on the way in, through <see cref="EngineFileUnits"/>; see ISSUES.md A6.
+    /// </summary>
     public double Bore { get; set; }
 
+    /// <summary>Stroke in metres, Delphi <c>Stroke</c>.</summary>
     public double Stroke { get; set; }
 
     /// <summary>Compression ratio, Delphi <c>CR</c>.</summary>
     public double CompressionRatio { get; set; }
 
+    /// <summary>Connecting rod length in metres, Delphi <c>ConrodLength</c>.</summary>
     public double ConrodLength { get; set; }
 
     /// <summary>Swept volume, Delphi <c>Vd</c>.</summary>

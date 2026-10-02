@@ -137,12 +137,11 @@ public sealed class MultiRunner
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Every override is written in the units of the Cams tab and the <c>.eng</c> file -
-    /// degrees before or after a dead centre, millimetres of lift - because that is what
-    /// <see cref="Engine"/> holds, and the conversion to solver angles and metres happens
-    /// downstream in <see cref="ValveMotion"/> and <see cref="CrankAngleStateMap"/>
-    /// (ISSUES.md A6). A row that restates the engine's own values therefore runs the
-    /// engine unchanged.
+    /// The grid is typed in the units of the Cams tab and the <c>.eng</c> file - degrees
+    /// before or after a dead centre, millimetres of lift - and <see cref="Engine"/> holds
+    /// SI, so every override is converted through <see cref="EngineFileUnits"/>, the same
+    /// conversions the loader applies (ISSUES.md A6). A row that restates the engine's own
+    /// values therefore runs the engine unchanged.
     /// </para>
     /// <para>
     /// The original got three of these wrong, and none is reproduced. It assigned the
@@ -187,37 +186,36 @@ public sealed class MultiRunner
             manifold.ExhaustValve.ProfileFile = exhaustCam;
         }
 
-        // In the file's units, converted downstream like the editor's values. See B72.
+        // Converted exactly as the loader converts the .eng's own values. See B72.
         if (grid.Number(row, 6) is { } inletOpen)
         {
-            manifold.InletValve.OpenAngle = inletOpen;
+            manifold.InletValve.OpenAngle = EngineFileUnits.InletOpen(inletOpen);
         }
 
         if (grid.Number(row, 7) is { } inletClose)
         {
-            manifold.InletValve.CloseAngle = inletClose;
+            manifold.InletValve.CloseAngle = EngineFileUnits.InletClose(inletClose);
         }
 
         if (grid.Number(row, 8) is { } exhaustOpen)
         {
-            manifold.ExhaustValve.OpenAngle = exhaustOpen;
+            manifold.ExhaustValve.OpenAngle = EngineFileUnits.ExhaustOpen(exhaustOpen);
         }
 
         if (grid.Number(row, 9) is { } exhaustClose)
         {
-            manifold.ExhaustValve.CloseAngle = exhaustClose;
+            manifold.ExhaustValve.CloseAngle = EngineFileUnits.ExhaustClose(exhaustClose);
         }
 
-        // Millimetres, as the .eng holds them; each lift touches its own valve only.
-        // See B73, B74 and A17.
+        // Typed in millimetres; each lift touches its own valve only. See B73, B74, A17.
         if (grid.Number(row, 10) is { } inletLift)
         {
-            manifold.InletValve.MaxLift = inletLift;
+            manifold.InletValve.MaxLift = EngineFileUnits.Length(inletLift);
         }
 
         if (grid.Number(row, 11) is { } exhaustLift)
         {
-            manifold.ExhaustValve.MaxLift = exhaustLift;
+            manifold.ExhaustValve.MaxLift = EngineFileUnits.Length(exhaustLift);
         }
 
         // Spark and burn angle are applied after initialisation, because that is where

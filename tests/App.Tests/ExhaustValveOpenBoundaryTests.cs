@@ -39,7 +39,7 @@ public sealed class ExhaustValveOpenBoundaryTests
         var engine = loader.Load(BaselinePaths.File("A2China.eng")).Engine;
 
         return (new PipeGeometry(engine.Manifold.ExhaustPipe.AreaVersusLength),
-                ValveMotion.Exhaust(engine.Manifold.ExhaustValve));
+                ValveMotion.FromValve(engine.Manifold.ExhaustValve));
     }
 
     private static (PipeGrid Current, PipeGrid Next) Grids(PipeGeometry pipe)

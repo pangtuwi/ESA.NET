@@ -173,8 +173,8 @@ public sealed class EngineChartsTests
         var engine = loader.Load(BaselinePaths.File("A2China.eng")).Engine;
 
         var chart = EngineCharts.ValveLift(
-            ValveMotion.Inlet(engine.Manifold.InletValve),
-            ValveMotion.Exhaust(engine.Manifold.ExhaustValve));
+            ValveMotion.FromValve(engine.Manifold.InletValve),
+            ValveMotion.FromValve(engine.Manifold.ExhaustValve));
 
         Assert.Equal(2, chart.Series.Count);
 

@@ -120,11 +120,13 @@ public sealed class EngineEditRefreshTests
         // The staleness was never confined to the checkbox: every field the editor writes
         // went to the definition and stopped there.
         var (viewModel, editor) = Loaded();
-        var before = viewModel.CurrentEngine!.Engine.Bore;
+
+        // The form is in millimetres and the engine in metres (ISSUES.md A6).
+        var before = viewModel.CurrentEngine!.Definition.Bore;
 
         Edit(viewModel, editor, form => form.Bore = before + 1);
 
-        Assert.Equal(before + 1, viewModel.CurrentEngine!.Engine.Bore, 6);
+        Assert.Equal((before + 1) / 1000, viewModel.CurrentEngine!.Engine.Bore, 12);
     }
 
     [Fact]

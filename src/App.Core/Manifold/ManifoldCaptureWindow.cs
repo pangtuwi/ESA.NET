@@ -14,8 +14,8 @@ namespace App.Core.Manifold;
 /// </remarks>
 /// <param name="inner">The sink that receives the rows inside the window.</param>
 /// <param name="inletCloseAngle">
-/// The inlet valve's closing angle as a signed crank angle, i.e.
-/// <c>-180 + Manifold.InletValve.CloseAngle</c>.
+/// The inlet valve's closing angle as a signed crank angle, which is what
+/// <c>Manifold.InletValve.CloseAngle</c> holds.
 /// </param>
 public sealed class ManifoldCaptureWindow(IManifoldRecorder inner, double inletCloseAngle)
     : IManifoldRecorder

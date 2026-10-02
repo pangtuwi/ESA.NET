@@ -71,10 +71,12 @@ public sealed class EngineLoader : IEngineLoader
     {
         engine.Name = definition.Name;
         engine.CylinderCount = definition.CylinderCount;
-        engine.Bore = definition.Bore;
-        engine.Stroke = definition.Stroke;
+        // Millimetres in the file, metres on the engine, as the edit form converted them
+        // (Edit.pas:417-419). See EngineFileUnits and ISSUES.md A6.
+        engine.Bore = EngineFileUnits.Length(definition.Bore);
+        engine.Stroke = EngineFileUnits.Length(definition.Stroke);
         engine.CompressionRatio = definition.CompressionRatio;
-        engine.ConrodLength = definition.ConrodLength;
+        engine.ConrodLength = EngineFileUnits.Length(definition.ConrodLength);
         engine.WoshiniCoefficient = definition.WoshiniCoefficient;
 
         // Only the older schema carries a firing order.
@@ -101,10 +103,9 @@ public sealed class EngineLoader : IEngineLoader
             gas.Fuel.N = definition.FuelNitrogen;
         }
 
-        // Converted here, not at the simulation boundary like the geometry in ISSUES.md
-        // A6. PGas and Tu on a Gas are the same fields the solver writes pascals and
-        // kelvin into every step, so leaving the file's kilopascals and Celsius in them
-        // would mean one field holding two different units at two different times.
+        // SI on the engine, like everything else loaded here (ISSUES.md A6). PGas and Tu
+        // on a Gas are also the fields the solver writes pascals and kelvin into every
+        // step, so the file's kilopascals and Celsius could never have stayed in them.
         engine.Atmosphere.PGas = definition.AtmosphericPressure * 1000;
         engine.Atmosphere.Tu = definition.AtmosphericTemperature + 273.15;
         engine.OilViscosity = definition.OilViscosity;
@@ -120,20 +121,22 @@ public sealed class EngineLoader : IEngineLoader
 
     private static void ApplyValveGeometry(Engine engine, EngineDefinition definition)
     {
+        // Degrees either side of a dead centre become solver crank angles, millimetres
+        // become metres, as the edit form converted them (Edit.pas:448-454, 465-466).
         var inlet = engine.Manifold.InletValve;
-        inlet.OpenAngle = definition.InletValveOpen;
-        inlet.CloseAngle = definition.InletValveClose;
-        inlet.MaxLift = definition.InletValveLift;
+        inlet.OpenAngle = EngineFileUnits.InletOpen(definition.InletValveOpen);
+        inlet.CloseAngle = EngineFileUnits.InletClose(definition.InletValveClose);
+        inlet.MaxLift = EngineFileUnits.Length(definition.InletValveLift);
         inlet.Count = definition.InletValveCount;
-        inlet.Diameter = definition.InletValveDiameter;
+        inlet.Diameter = EngineFileUnits.Length(definition.InletValveDiameter);
         inlet.ProfileFile = definition.InletValveProfileFile;
 
         var exhaust = engine.Manifold.ExhaustValve;
-        exhaust.OpenAngle = definition.ExhaustValveOpen;
-        exhaust.CloseAngle = definition.ExhaustValveClose;
-        exhaust.MaxLift = definition.ExhaustValveLift;
+        exhaust.OpenAngle = EngineFileUnits.ExhaustOpen(definition.ExhaustValveOpen);
+        exhaust.CloseAngle = EngineFileUnits.ExhaustClose(definition.ExhaustValveClose);
+        exhaust.MaxLift = EngineFileUnits.Length(definition.ExhaustValveLift);
         exhaust.Count = definition.ExhaustValveCount;
-        exhaust.Diameter = definition.ExhaustValveDiameter;
+        exhaust.Diameter = EngineFileUnits.Length(definition.ExhaustValveDiameter);
         exhaust.ProfileFile = definition.ExhaustValveProfileFile;
     }
 

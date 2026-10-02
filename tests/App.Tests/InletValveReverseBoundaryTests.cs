@@ -37,7 +37,7 @@ public sealed class InletValveReverseBoundaryTests
         var engine = loader.Load(BaselinePaths.File("A2China.eng")).Engine;
 
         return (new PipeGeometry(engine.Manifold.InletPipe.AreaVersusLength),
-                ValveMotion.Inlet(engine.Manifold.InletValve));
+                ValveMotion.FromValve(engine.Manifold.InletValve));
     }
 
     private static PipeGrid Grid(PipeGeometry pipe)
