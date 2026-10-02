@@ -444,6 +444,25 @@ Install the SDK with `brew install --cask dotnet-sdk` or the installer from
 <https://dotnet.microsoft.com/download/dotnet/10.0>. Pick the Arm64 installer on
 Apple Silicon and x64 on an Intel Mac. Verified on Apple Silicon — see below.
 
+### Make a double-clickable ESA.app
+
+```bash
+packaging/macos/make-app.sh            # for this Mac's own chip
+packaging/macos/make-app.sh osx-x64    # for an Intel Mac
+```
+
+The script publishes a self-contained build, wraps it in an application bundle and
+signs it ad hoc, leaving `artifacts/macos/<runtime>/ESA.app`. Drag that into
+`/Applications`, or `open` it. `VERSION=1.2` in front of the command sets the
+version Finder shows; the default is 1.0.
+
+- `ESA.ini` is read from beside the executable, which in a bundle is
+  `ESA.app/Contents/MacOS/`. Engines and runs still go to `~/Documents/ESA`.
+- An ad-hoc signature satisfies the Mac that built the app. Another Mac will block
+  it until it is signed with an Apple Developer ID and notarised. For a copy you
+  trust, `xattr -dr com.apple.quarantine ESA.app` lets it run.
+- There is no icon yet, so Finder shows the generic one.
+
 ## Verified on
 
 What has actually been run, as opposed to what should work. Worth knowing if you
@@ -520,6 +539,7 @@ SPEC.md               Reverse-engineered specification of the Delphi application
 BASELINE.md           What the reference run contains and how to validate against it.
 ISSUES.md             Known issues: port defects, reproduced legacy defects, SPEC errors.
 CLAUDE.md             Layering rules, naming conventions, port caveats, phase plan.
+packaging/macos/      make-app.sh, which builds ESA.app.
 archive/              Working notes that produced SPEC.md.
 ```
 
