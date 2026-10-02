@@ -28,8 +28,16 @@ public sealed record Correction(string Entry, string Summary);
 /// </summary>
 public static class CorrectionCatalogue
 {
+    /// <summary>
+    /// ISSUES.md B14: the RKF5 tableau's fifth stage uses Fehlberg's published
+    /// <c>845/4104</c> instead of the original's transposed <c>854/4104</c>, restoring
+    /// fifth-order convergence where the original's method is first order.
+    /// </summary>
+    public static Correction Rkf5Coefficient { get; } =
+        new("B14", "RKF5 fifth stage uses Fehlberg's 845/4104, not the transposed 854/4104");
+
     /// <summary>Every correction, in the order they landed.</summary>
-    public static IReadOnlyList<Correction> All { get; } = [];
+    public static IReadOnlyList<Correction> All { get; } = [Rkf5Coefficient];
 }
 
 /// <summary>

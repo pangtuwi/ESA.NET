@@ -36,7 +36,18 @@ public sealed class CycleSolver
     private readonly TwoZoneGas _exhaust;
     private readonly TwoZoneGas _atmosphere;
 
-    public CycleSolver(Engine engine, IManifoldSource manifold, IExpressionEvaluator? evaluator = null)
+    /// <param name="engine">The engine to simulate.</param>
+    /// <param name="manifold">Where the manifold boundary conditions come from.</param>
+    /// <param name="evaluator">Evaluates the <c>.eng</c> file's expressions.</param>
+    /// <param name="physics">
+    /// Which corrections to apply (<c>CORRECTIONS.md</c>). Null is Legacy: the original's
+    /// physics, as <c>data/baseline/</c> was produced by it.
+    /// </param>
+    public CycleSolver(
+        Engine engine,
+        IManifoldSource manifold,
+        IExpressionEvaluator? evaluator = null,
+        PhysicsCorrections? physics = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(manifold);
@@ -44,6 +55,10 @@ public sealed class CycleSolver
         _engine = engine;
         _manifold = manifold;
         _evaluator = evaluator ?? new CachingExpressionEvaluator();
+
+        // B14: Fehlberg's coefficient in place of the original's transposed digit.
+        _integrator.FehlbergCoefficient =
+            physics?.IsOn(CorrectionCatalogue.Rkf5Coefficient) ?? false;
 
         _cylinder = new TwoZoneGas(engine.Cylinder);
         _plenum = new TwoZoneGas(engine.Plenum);

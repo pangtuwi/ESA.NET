@@ -136,8 +136,11 @@ its own check:
 
 When a flag lands, record its effect on the baseline engine in its B entry: torque, IMEP,
 volumetric efficiency, SFC and peak pressure, with the flag alone and with every flag so
-far. B14 already has its figure: the whole-cycle rms against the reference goes from
-0.225 % to 0.190 %, so the corrected integrator fits the reference slightly *better*.
+far. B14 has its figures: the whole-cycle rms against the reference goes from 0.225 % to
+0.190 %, so the corrected integrator fits the reference slightly *better*, and torque at
+4000 rpm moves −0.086 %. Measure with the cycle count fixed as well as at the reference
+settings: a correction can tip the 1 mg convergence test onto a different cycle, and that
+moves results further than most corrections do (B14's entry has the numbers).
 This keeps a running account of how far "Corrected" sits from "Legacy", and stops any
 single flag from moving results by surprise.
 
@@ -183,7 +186,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 23 entries | Next: B14 |
+| Tier 3 | 23 entries | B14 **done**, the fingerprint bit-identical under Legacy. Next: B46 |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter

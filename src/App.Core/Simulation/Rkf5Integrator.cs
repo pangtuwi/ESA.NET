@@ -30,6 +30,20 @@ public sealed class Rkf5Integrator
     /// <summary>Holds the Euler update until every derivative has been evaluated.</summary>
     private readonly double[] _next = new double[EsaLimits.MaxEquations];
 
+    /// <summary>The original's fifth-stage coefficient, with its digits transposed (ISSUES.md B14).</summary>
+    private const double LegacyFifthStageCoefficient = 854.0 / 4104.0;
+
+    /// <summary>Fehlberg's published coefficient, which makes the fifth stage consistent.</summary>
+    private const double FehlbergFifthStageCoefficient = 845.0 / 4104.0;
+
+    /// <summary>
+    /// Whether the fifth stage uses Fehlberg's published <c>845/4104</c> rather than the
+    /// original's <c>854/4104</c>. Off is Legacy: the original's tableau, first order in
+    /// practice. On restores the fifth-order method the name promises. The B14 correction
+    /// of <c>CORRECTIONS.md</c>, set from <see cref="CorrectionCatalogue.Rkf5Coefficient"/>.
+    /// </summary>
+    public bool FehlbergCoefficient { get; set; }
+
     /// <summary>
     /// Advances the state by one step using whichever method
     /// <see cref="IntegratorState.Integrator"/> selects.
@@ -122,21 +136,25 @@ public sealed class Rkf5Integrator
             _k[3, i] = dx * derivatives[i](x + (12.0 / 13.0 * dx), _trial.AsSpan(0, n));
         }
 
+        // The original's 854/4104 is the typo it carries: Fehlberg published 845/4104, which
+        // makes this row sum to its node of 1. As written the row sums to 455/456, so the
+        // stage is evaluated at a state inconsistent with the point x + dx, and the method
+        // converges at first order. Legacy reproduces it, because the baseline was produced
+        // by it; the B14 correction restores Fehlberg's. Both are compile-time constants,
+        // so Legacy's arithmetic is the folded 854.0 / 4104.0 it always was.
+        var fifthStageCoefficient = FehlbergCoefficient
+            ? FehlbergFifthStageCoefficient
+            : LegacyFifthStageCoefficient;
+
         for (var i = 0; i < n; i++)
         {
             for (var j = 0; j < n; j++)
             {
-                // 854/4104 is not a typo here: it is the typo the original carries.
-                // Fehlberg's published coefficient is 845/4104, which makes this row
-                // sum to its node of 1. As written the row sums to 455/456, so the
-                // stage is evaluated at a state inconsistent with the point x + dx.
-                // Reproduced deliberately — the baseline was produced by it.
-                // See ISSUES.md B14.
                 _trial[j] = y[j]
                             + (439.0 / 216.0 * _k[0, j])
                             - (8.0 * _k[1, j])
                             + (3680.0 / 513.0 * _k[2, j])
-                            - (854.0 / 4104.0 * _k[3, j]);
+                            - (fifthStageCoefficient * _k[3, j]);
             }
 
             _k[4, i] = dx * derivatives[i](x + dx, _trial.AsSpan(0, n));

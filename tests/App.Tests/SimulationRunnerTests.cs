@@ -172,4 +172,37 @@ public sealed class SimulationRunnerTests
             "3 equilibrium solve(s) above 4000 K, 2 negative pressure or density state(s) in the pipes",
             diagnostics.Summary());
     }
+
+    [Fact]
+    public void CorrectedPhysicsReachesTheIntegratorAndAnOverrideTakesItBackOut()
+    {
+        BaselinePaths.Require();
+
+        SimulationResult Run(Action<PhysicsCorrections> choose)
+        {
+            var settings = Settings();
+            choose(settings.Physics);
+
+            return new SimulationRunner(new CachingExpressionEvaluator())
+                .Run(BaselineEngine(), settings, cancellation: TestContext.Current.CancellationToken);
+        }
+
+        var legacy = Run(_ => { });
+        var corrected = Run(p => p.Mode = PhysicsMode.Corrected);
+        var correctedWithoutB14 = Run(p =>
+        {
+            p.Mode = PhysicsMode.Corrected;
+            p.Overrides["B14"] = false;
+        });
+
+        // B14 changes the answer, by a small amount: measured at well under a tenth of a
+        // per cent on torque at the reference settings (ISSUES.md B14).
+        Assert.NotEqual(legacy.Engine.Torque, corrected.Engine.Torque);
+        Assert.InRange(Math.Abs(corrected.Engine.Torque / legacy.Engine.Torque - 1), 1e-6, 0.005);
+
+        // With B14 overridden off and nothing else in the catalogue, Corrected is Legacy to
+        // the last bit - the switch adds nothing of its own.
+        Assert.Equal(legacy.Engine.Torque, correctedWithoutB14.Engine.Torque);
+        Assert.Equal(legacy.Engine.Imep, correctedWithoutB14.Engine.Imep);
+    }
 }

@@ -173,8 +173,9 @@ work.
   where Fehlberg published `845/4104`. The fifth stage's row then sums to 455/456
   rather than 1, and the method converges at **first order, not fifth** — no
   better than the Euler alternative it is offered against on an analytic problem.
-  Ported verbatim from the source text; `Rkf5IntegratorTests` fails if it is ever
-  "fixed". **The reference run cannot tell the two apart**, though: a converged
+  Legacy keeps the digit and `Rkf5IntegratorTests` fails if that is ever "fixed";
+  Corrected (or `B14=1` in `ESA.ini`) uses Fehlberg's, the first correction behind
+  the switch. **The reference run cannot tell the two apart**, though: a converged
   whole-cycle comparison is 0.225 % rms with the transposed digit and 0.190 % with
   Fehlberg's, both inside the A8 bias. So "reproduced because `data/baseline/` was
   produced by it" was never established by measurement — see `ISSUES.md` B14.
