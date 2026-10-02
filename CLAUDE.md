@@ -179,7 +179,8 @@ work.
   Fehlberg's, both inside the A8 bias. So "reproduced because `data/baseline/` was
   produced by it" was never established by measurement — see `ISSUES.md` B14.
 - `Manifolds.pas:2739-2742` **ignores the `IVFFn` expression at or below 1000 rpm**,
-  substituting a hard-coded line. Not yet ported; it belongs with the solver.
+  substituting a hard-coded line. The port evaluates the operator's expression at every
+  speed; no baseline run goes that slow. See `ISSUES.md` B6.
 - No `.eng` file has ever stored fuel composition, so the Delphi form reset it to
   C7H17 on every load even though the equilibrium model depends on it. The port
   reads optional `[Fuel]` `C`/`H`/`O`/`N` keys, defaults to 7/17/0/0, and writes
@@ -191,10 +192,14 @@ work.
   three; on Linux and macOS nothing resolves without it.
 - **`mf` and `ThEff` in `TEngine2z.Performance` hard-code four cylinders.** Both
   use a factor of `2 * Nrpm` where the physics needs `NCyl * Nrpm / 2`; the two
-  agree only at `NCyl == 4`. All 71 shipped engines are `NoCyls=4`, so the
-  original never exercised it. Port verbatim to stay in agreement with
-  `data/baseline/`, but fuel flow, SFC and thermal efficiency are wrong by
-  `4 / NCyl` for any other cylinder count. See `BASELINE.md`.
+  agree only at `NCyl == 4`, and all 71 shipped engines are `NoCyls=4`. The port uses
+  `NCyl / 2` as a single factor, which is exactly 2.0 for a four-cylinder, so the
+  baseline is reproduced to the last bit and every other cylinder count is right.
+  See `ISSUES.md` B1 and `BASELINE.md`.
+- **Fixing a section B entry is governed by `CORRECTIONS.md`.** Entries that cannot move
+  a converged result are fixed directly, gated on a bit-identical full-precision
+  fingerprint of the baseline runs; entries that move the baseline go behind a
+  Legacy/Corrected switch. Read it before touching anything in section B.
 
 ## Build and test
 

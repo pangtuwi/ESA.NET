@@ -386,11 +386,11 @@ four-cylinder engine. And **every one of the 71 engine files shipped with ESA is
 `NoCyls=4`**, which is why nothing ever caught it. `SFC` derives from `mf`, so it
 inherits the same limitation.
 
-Port these verbatim: the baseline was produced by them, and changing them would
-put the port out of agreement with its own reference. But pin the behaviour in a
-test and treat it as a known defect, because the moment anyone models a three or
-six cylinder engine, fuel flow, SFC and thermal efficiency will be silently wrong
-by a factor of `4 / NCyl`.
+The port first reproduced these verbatim and pinned the defect in a test. They are now
+corrected (`ISSUES.md` B1): the factor is written `NCyl / 2` as a single term, which is
+exactly 2.0 for a four-cylinder engine, so this baseline is still reproduced to the last
+bit while a three- or six-cylinder engine gets the right fuel flow, SFC and thermal
+efficiency instead of being wrong by `4 / NCyl`.
 
 ## Getting the manifold traces
 

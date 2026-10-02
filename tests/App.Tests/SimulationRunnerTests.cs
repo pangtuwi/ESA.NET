@@ -164,6 +164,7 @@ public sealed class SimulationRunnerTests
             EquilibriumTemperatureClamps: 3,
             EquilibriumCapHits: 0,
             EquilibriumEstimateCapHits: 0,
+            GasPropertyTemperatureClamps: 0,
             Manifold: manifold);
 
         Assert.True(diagnostics.HasWarnings);

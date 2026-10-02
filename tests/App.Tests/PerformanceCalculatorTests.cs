@@ -154,7 +154,7 @@ public sealed class PerformanceCalculatorTests
     }
 
     [Fact]
-    public void FuelFlowAndThermalEfficiencyAreWrongForAnyEngineThatIsNotAFourCylinder()
+    public void FuelFlowScalesWithTheCylinderCountAndSfcAndThermalEfficiencyDoNot()
     {
         BaselinePaths.Require();
 
@@ -162,15 +162,18 @@ public sealed class PerformanceCalculatorTests
         var calculator = new PerformanceCalculator();
 
         calculator.Calculate(engine);
-        var fourCylinderFlow = engine.FuelMassFlow;
+        var four = (engine.FuelMassFlow, engine.Sfc, engine.ThermalEfficiency, engine.BrakePower);
 
-        // The factor is 2 * Nrpm where the physics wants NCyl * Nrpm / 2, so the two
-        // agree only at four cylinders. A six-cylinder gets the same fuel flow as a
-        // four, and its SFC and thermal efficiency are wrong by 4/NCyl with it.
-        // Reproduced deliberately: see ISSUES.md B1.
+        // The same cylinder, six of them. The original's factor of 2 * Nrpm gave a six the
+        // fuel flow of a four, and so an SFC and thermal efficiency wrong by 4/6
+        // (ISSUES.md B1). Fuel flow and power both scale with the cylinder count, so SFC
+        // and thermal efficiency - ratios of the two - must not move.
         engine.CylinderCount = 6;
         calculator.Calculate(engine);
 
-        Assert.Equal(fourCylinderFlow, engine.FuelMassFlow, 12);
+        Assert.Equal(four.FuelMassFlow * 1.5, engine.FuelMassFlow, 9);
+        Assert.Equal(four.BrakePower * 1.5, engine.BrakePower, 6);
+        Assert.Equal(four.Sfc, engine.Sfc, 9);
+        Assert.Equal(four.ThermalEfficiency, engine.ThermalEfficiency, 9);
     }
 }

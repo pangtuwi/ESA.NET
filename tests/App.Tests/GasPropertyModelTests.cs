@@ -298,4 +298,26 @@ public sealed class GasPropertyModelTests
 
         Assert.NotEqual(before, model.Gamma(1_000_000, 2000), 4);
     }
+
+    [Fact]
+    public void ACurveFitEvaluationOutsideItsRangeIsClampedAndCounted()
+    {
+        // Below 260 K the species fits answer for 300 K. The original raised "Run will be
+        // terminated" first, and the port clamped without a word (ISSUES.md A19); now each
+        // clamped evaluation is counted, and the value is the original's clamp exactly.
+        var cold = Model(burned: false);
+        var atFloor = Model(burned: false);
+
+        var gammaCold = cold.Gamma(100_000, 250);
+        var gammaAtFloor = atFloor.Gamma(100_000, 300);
+
+        Assert.True(cold.TemperatureClamps > 0, "An evaluation at 250 K was not counted.");
+        Assert.Equal(gammaAtFloor, gammaCold, 12);
+
+        // Inside the fits nothing is counted.
+        Assert.Equal(0, atFloor.TemperatureClamps);
+        var warm = Model(burned: false);
+        warm.Gamma(100_000, 1500);
+        Assert.Equal(0, warm.TemperatureClamps);
+    }
 }

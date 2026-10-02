@@ -131,15 +131,18 @@ public sealed class ManifoldSolver : IManifoldSource
     public PipeGrid ExhaustGrid => _exhaust;
 
     /// <summary>
-    /// The <c>IVF</c> constant, which the original overrides with a hard-coded straight
-    /// line at or below 1000 rpm rather than evaluating the user's expression. See
-    /// ISSUES.md B6.
+    /// The <c>IVF</c> constant, from the operator's <c>IVFFn</c> expression at every speed.
     /// </summary>
-    private static double InletForwardTuning(
+    /// <remarks>
+    /// The original replaced the expression at or below 1000 rpm with a hard-coded line,
+    /// <c>-3.66666E-05 * N + 0.725</c> (<c>Manifolds.pas:2739-2742</c>), silently
+    /// overriding whatever the operator had typed. No baseline run goes that slow, so
+    /// evaluating the expression throughout changes nothing that was validated. See
+    /// ISSUES.md B6.
+    /// </remarks>
+    internal static double InletForwardTuning(
         Model.Manifolds manifold, IExpressionEvaluator expressions, double rpm) =>
-        rpm <= 1000
-            ? (-3.66666E-05 * rpm) + 7.250E-01
-            : expressions.Evaluate(manifold.InletValveForward.Expression, rpm);
+        expressions.Evaluate(manifold.InletValveForward.Expression, rpm);
 
     private void Initialise(int inletPoints, int exhaustPoints)
     {

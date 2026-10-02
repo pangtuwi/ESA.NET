@@ -181,8 +181,8 @@ Both items were done with the first tier 1 change:
 |---|---|---|
 | Tier 1a: no new plumbing | B24, B27, B41 fixed; B26, B48, B57, B67 closed as already right | **Done**, with the fingerprint bit-identical |
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
-| Tier 2 | B1, B6, B20 | Next |
-| The switch | — | — |
+| Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
+| The switch | — | Next |
 | Tier 3 | 23 entries | — |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
