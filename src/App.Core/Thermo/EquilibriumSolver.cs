@@ -109,6 +109,13 @@ public sealed class EquilibriumSolver
         var d3 = 2 * rd / n;
         var d4 = rdd / n;
 
+        // Counted once per solve here, rather than in EquilibriumConstant, which every
+        // derivative calls again. See ISSUES.md B21.
+        if (gasTemperature > MaximumFitTemperature)
+        {
+            Diagnostics.TemperatureClamps++;
+        }
+
         var rootP = Math.Sqrt(p);
         _c1 = EquilibriumConstant(1, gasTemperature) / rootP;
         _c2 = EquilibriumConstant(2, gasTemperature) / rootP;
@@ -173,6 +180,8 @@ public sealed class EquilibriumSolver
 
                 if (_x[8] < 1e-33)
                 {
+                    Diagnostics.LowOxygenErrors++;
+
                     throw new EquilibriumException(
                         "Error in Chemical Equilibrium: Initial Estimate Predicts Extremely Low "
                         + "O2 Concentrations of "
@@ -298,6 +307,8 @@ public sealed class EquilibriumSolver
 
         if (resolution < 5)
         {
+            Diagnostics.ResolutionErrors++;
+
             throw new EquilibriumException(
                 "Error in Chemical Equilibrium: Matrixsolver Returned Insufficient Resolution ");
         }
@@ -310,6 +321,8 @@ public sealed class EquilibriumSolver
 
         if (_x[4] < 0 || _x[6] < 0 || _x[8] < 0 || _x[11] < 0)
         {
+            Diagnostics.NegativeFractionErrors++;
+
             throw new EquilibriumException("Negative Mole Fractions Found During Iteration.");
         }
 
@@ -485,31 +498,34 @@ public sealed class EquilibriumSolver
         _dxdF[12] = (d4 * (_dxdF[6] + _dxdF[10])) + (0.0444 * d5);
     }
 
-    private static void RequireResolution(int resolution)
+    private void RequireResolution(int resolution)
     {
         if (resolution < 5)
         {
+            Diagnostics.ResolutionErrors++;
+
             throw new EquilibriumException(
                 "Error in Chemical Equilibrium: Matrixsolver Returned Insufficient Resolution ");
         }
     }
 
+    /// <summary>Top of the equilibrium-constant curve fits, Delphi <c>KEquilib</c>'s 4000.</summary>
+    private const double MaximumFitTemperature = 4000;
+
+    /// <summary>Bottom of the curve fits, Delphi <c>KEquilib</c>'s 600.</summary>
+    private const double MinimumFitTemperature = 600;
+
     /// <summary>Equilibrium constant for one reaction. Port of <c>KEquilib</c>.</summary>
     /// <remarks>
-    /// The curve fit is only valid over 600 K to 4000 K. Outside that the original
-    /// raises before it reaches the clamp on the following line, so the clamp is dead
-    /// code and an out-of-range temperature is fatal. See ISSUES.md B21, and B22 for
-    /// why every error path in the original throws rather than being suppressed.
+    /// The curve fit is only valid over 600 K to 4000 K, and outside it the temperature is
+    /// clamped to the nearer end. That is what the original's <c>KEquilib</c> was written
+    /// to do, but it called <c>error(6)</c> first, which raised, so the clamp never ran and
+    /// an out-of-range temperature was fatal. <see cref="Solve"/> counts each clamped solve
+    /// in <see cref="EquilibriumDiagnostics.TemperatureClamps"/>. See ISSUES.md B21.
     /// </remarks>
     private static double EquilibriumConstant(int reaction, double gasTemperature)
     {
-        if (gasTemperature is < 600 or > 4000)
-        {
-            throw new EquilibriumException(
-                "Error in Chemical Equilibrium: Temperature Out of Range for Equilibrium "
-                + "Constant Curve Fit. Requested Temp: "
-                + gasTemperature.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + "K");
-        }
+        gasTemperature = Math.Clamp(gasTemperature, MinimumFitTemperature, MaximumFitTemperature);
 
         var t = gasTemperature / 1000;
 

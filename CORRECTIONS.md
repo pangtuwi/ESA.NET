@@ -180,15 +180,20 @@ Both items were done with the first tier 1 change:
 | Step | Entries | State |
 |---|---|---|
 | Tier 1a: no new plumbing | B24, B27, B41 fixed; B26, B48, B57, B67 closed as already right | **Done**, with the fingerprint bit-identical |
-| Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 | Next |
-| Tier 2 | B1, B6, B20 | — |
+| Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
+| Tier 2 | B1, B6, B20 | Next |
 | The switch | — | — |
 | Tier 3 | 23 entries | — |
 
-Tier 1b is grouped because all five entries need the same new piece: somewhere for a solver
-to **report** what it used to throw, hang or pop a dialog over. That means a per-run counter
+Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
+to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter
 of clamped equilibrium temperatures, suppressed equilibrium errors, capped foot loops,
-abandoned outer iterations and negative foot states. It would live on the run, be returned
-with `SimulationResult` and written into `run.txt`. It is threaded from `CycleSolver` through
-`TwoZoneGas` and `GasPropertyModel` into `EquilibriumSolver`, and through `ManifoldSolver`
-into the wave solver. It holds instance state only, with no statics, per `CLAUDE.md`.
+abandoned outer iterations and negative foot states. As built:
+- `EquilibriumDiagnostics` already existed, one per solver, and gained the new counters.
+- `ManifoldDiagnostics` is new, owned by `ManifoldSolver` and passed into the interior-point
+  update.
+- `RunDiagnostics` gathers both onto `SimulationResult`.
+- `run.txt` always carries a *Solver diagnostics* section, so a clean run is visibly clean,
+  and the status line names anything counted.
+
+Errors 2, 3 and 5 stay fatal, decided on 2026-10-02 (B22).

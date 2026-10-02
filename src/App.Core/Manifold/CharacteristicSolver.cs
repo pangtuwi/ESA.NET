@@ -36,7 +36,16 @@ public static class CharacteristicSolver
     private const double PressureTolerance = 1 * 0.001;
     private const double DensityTolerance = 1 * 0.0001;
 
+    /// <summary>Cap on each characteristic foot search, which the original left uncapped (ISSUES.md B51).</summary>
     private const int MaxIterations = 100;
+
+    /// <summary>
+    /// Cap on the outer iteration, the original's <c>if iter &gt; 1000 then stop := 1</c>
+    /// (<c>Manifolds.pas:2129</c>). The port first reused the foot cap of 100 here (ISSUES.md
+    /// A18). Measured on the baseline engine from 1500 to 6000 rpm, no point needs more than
+    /// 10, so neither cap is ever reached and the change moves no result.
+    /// </summary>
+    private const int MaxOuterIterations = 1000;
 
     /// <summary>
     /// Computes the new state at interior point <paramref name="index"/> and writes it
@@ -51,8 +60,18 @@ public static class CharacteristicSolver
     /// Zero-based index of the point being updated, Delphi's <c>W-1</c>. Its neighbours at
     /// <c>index - 1</c> and <c>index + 1</c> are Delphi's <c>W-2</c> and <c>W</c>.
     /// </param>
+    /// <param name="diagnostics">
+    /// Where to count capped loops and negative foot states (ISSUES.md B51-B53), or null
+    /// to count nothing. Counting never changes what is computed.
+    /// </param>
     public static void UpdateInteriorPoint(
-        PipeGrid current, PipeGrid target, PipeGeometry pipe, double gamma, double dt, int index)
+        PipeGrid current,
+        PipeGrid target,
+        PipeGeometry pipe,
+        double gamma,
+        double dt,
+        int index,
+        ManifoldDiagnostics? diagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -98,6 +117,7 @@ public static class CharacteristicSolver
                 var meanVelocity = (one.U + u4) / 2;
                 var meanPressure = (one.P + p4) / 2;
                 var meanDensity = (one.R + r4) / 2;
+                CountNegativeFootState(diagnostics, meanPressure, meanDensity);
                 var c = ManifoldNumerics.SpeedOfSound(gamma, meanPressure, meanDensity);
 
                 var lambdaPlus = 1 / (meanVelocity + c);
@@ -132,6 +152,8 @@ public static class CharacteristicSolver
                 one.MoveTo(x, x > here ? rightLine : leftLine);
             }
 
+            CountFootLoop(diagnostics, plusFootIterations);
+
             // ---- C- : the foot of the backward-running characteristic ----
             var minusFootIterations = 0;
             while (minusFootIterations++ <= MaxIterations)
@@ -144,6 +166,7 @@ public static class CharacteristicSolver
                 var meanVelocity = (two.U + u4) / 2;
                 var meanPressure = (two.P + p4) / 2;
                 var meanDensity = (two.R + r4) / 2;
+                CountNegativeFootState(diagnostics, meanPressure, meanDensity);
                 var c = ManifoldNumerics.SpeedOfSound(gamma, meanPressure, meanDensity);
 
                 var lambdaMinus = 1 / (meanVelocity - c);
@@ -178,6 +201,8 @@ public static class CharacteristicSolver
                 two.MoveTo(x, x > here ? rightLine : leftLine);
             }
 
+            CountFootLoop(diagnostics, minusFootIterations);
+
             // ---- C0 : the path line, carrying entropy ----
             var pathFootIterations = 0;
             while (pathFootIterations++ <= MaxIterations)
@@ -190,6 +215,7 @@ public static class CharacteristicSolver
                 var meanVelocity = (three.U + u4) / 2;
                 var meanPressure = (three.P + p4) / 2;
                 var meanDensity = (three.R + r4) / 2;
+                CountNegativeFootState(diagnostics, meanPressure, meanDensity);
                 var c = ManifoldNumerics.SpeedOfSound(gamma, meanPressure, meanDensity);
 
                 // Stagnant gas has no path line to trace: the foot is the point itself.
@@ -228,6 +254,8 @@ public static class CharacteristicSolver
                 three.MoveTo(x, x > here ? rightLine : leftLine);
             }
 
+            CountFootLoop(diagnostics, pathFootIterations);
+
             // ---- Solve the three compatibility relations at the new point ----
             u4 = (tPlus - tMinus) / (qPlus + qMinus);
             p4 = tPlus - (qPlus * u4);
@@ -243,19 +271,57 @@ public static class CharacteristicSolver
             previousR = r4;
             iteration++;
 
-            // The cap gives up rather than reporting: whatever the last pass produced is
-            // taken as the answer. See ISSUES.md B52.
-            if (iteration > MaxIterations)
+            // The cap gives up and takes whatever the last pass produced as the answer, as
+            // the original does - but counts it rather than saying nothing. See ISSUES.md
+            // B52.
+            if (iteration > MaxOuterIterations)
             {
                 converged = true;
+
+                if (diagnostics is not null)
+                {
+                    diagnostics.OuterIterationCapHits++;
+                }
             }
         }
         while (!converged);
+
+        if (diagnostics is not null)
+        {
+            diagnostics.InteriorPoints++;
+            diagnostics.WorstOuterIterations = Math.Max(diagnostics.WorstOuterIterations, iteration);
+        }
 
         target.Velocity[index] = u4;
         target.Pressure[index] = p4;
         target.Density[index] = r4;
         target.SpeedOfSound[index] = Math.Sqrt(gamma * p4 / r4);
+    }
+
+    /// <summary>
+    /// Counts a foot search that ran out of iterations rather than settling. A loop that
+    /// breaks on convergence leaves its counter at most one past the cap; one that runs out
+    /// leaves it two past. The original's loops had no cap at all (ISSUES.md B51).
+    /// </summary>
+    private static void CountFootLoop(ManifoldDiagnostics? diagnostics, int footIterations)
+    {
+        if (diagnostics is not null && footIterations > MaxIterations + 1)
+        {
+            diagnostics.FootLoopCapHits++;
+        }
+    }
+
+    /// <summary>
+    /// Counts a foot whose mean pressure or density is negative, where the original raised
+    /// a dialog and then carried on with the same values (ISSUES.md B53).
+    /// </summary>
+    private static void CountNegativeFootState(
+        ManifoldDiagnostics? diagnostics, double meanPressure, double meanDensity)
+    {
+        if (diagnostics is not null && (meanPressure < 0 || meanDensity < 0))
+        {
+            diagnostics.NegativeFootStates++;
+        }
     }
 
     /// <summary>

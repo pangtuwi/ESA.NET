@@ -135,4 +135,40 @@ public sealed class SimulationRunnerTests
     {
         public void Report(T value) => report(value);
     }
+
+    [Fact]
+    public void TheResultCarriesTheSolversDiagnostics()
+    {
+        BaselinePaths.Require();
+
+        var result = new SimulationRunner(new CachingExpressionEvaluator())
+            .Run(BaselineEngine(), Settings(), cancellation: TestContext.Current.CancellationToken);
+
+        var diagnostics = Assert.IsType<RunDiagnostics>(result.Diagnostics);
+
+        // The reference engine at 4000 rpm needs no clamp, no cap and carries no negative
+        // state through the pipes - measured, so a change that starts needing one shows up.
+        Assert.True(diagnostics.EquilibriumSolves > 0);
+        Assert.True(diagnostics.Manifold.InteriorPoints > 0);
+        Assert.InRange(diagnostics.Manifold.WorstOuterIterations, 1, 20);
+        Assert.False(diagnostics.HasWarnings, diagnostics.Summary());
+        Assert.Empty(diagnostics.Summary());
+    }
+
+    [Fact]
+    public void TheDiagnosticsSummaryNamesOnlyWhatWasCounted()
+    {
+        var manifold = new App.Core.Manifold.ManifoldDiagnostics { NegativeFootStates = 2 };
+        var diagnostics = new RunDiagnostics(
+            EquilibriumSolves: 100,
+            EquilibriumTemperatureClamps: 3,
+            EquilibriumCapHits: 0,
+            EquilibriumEstimateCapHits: 0,
+            Manifold: manifold);
+
+        Assert.True(diagnostics.HasWarnings);
+        Assert.Equal(
+            "3 equilibrium solve(s) above 4000 K, 2 negative pressure or density state(s) in the pipes",
+            diagnostics.Summary());
+    }
 }

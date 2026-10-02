@@ -130,7 +130,38 @@ public sealed class RunManifest
               + $"{Number(completed.Engine.Torque, 2)} N.m"
             : $"failed: {result.Failure}";
 
+        if (result.Result?.Diagnostics is { HasWarnings: true } diagnostics)
+        {
+            outcome += $"; solver warnings: {diagnostics.Summary()}";
+        }
+
         Line($"{folder}", $"{Number(speed, 0)} rev/min, {outcome}");
+
+        return this;
+    }
+
+    /// <summary>
+    /// What the solvers counted over the run: equilibrium solves and clamps, and the wave
+    /// solver's capped or negative states. Written whether or not anything went wrong, so
+    /// a clean run says it was clean (ISSUES.md B21, B22, B51-B53).
+    /// </summary>
+    public RunManifest Diagnostics(RunDiagnostics diagnostics)
+    {
+        ArgumentNullException.ThrowIfNull(diagnostics);
+
+        Section("Solver diagnostics");
+
+        var manifold = diagnostics.Manifold;
+
+        Line("Equilibrium solves", diagnostics.EquilibriumSolves.ToString(CultureInfo.InvariantCulture));
+        Line("Above 4000 K", diagnostics.EquilibriumTemperatureClamps.ToString(CultureInfo.InvariantCulture));
+        Line("Iteration caps", diagnostics.EquilibriumCapHits.ToString(CultureInfo.InvariantCulture));
+        Line("Estimate caps", diagnostics.EquilibriumEstimateCapHits.ToString(CultureInfo.InvariantCulture));
+        Line("Pipe points", manifold.InteriorPoints.ToString(CultureInfo.InvariantCulture));
+        Line("Worst iterations", manifold.WorstOuterIterations.ToString(CultureInfo.InvariantCulture));
+        Line("Not converged", manifold.OuterIterationCapHits.ToString(CultureInfo.InvariantCulture));
+        Line("Foot search caps", manifold.FootLoopCapHits.ToString(CultureInfo.InvariantCulture));
+        Line("Negative states", manifold.NegativeFootStates.ToString(CultureInfo.InvariantCulture));
 
         return this;
     }

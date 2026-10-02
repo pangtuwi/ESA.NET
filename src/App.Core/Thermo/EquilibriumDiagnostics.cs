@@ -37,6 +37,27 @@ public sealed class EquilibriumDiagnostics
     /// <summary>The largest iteration count any single main-loop solve needed.</summary>
     public int WorstEquilibriumIterations { get; internal set; }
 
+    /// <summary>
+    /// Solves whose temperature lay above the 4000 K top of the equilibrium-constant curve
+    /// fits, and were evaluated at 4000 K. The original's <c>KEquilib</c> was written to
+    /// clamp, but raised first, so this was fatal (ISSUES.md B21). Below the fits' 600 K
+    /// floor cannot arise: <see cref="EquilibriumSolver.Solve"/> pins anything under
+    /// 1000 K first.
+    /// </summary>
+    public long TemperatureClamps { get; internal set; }
+
+    /// <summary>
+    /// The original's error 2, "Initial Estimate Predicts Extremely Low O2". Still fatal;
+    /// counted because the original's counters for it were unreachable (ISSUES.md B22).
+    /// </summary>
+    public long LowOxygenErrors { get; internal set; }
+
+    /// <summary>The original's error 3, insufficient resolution from the matrix solver. Still fatal (B22).</summary>
+    public long ResolutionErrors { get; internal set; }
+
+    /// <summary>The original's error 5, negative mole fractions after iterating. Still fatal (B22).</summary>
+    public long NegativeFractionErrors { get; internal set; }
+
     /// <summary>Mean main-loop iterations per solve, or zero if nothing has been solved.</summary>
     public double MeanEquilibriumIterations => Solves == 0 ? 0 : (double)EquilibriumIterations / Solves;
 
@@ -50,6 +71,10 @@ public sealed class EquilibriumDiagnostics
         EquilibriumIterations = 0;
         EquilibriumCapHits = 0;
         WorstEquilibriumIterations = 0;
+        TemperatureClamps = 0;
+        LowOxygenErrors = 0;
+        ResolutionErrors = 0;
+        NegativeFractionErrors = 0;
     }
 
     public override string ToString() =>

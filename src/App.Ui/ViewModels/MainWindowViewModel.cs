@@ -97,6 +97,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
             if (result is not null)
             {
                 manifest.Performance(result.Engine, result.CyclesRun);
+
+                if (result.Diagnostics is { } diagnostics)
+                {
+                    manifest.Diagnostics(diagnostics);
+                }
                 archive.AppendPerformance(result.Engine);
                 archive.WriteTrace(result.Trace);
             }
@@ -478,6 +483,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
                           ? $"Converged after {result.CyclesRun} cycles."
                           : $"Stopped at the requested {result.CyclesRun} cycles without converging.")
                       + $"   Torque {engine.Torque:F1} Nm   Power {engine.BrakePower / 1e3:F1} kW";
+
+            // A result reached through a clamp, a capped iteration or a negative state says
+            // so on the status line; run.txt has the counts (ISSUES.md B21, B51-B53).
+            if (result.Diagnostics is { HasWarnings: true } diagnostics)
+            {
+                outcome += $"   Solver warnings: {diagnostics.Summary()}";
+            }
         }
         catch (OperationCanceledException)
         {

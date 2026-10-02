@@ -258,13 +258,18 @@ public sealed class EquilibriumSolverTests
     }
 
     [Fact]
-    public void TemperaturesAboveTheCurveFitAreFatal()
+    public void TemperaturesAboveTheCurveFitAreClampedAndCounted()
     {
-        // KEquilib raises before it reaches its own clamp, so out of range is not
-        // survivable. Nothing in the original catches it either.
-        var error = Assert.Throws<EquilibriumException>(() => Solved(temperature: 4500));
+        // KEquilib was written to clamp, but raised first, so this was fatal in the
+        // original (ISSUES.md B21). Now the equilibrium constants are taken at 4000 K and
+        // the solve is counted, once, however many constants and derivatives it needed.
+        var solver = Solved(temperature: 4500);
 
-        Assert.Contains("Out of Range", error.Message, StringComparison.Ordinal);
+        Assert.Equal(1, solver.Diagnostics.TemperatureClamps);
+        Assert.Equal(1.0, Total(solver), 6);
+
+        // Inside the fit nothing is counted.
+        Assert.Equal(0, Solved(temperature: 3900).Diagnostics.TemperatureClamps);
     }
 
     [Fact]
