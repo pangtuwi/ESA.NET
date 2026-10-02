@@ -3,8 +3,8 @@
 How to work through the legacy defects in `ISSUES.md` section B now that the port
 reproduces the original end to end.
 
-**Status: proposal, awaiting a decision.** Nothing here has been implemented. Section 5
-lists what needs deciding.
+**Status: agreed on 2026-10-02**, with the decisions recorded in section 5. Nothing has
+been implemented yet; section 4 is the order of work.
 
 ---
 
@@ -90,7 +90,7 @@ possibly by more.
 
 ## 3. Tier 3: a switch, not a new baseline
 
-### Recommendation
+### The switch
 
 Add a set of **physics corrections** to `SimulationSettings`, with one named flag per
 tier 3 entry (`Rkf5Coefficient`, `StaleMassFlowDerivatives`, `WoschniSweptVolume`, …),
@@ -106,7 +106,12 @@ all **off** by default.
 - **Recorded with every run.** `run.txt` lists the flags that were on, so an archived
   result stays attributable after the defaults change.
 - **One choice for the operator.** The Single Speed Simulation dialog offers *Legacy* or
-  *Corrected*. Per-flag control stays in `ESA.ini` for whoever is working on the physics.
+  *Corrected*, and nothing finer. Per-flag control stays in `ESA.ini` for whoever is working
+  on the physics.
+- **Legacy stays the default while tier 3 is in progress.** A half-corrected engine is
+  neither the original nor the intended physics. Once every tier 3 correction has landed and
+  been measured, the default becomes *Corrected*, and *Legacy* stays available for
+  reproducing the original's numbers. See section 5.
 
 ### Why not re-baseline
 
@@ -150,14 +155,15 @@ single flag from moving results by surprise.
 5. **A8** (the combustion pressure bias) is not a section B entry, but some tier 3
    corrections touch the same equations. Re-measure it after each cylinder-equation flag.
 
-## 5. What needs deciding
+## 5. Decisions
 
-1. **A switch, or a new baseline?** This document recommends the switch. A new baseline
-   would mean accepting the corrected results on physical evidence alone and retiring
-   `data/baseline/` as the reference.
-2. **Should Corrected become the default** once tier 3 is complete, or stay opt-in for
-   good? The original's results can always be reproduced by switching back.
-3. **Should the operator see per-flag control** at all, or only Legacy / Corrected?
+Agreed on 2026-10-02.
+
+| Question | Decision |
+|---|---|
+| A switch, or a new baseline? | **A switch.** `data/baseline/` stays the reference for Legacy, and each correction is validated by its own physical check and measured against the baseline when it lands. |
+| What becomes the default once tier 3 is complete? | **Corrected, with Legacy opt-in.** Legacy stays the default until then, and the change of default is a single step taken when the last tier 3 correction is in, not one flag at a time. |
+| How much control does the operator get? | **Legacy / Corrected only**, in the Single Speed Simulation dialog. Individual flags are set in `ESA.ini` and are not shown in the UI. |
 
 ## 6. Register housekeeping found while writing this
 
