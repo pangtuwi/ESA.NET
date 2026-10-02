@@ -8,5 +8,11 @@
     <!-- The DataGrid ships its theme separately from the Fluent one. Without this the
          multi-run grid builds but draws nothing. -->
     <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+
+    <!-- The original ESA icon on every window, for the title bar and taskbar. The
+         macOS bundle takes its Dock icon from packaging/macos/ESA.icns instead. -->
+    <Style Selector="Window">
+      <Setter Property="Icon" Value="/Assets/ESA.ico" />
+    </Style>
   </Application.Styles>
 </Application>
