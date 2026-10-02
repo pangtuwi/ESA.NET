@@ -201,6 +201,10 @@ work.
   a converged result are fixed directly, gated on a bit-identical full-precision
   fingerprint of the baseline runs; entries that move the baseline go behind a
   Legacy/Corrected switch. Read it before touching anything in section B.
+- **Corrected is no longer close to `data/baseline/`.** Since B46 it runs expansion
+  pressure up to 17 % above the reference trace and torque about 6 % higher, because the
+  reference reproduces the defect. Baseline comparisons are Legacy's; a correction is
+  checked against its physical oracle.
 
 ## Build and test
 

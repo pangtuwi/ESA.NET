@@ -144,6 +144,11 @@ moves results further than most corrections do (B14's entry has the numbers).
 This keeps a running account of how far "Corrected" sits from "Legacy", and stops any
 single flag from moving results by surprise.
 
+B46 is where Corrected leaves the reference behind. With it on, expansion pressure runs up
+to 17 % above `A2China.txt` and torque rises about 6 %, because the reference reproduces
+the defect. From B46 on, the reference run is evidence of what Legacy does and not of
+what is right; each flag's physical oracle is what says it is right.
+
 ## 4. Suggested order
 
 1. **Tier 1**, in one or two PRs, gated on the fingerprint. Close B26 and B67 at the same
@@ -186,7 +191,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 23 entries | B14 **done**, the fingerprint bit-identical under Legacy. Next: B46 |
+| Tier 3 | 23 entries | B14 and B46 **done**, the fingerprint bit-identical under Legacy. Next: B32 and B33 |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter
