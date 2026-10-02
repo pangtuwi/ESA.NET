@@ -299,4 +299,27 @@ public sealed class MultiRunnerTests
         Assert.Equal(335, inlet.OpenAngle);
         Assert.Equal(335, ValveMotion.FromValve(inlet).OpenAngle);
     }
+
+    [Fact]
+    public void EveryRowRunsOnThePhysicsTheSweepWasStartedWith()
+    {
+        BaselinePaths.Require();
+
+        var settings = Settings();
+        settings.Physics.Mode = PhysicsMode.Corrected;
+        settings.Physics.Overrides["B14"] = false;
+
+        var results = Runner().Run(
+            BaselinePaths.File("A2China.eng"), SpeedSweep(4000), settings,
+            cancellation: TestContext.Current.CancellationToken);
+
+        var physics = results[0].Result!.Physics!;
+
+        Assert.Equal(PhysicsMode.Corrected, physics.Mode);
+        Assert.False(physics.Overrides["B14"]);
+
+        // A snapshot, so changing the settings afterwards does not rewrite what the row ran on.
+        settings.Physics.Mode = PhysicsMode.Legacy;
+        Assert.Equal(PhysicsMode.Corrected, physics.Mode);
+    }
 }

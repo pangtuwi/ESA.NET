@@ -210,6 +210,49 @@ public sealed partial class SimulateOptionsViewModel : ObservableValidator
         }
     }
 
+    /// <summary>
+    /// Legacy or Corrected physics. Not in the original, which had nothing to correct; the
+    /// operator's one control over the corrections, individual ones being set only in
+    /// <c>ESA.ini</c>. See <c>CORRECTIONS.md</c>.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LegacyPhysics), nameof(CorrectedPhysics))]
+    private PhysicsMode _physics = PhysicsMode.Legacy;
+
+    /// <summary>The original's behaviour, as validated against <c>data/baseline/</c>.</summary>
+    public bool LegacyPhysics
+    {
+        get => Physics == PhysicsMode.Legacy;
+        set
+        {
+            if (value)
+            {
+                Physics = PhysicsMode.Legacy;
+            }
+        }
+    }
+
+    /// <summary>Every implemented correction applied.</summary>
+    public bool CorrectedPhysics
+    {
+        get => Physics == PhysicsMode.Corrected;
+        set
+        {
+            if (value)
+            {
+                Physics = PhysicsMode.Corrected;
+            }
+        }
+    }
+
+    /// <summary>
+    /// How many corrections Corrected would apply, for the dialog to say plainly when the
+    /// answer is none.
+    /// </summary>
+    public string PhysicsNote => CorrectionCatalogue.All.Count == 0
+        ? "No corrections are implemented yet, so both give the same results."
+        : $"Corrected applies {CorrectionCatalogue.All.Count} correction(s) to the original's physics.";
+
     /// <summary>Delphi <c>CBGasFlow</c>.</summary>
     [ObservableProperty]
     private bool _showGasFlow = true;
@@ -263,6 +306,7 @@ public sealed partial class SimulateOptionsViewModel : ObservableValidator
         EngineSpeed = engineSpeed;
         TotalCycles = settings.CycleCount;
         MassBalance = settings.MassBalance;
+        Physics = settings.Physics.Mode;
 
         ValidateAllProperties();
         OnPropertyChanged(nameof(CanRun));

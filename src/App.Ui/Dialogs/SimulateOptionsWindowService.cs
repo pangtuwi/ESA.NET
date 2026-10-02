@@ -54,7 +54,8 @@ public sealed class SimulateOptionsWindowService : ISimulateOptionsWindowService
             viewModel.EngineSpeed,
             viewModel.TotalCycles,
             viewModel.MassBalance,
-            viewModel.Graphs);
+            viewModel.Graphs,
+            viewModel.Physics);
     }
 
     private static Window? Owner() =>

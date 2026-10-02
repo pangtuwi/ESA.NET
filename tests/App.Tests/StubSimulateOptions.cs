@@ -25,6 +25,9 @@ internal sealed class StubSimulateOptions : ISimulateOptionsWindowService
     /// <summary>Which charts to ask for. Defaults to all three, as Graphs On does.</summary>
     public GraphSelection Graphs { get; set; } = new(true, true, true);
 
+    /// <summary>The physics to answer with. Defaults to the settings it was shown.</summary>
+    public PhysicsMode? Physics { get; set; }
+
     /// <summary>How many times the dialog was opened.</summary>
     public int Opened { get; private set; }
 
@@ -43,6 +46,7 @@ internal sealed class StubSimulateOptions : ISimulateOptionsWindowService
             EngineSpeed ?? engineSpeed,
             TotalCycles ?? settings.CycleCount,
             MassBalance ?? settings.MassBalance,
-            Graphs));
+            Graphs,
+            Physics ?? settings.Physics.Mode));
     }
 }

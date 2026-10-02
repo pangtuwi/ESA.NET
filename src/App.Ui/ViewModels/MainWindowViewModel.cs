@@ -423,6 +423,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         EngineSpeed = options.EngineSpeed;
         Settings.CycleCount = options.TotalCycles;
         Settings.MassBalance = options.MassBalance;
+        Settings.Physics.Mode = options.Physics;
 
         // Delphi FormClose hard-codes No1zCycles to 1 whatever ESA.ini said.
         Settings.OneZoneCycleCount = 1;

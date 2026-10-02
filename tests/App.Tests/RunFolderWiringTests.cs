@@ -320,4 +320,36 @@ public sealed class RunFolderWiringTests
         Assert.Contains("A2China.eng", manifest, StringComparison.Ordinal);
         Assert.Contains("4000 rev/min", manifest, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task TheRunRecordsWhichPhysicsItRanOn()
+    {
+        BaselinePaths.Require();
+
+        var workspace = TestServices.TemporaryWorkspace();
+        var options = new StubSimulateOptions { Physics = PhysicsMode.Corrected };
+
+        var viewModel = TestServices.Resolve<MainWindowViewModel>(services =>
+        {
+            services.AddSingleton<IWorkspace>(workspace);
+            services.AddSingleton<IMultiRunWindowService>(new StubMultiRunEditor());
+            services.AddSingleton<ISimulateOptionsWindowService>(options);
+        });
+
+        viewModel.CurrentEngine = TestServices.Resolve<IEngineLoader>()
+            .Load(BaselinePaths.File("A2China.eng"));
+        viewModel.CurrentEngineFile = BaselinePaths.File("A2China.eng");
+        viewModel.Settings.CycleCount = 6;
+        viewModel.Settings.MassBalance = 1;
+
+        await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
+
+        // The dialog's choice reaches the settings the run used, and run.txt says so.
+        Assert.Equal(PhysicsMode.Corrected, viewModel.Settings.Physics.Mode);
+
+        var manifest = File.ReadAllLines(Path.Combine(OnlyRunFolder(workspace), RunArchive.ManifestFileName));
+
+        Assert.Contains(manifest, line => line.StartsWith("Physics", StringComparison.Ordinal)
+                                          && line.Contains("Corrected", StringComparison.Ordinal));
+    }
 }
