@@ -55,6 +55,7 @@ public sealed class RunManifest
         Line("Speed", Number(speed, 0) + " rev/min");
         Line("Cycles requested", settings.CycleCount.ToString(CultureInfo.InvariantCulture));
         Line("Mass balance", Number(settings.MassBalance, 3) + " mg");
+        Line("Physics", settings.Physics.Describe());
 
         return this;
     }
@@ -67,6 +68,7 @@ public sealed class RunManifest
         Line("Multi-point sweep", rows.ToString(CultureInfo.InvariantCulture) + " row(s)");
         Line("Cycles requested", settings.CycleCount.ToString(CultureInfo.InvariantCulture));
         Line("Mass balance", Number(settings.MassBalance, 3) + " mg");
+        Line("Physics", settings.Physics.Describe());
 
         return this;
     }

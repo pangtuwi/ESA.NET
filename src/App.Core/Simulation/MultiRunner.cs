@@ -246,6 +246,9 @@ public sealed class MultiRunner
             OneZoneCycleCount = 1,
             MassBalance = settings.MassBalance,
             EngineSpeed = engine.Rpm,
+
+            // Every row runs on the physics the sweep was started with.
+            Physics = settings.Physics.Clone(),
         }, afterInitialise);
     }
 

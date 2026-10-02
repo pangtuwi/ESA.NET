@@ -361,4 +361,29 @@ public sealed class SimulateOptionsTests
         Assert.Null(viewModel.GasFlowChart);
         Assert.Null(viewModel.InCylinderChart);
     }
+
+    [Fact]
+    public void TheDialogOffersLegacyOrCorrectedAndOpensOnTheSettingsChoice()
+    {
+        var viewModel = new SimulateOptionsViewModel();
+        viewModel.Load(
+            new SimulationSettings { Physics = { Mode = PhysicsMode.Corrected } }, 4000);
+
+        Assert.True(viewModel.CorrectedPhysics);
+        Assert.False(viewModel.LegacyPhysics);
+
+        viewModel.LegacyPhysics = true;
+
+        Assert.Equal(PhysicsMode.Legacy, viewModel.Physics);
+        Assert.False(viewModel.CorrectedPhysics);
+
+        // Until a correction lands, the dialog says plainly that the choice changes nothing.
+        Assert.Contains("No corrections are implemented yet", viewModel.PhysicsNote, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheDialogOpensOnLegacyByDefault()
+    {
+        Assert.True(Opened().LegacyPhysics);
+    }
 }

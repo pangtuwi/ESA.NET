@@ -34,4 +34,10 @@ public sealed class SimulationSettings
     /// micrograms SPEC.md section 5 says.
     /// </summary>
     public double MassBalance { get; set; } = 1;
+
+    /// <summary>
+    /// The Legacy/Corrected switch, held under <c>[Physics]</c>. The port's own: the original
+    /// has no corrections to switch. See <c>CORRECTIONS.md</c>.
+    /// </summary>
+    public PhysicsCorrections Physics { get; set; } = new();
 }

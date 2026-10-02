@@ -9,12 +9,17 @@ namespace App.Ui.Dialogs;
 /// <param name="TotalCycles">Delphi <c>NoCycles</c>.</param>
 /// <param name="MassBalance">Delphi <c>MassBalance</c>, in milligrams.</param>
 /// <param name="Graphs">Which run-time charts to draw.</param>
+/// <param name="Physics">
+/// Legacy or Corrected physics. The port's own: the original has no such choice. See
+/// <c>CORRECTIONS.md</c>.
+/// </param>
 public sealed record SimulateOptionsResult(
     bool Accepted,
     double EngineSpeed,
     int TotalCycles,
     double MassBalance,
-    GraphSelection Graphs);
+    GraphSelection Graphs,
+    PhysicsMode Physics = PhysicsMode.Legacy);
 
 /// <summary>
 /// Opens the Single Speed Simulation dialog. Injected for the same reason the other

@@ -81,6 +81,24 @@
       </StackPanel>
     </Border>
 
+    <!-- Not in the original: the Legacy/Corrected switch of CORRECTIONS.md. -->
+    <Border BorderBrush="#808080" BorderThickness="1" Padding="10,8">
+      <StackPanel Spacing="6">
+
+        <TextBlock Text="Physics" FontWeight="Bold" />
+
+        <RadioButton x:Name="LegacyPhysicsButton" GroupName="Physics"
+                     Content="Legacy (as the original)"
+                     IsChecked="{Binding LegacyPhysics, Mode=TwoWay}" />
+        <RadioButton x:Name="CorrectedPhysicsButton" GroupName="Physics"
+                     Content="Corrected"
+                     IsChecked="{Binding CorrectedPhysics, Mode=TwoWay}" />
+        <TextBlock x:Name="PhysicsNoteText" Text="{Binding PhysicsNote}"
+                   TextWrapping="Wrap" FontSize="11" Opacity="0.75" />
+
+      </StackPanel>
+    </Border>
+
     <!-- Delphi BitBtn1 and BitBtn2. -->
     <Grid ColumnDefinitions="*,*" Margin="0,2,0,0">
       <Button Grid.Column="0" x:Name="CancelButton" Content="Cancel"

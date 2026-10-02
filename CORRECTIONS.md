@@ -182,8 +182,8 @@ Both items were done with the first tier 1 change:
 | Tier 1a: no new plumbing | B24, B27, B41 fixed; B26, B48, B57, B67 closed as already right | **Done**, with the fingerprint bit-identical |
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
-| The switch | — | Next |
-| Tier 3 | 23 entries | — |
+| The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
+| Tier 3 | 23 entries | Next: B14 |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter
@@ -197,3 +197,33 @@ abandoned outer iterations and negative foot states. As built:
   and the status line names anything counted.
 
 Errors 2, 3 and 5 stay fatal, decided on 2026-10-02 (B22).
+
+### The switch, as built
+
+- **Model:** `PhysicsMode` (Legacy, Corrected) and `PhysicsCorrections` on
+  `SimulationSettings.Physics`, in `App.Core/Model/PhysicsCorrections.cs`. That file also
+  holds the `CorrectionCatalogue` of corrections, which is **empty** until the first tier 3
+  correction lands. Until then Corrected computes exactly what Legacy does, and says so.
+- **Resolving a flag:** `IsOn(correction)` returns the correction's override if it has one,
+  and otherwise the mode. Overrides are keyed by `ISSUES.md` entry and matched
+  case-insensitively. An unknown entry is kept, so an `ESA.ini` written by a later version
+  survives being read by this one.
+- **`ESA.ini`:** a `[Physics]` section with `Mode=Legacy|Corrected` and overrides such as
+  `B14=1` or `B14=0`. It is written only once it says something, and only where its meaning
+  changed, so an existing file keeps its bytes. An unreadable mode reads as Legacy, and an
+  override that is neither 0 nor 1 is ignored.
+- **The operator:** the Single Speed Simulation dialog has a *Physics* group, *Legacy (as
+  the original)* or *Corrected*, opening on the settings' mode. A note under it says when
+  no corrections exist yet. A multi-point sweep runs on the mode last chosen, or the one
+  in `ESA.ini`, and every row gets a copy.
+- **The record:** `SimulationResult.Physics` is a snapshot of what the run used, and
+  `run.txt` has a *Physics* line for single runs and sweeps alike.
+
+**Adding a tier 3 correction** then means:
+1. Add its `Correction` to the catalogue.
+2. Read `settings.Physics.IsOn(...)` where the behaviour lives, passing the settings down
+   as far as that code.
+3. Give it a physical-oracle test.
+4. Record its measured effect on the baseline engine in its B entry.
+
+The baseline suite runs on Legacy throughout, and must not change.
