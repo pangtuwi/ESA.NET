@@ -105,4 +105,39 @@ public sealed class ValveMotionTests
         Assert.Equal(0.00862, inletPeak, 5);
         Assert.Equal(0.0104, exhaustPeak, 5);
     }
+
+    [Fact]
+    public void AnUnusableProfileIsRefusedRatherThanReadAsNegativeLift()
+    {
+        // A profile that never loaded. The original's TProfile.Gety answered -1, which
+        // TValve.Lift scaled into a negative lift and a negative flow area (ISSUES.md B41).
+        var valve = new App.Core.Model.Valve
+        {
+            OpenAngle = 341,
+            CloseAngle = -100,
+            MaxLift = 0.008,
+            Diameter = 0.03,
+            Count = 1,
+            Profile = new App.Core.Model.CamProfile { ProfileOk = false, FileName = "missing.cam" },
+        };
+
+        var motion = ValveMotion.FromValve(valve);
+
+        Assert.False(motion.HasUsableProfile);
+
+        // 360 is inside the open window, so the profile has to be sampled.
+        var error = Assert.Throws<App.Core.EngineException>(() => motion.Lift(360));
+        Assert.Contains("missing.cam", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheBaselineProfilesAreUsable()
+    {
+        BaselinePaths.Require();
+
+        var (inlet, exhaust) = Baseline();
+
+        Assert.True(inlet.HasUsableProfile);
+        Assert.True(exhaust.HasUsableProfile);
+    }
 }

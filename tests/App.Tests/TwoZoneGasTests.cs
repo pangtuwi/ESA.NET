@@ -334,11 +334,12 @@ public sealed class TwoZoneGasTests
     }
 
     /// <summary>
-    /// <c>Tgas</c> is a function that writes: it recomputes <c>xb</c> from the zone
-    /// masses before weighting the temperatures. See ISSUES.md B27.
+    /// <c>Tgas</c> weights the zone temperatures by the burnt fraction it computes from
+    /// the zone masses - and, unlike the original, reading it changes nothing. See
+    /// ISSUES.md B27.
     /// </summary>
     [Fact]
-    public void GasTemperatureRecomputesTheBurntFractionAsASideEffect()
+    public void GasTemperatureWeightsByTheMassesAndWritesNothing()
     {
         var gas = Cylinder();
 
@@ -348,13 +349,14 @@ public sealed class TwoZoneGasTests
         gas.State.Tu = 800;
         gas.State.Xb = 0.99;
 
+        // A quarter burnt by mass, whatever the stored fraction says.
         Assert.Equal(1200, gas.GasTemperature(), 1e-9);
-        Assert.Equal(0.25, gas.State.Xb, 1e-12);
+        Assert.Equal(0.99, gas.State.Xb);
 
         gas.State.Mb = 0;
         gas.State.Xb = 0.5;
 
         Assert.Equal(800, gas.GasTemperature(), 1e-9);
-        Assert.Equal(0, gas.State.Xb);
+        Assert.Equal(0.5, gas.State.Xb);
     }
 }

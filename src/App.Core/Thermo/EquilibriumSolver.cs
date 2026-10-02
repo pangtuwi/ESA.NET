@@ -253,9 +253,12 @@ public sealed class EquilibriumSolver
             _x[8] += b[2];
             _x[11] += b[3];
 
-            // Crash avoidance, as the original labels it. Note the guard tests for
-            // negative but the clamps test for non-positive: ISSUES.md B24.
-            if (_x[4] < 0 || _x[6] < 0 || _x[8] < 0 || _x[11] < 0)
+            // Crash avoidance, as the original labels it. The original's guard tested for
+            // negative while each clamp inside tested for non-positive, so an exact zero
+            // was clamped only when some other species happened to be negative, and
+            // otherwise reached the divisions below. Both test for non-positive now:
+            // ISSUES.md B24.
+            if (_x[4] <= 0 || _x[6] <= 0 || _x[8] <= 0 || _x[11] <= 0)
             {
                 if (_x[4] <= 0)
                 {

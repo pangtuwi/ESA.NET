@@ -57,6 +57,14 @@ public sealed class ValveMotion
     public int Count { get; }
 
     /// <summary>
+    /// Whether the cam profile can be sampled: it loaded and holds at least two points, or
+    /// is being edited. Delphi's <c>ProfileOk</c> test in <c>TProfile.Gety</c>; see
+    /// ISSUES.md B41.
+    /// </summary>
+    public bool HasUsableProfile =>
+        _profile.Modifying || (_profile.ProfileOk && _profile.Points.Count >= 2);
+
+    /// <summary>
     /// Builds the motion for either valve. There used to be one factory per valve, each
     /// converting the <c>.eng</c> file's timing convention its own way; the engine now holds
     /// the converted values, so there is nothing left to tell them apart (ISSUES.md A6).
@@ -181,17 +189,24 @@ public sealed class ValveMotion
     /// </summary>
     /// <remarks>
     /// The original returns <c>-1</c> for a profile that failed to load or holds fewer
-    /// than two points, which would then be scaled by the maximum lift into a negative
-    /// area. Reproduced, because a caller that has ignored <c>ProfileOk</c> is the case
-    /// this is signalling. See ISSUES.md B41.
+    /// than two points, and <c>TValve.Lift</c> scales that by the maximum lift into a
+    /// negative lift and then a negative flow area. Here it is refused instead, since no
+    /// answer computed from an unusable profile means anything. A simulation never gets
+    /// this far with one - <see cref="CycleSolver.Initialise"/> checks <c>ProfileOk</c> and
+    /// the runner refuses to start - so this guards the other callers, the valve lift
+    /// chart above all, which check <see cref="HasUsableProfile"/> first. See ISSUES.md
+    /// B41.
     /// </remarks>
+    /// <exception cref="EngineException">The profile is unusable.</exception>
     private double ProfileAt(double position)
     {
         var points = _profile.Points;
 
-        if (!_profile.Modifying && (!_profile.ProfileOk || points.Count < 2))
+        if (!HasUsableProfile)
         {
-            return -1;
+            throw new EngineException(
+                $"The cam profile {(_profile.FileName.Length == 0 ? "(none)" : _profile.FileName)} "
+                + "is unusable: it did not load, or holds fewer than two points.");
         }
 
         if (position < points[0].X)
