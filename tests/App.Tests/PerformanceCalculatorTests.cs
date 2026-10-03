@@ -162,7 +162,7 @@ public sealed class PerformanceCalculatorTests
         var calculator = new PerformanceCalculator();
 
         calculator.Calculate(engine);
-        var four = (engine.FuelMassFlow, engine.Sfc, engine.ThermalEfficiency, engine.BrakePower);
+        var four = (engine.FuelMassFlow, engine.Sfc, engine.ThermalEfficiency, engine.BrakePower, engine.Torque);
 
         // The same cylinder, six of them. The original's factor of 2 * Nrpm gave a six the
         // fuel flow of a four, and so an SFC and thermal efficiency wrong by 4/6
@@ -173,6 +173,7 @@ public sealed class PerformanceCalculatorTests
 
         Assert.Equal(four.FuelMassFlow * 1.5, engine.FuelMassFlow, 9);
         Assert.Equal(four.BrakePower * 1.5, engine.BrakePower, 6);
+        Assert.Equal(four.Torque * 1.5, engine.Torque, 9);
         Assert.Equal(four.Sfc, engine.Sfc, 9);
         Assert.Equal(four.ThermalEfficiency, engine.ThermalEfficiency, 9);
     }
