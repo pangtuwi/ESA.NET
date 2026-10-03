@@ -80,6 +80,7 @@ public sealed class MultiRunner
     /// folder per row to put them in - see ISSUES.md A12, which was left open for want of
     /// exactly that destination.
     /// </param>
+    /// <param name="pause">Run ▸ Pause, passed through to the row's run.</param>
     public MultiRunRowResult RunRow(
         string enginePath,
         MultiRunGrid grid,
@@ -87,7 +88,8 @@ public sealed class MultiRunner
         SimulationSettings settings,
         IProgress<MultiRunProgress>? progress = null,
         CancellationToken cancellation = default,
-        IManifoldRecorder? manifoldRecorder = null)
+        IManifoldRecorder? manifoldRecorder = null,
+        RunPause? pause = null)
     {
         ArgumentNullException.ThrowIfNull(enginePath);
         ArgumentNullException.ThrowIfNull(grid);
@@ -115,7 +117,8 @@ public sealed class MultiRunner
                     engine, rowSettings, inner, cancellation, afterInitialise, manifoldRecorder,
                     // Every row archives its manifold files, as every single-point run
                     // does; the engine's own flag no longer gates them.
-                    recordManifoldData: manifoldRecorder is not null),
+                    recordManifoldData: manifoldRecorder is not null,
+                    pause: pause),
                 null);
         }
         catch (OperationCanceledException)

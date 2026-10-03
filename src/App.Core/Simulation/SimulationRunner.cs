@@ -72,6 +72,10 @@ public sealed class SimulationRunner
     /// manifold files into its own run folder and there is no longer anything for the
     /// checkbox to save.
     /// </param>
+    /// <param name="pause">
+    /// Run ▸ Pause, Delphi <c>Paused</c>. Waited on after every step, before the
+    /// cancellation check, so it holds the run without altering it.
+    /// </param>
     /// <exception cref="EngineException">The engine could not be initialised or ran to an impossible state.</exception>
     public SimulationResult Run(
         Engine engine,
@@ -80,7 +84,8 @@ public sealed class SimulationRunner
         CancellationToken cancellation = default,
         Action<Engine>? afterInitialise = null,
         IManifoldRecorder? manifoldRecorder = null,
-        bool? recordManifoldData = null)
+        bool? recordManifoldData = null,
+        RunPause? pause = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(settings);
@@ -113,6 +118,7 @@ public sealed class SimulationRunner
 
         solver.StepCompleted += s =>
         {
+            pause?.WaitWhilePaused(cancellation);
             cancellation.ThrowIfCancellationRequested();
             recorder.Record(s.Engine);
 

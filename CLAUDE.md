@@ -136,7 +136,9 @@ work.
 - The original menu assigned `Ctrl+Q` to both Exit and QuickRun. The shell
   reproduces both captions; in Avalonia `MenuItem.InputGesture` is display-only,
   so the window's `KeyBinding`s decide, and `Ctrl+Q` (and `Cmd+Q`) go to Exit only.
-  QuickRun is still a stub; give it a different key when it gets behaviour (C8).
+  QuickRun works but has no key of its own (C8).
+- **Run ▸ Pause holds a run between steps through `RunPause`** and must never do more
+  than wait. A paused-and-resumed run is pinned bit-for-bit to an uninterrupted one.
 - **Test a dialog through its real window, not just its view model.** The multi-run
   grid's view model was tested thoroughly while its `DataGrid` refused to edit a
   single cell, and four buttons shipped with no command at all (`ISSUES.md`
