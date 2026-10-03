@@ -18,11 +18,12 @@
     Every item is bound to a no-op command; the content area is deliberately empty
     until the charts, status bar and result panels are ported.
 
-    The shortcut captions are faithful to the original, which assigned Ctrl+Q to
-    both Exit and QuickRun. MenuItem.InputGesture only displays the caption in
-    Avalonia, so the KeyBindings below give the keys real behaviour; Ctrl+Q is
-    bound to Exit only, per ISSUES.md C8. Meta+Q is Cmd+Q, where a Mac user reaches
-    for it.
+    The shortcut captions follow the original's, with one change: it assigned Ctrl+Q
+    to both Exit and QuickRun, and QuickRun now has Ctrl+Shift+R instead, beside Ctrl+R
+    for the single-point run it starts (ISSUES.md C8). MenuItem.InputGesture only
+    displays the caption in Avalonia, so every caption needs a KeyBinding below to give
+    it behaviour; MenuStructureTests holds the two lists together. Meta+Q is Cmd+Q, where
+    a Mac user reaches for it.
   -->
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+E" Command="{Binding EditEngineCommand}" />
@@ -30,6 +31,7 @@
     <KeyBinding Gesture="Ctrl+Q" Command="{Binding ExitCommand}" />
     <KeyBinding Gesture="Meta+Q" Command="{Binding ExitCommand}" />
     <KeyBinding Gesture="Ctrl+R" Command="{Binding SinglePointSimulationCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+R" Command="{Binding QuickRunCommand}" />
     <KeyBinding Gesture="Ctrl+M" Command="{Binding MultiPointSimulationCommand}" />
     <KeyBinding Gesture="Ctrl+P" Command="{Binding PauseCommand}" />
     <KeyBinding Gesture="Ctrl+S" Command="{Binding StopCommand}" />
@@ -94,7 +96,7 @@
         <Separator />
         <MenuItem Header="_Pause" InputGesture="Ctrl+P" Command="{Binding PauseCommand}" />
         <MenuItem Header="S_TOP" InputGesture="Ctrl+S" Command="{Binding StopCommand}" />
-        <MenuItem Header="_QuickRun" InputGesture="Ctrl+Q" Command="{Binding QuickRunCommand}" />
+        <MenuItem Header="_QuickRun" InputGesture="Ctrl+Shift+R" Command="{Binding QuickRunCommand}" />
       </MenuItem>
 
       <MenuItem Header="_Graph">

@@ -133,10 +133,10 @@ work.
   neither can we.
 - Five `Example1` engines use an older, undocumented `.eng` schema with
   `[InManifold]` and `[ExManifold]` sections. The reader must not drop them.
-- The original menu assigned `Ctrl+Q` to both Exit and QuickRun. The shell
-  reproduces both captions; in Avalonia `MenuItem.InputGesture` is display-only,
-  so the window's `KeyBinding`s decide, and `Ctrl+Q` (and `Cmd+Q`) go to Exit only.
-  QuickRun works but has no key of its own (C8).
+- The original menu assigned `Ctrl+Q` to both Exit and QuickRun. Exit keeps it (and
+  `Cmd+Q`); QuickRun is `Ctrl+Shift+R` (C8). In Avalonia `MenuItem.InputGesture` is
+  display-only, so every caption needs a matching `KeyBinding`; `MenuStructureTests`
+  enforces it.
 - **Run ▸ Pause holds a run between steps through `RunPause`** and must never do more
   than wait. A paused-and-resumed run is pinned bit-for-bit to an uninterrupted one.
 - **Test a dialog through its real window, not just its view model.** The multi-run
