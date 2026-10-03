@@ -24,7 +24,8 @@ Treating all 44 the same way would be a mistake in either direction:
 
 They are not alike, though. Sorted by what each fix would do to the baseline, they fall
 into three tiers - 12, 3 and 23 entries - and only the third needs any machinery at all.
-B75, found while scoping B31, joined tier 3 later and makes it 24.
+B75, found while scoping B31, joined tier 3 later and made it 24; B60, closed on analysis as
+not a defect, left it again, so it is 23.
 
 ## 2. The three tiers
 
@@ -91,7 +92,7 @@ possibly by more.
 | Gas properties | [B16](https://github.com/pangtuwi/ESA.NET/issues/28) (analytic `dudp` thrown away), [B18](https://github.com/pangtuwi/ESA.NET/issues/30) (first-call transient) |
 | Heat transfer | [B31](https://github.com/pangtuwi/ESA.NET/issues/43) (`Pwr` zero for a negative base), [B32](https://github.com/pangtuwi/ESA.NET/issues/44) (motored volume at the wrong angle), [B33](https://github.com/pangtuwi/ESA.NET/issues/45) (swept volume), [B38](https://github.com/pangtuwi/ESA.NET/issues/50) (IVC conditions never updated), [B75](https://github.com/pangtuwi/ESA.NET/issues/157) (the pressure-rise term in every state) |
 | Cylinder equations | [B35](https://github.com/pangtuwi/ESA.NET/issues/47) (gamma fixed at 1.4), [B36](https://github.com/pangtuwi/ESA.NET/issues/48) (transfer enthalpy either side of the update), [B37](https://github.com/pangtuwi/ESA.NET/issues/49) (no gas-exchange equations), [B46](https://github.com/pangtuwi/ESA.NET/issues/58) (stale mass-flow derivatives) |
-| Wave solver | [B50](https://github.com/pangtuwi/ESA.NET/issues/62), [B54](https://github.com/pangtuwi/ESA.NET/issues/66)–[B56](https://github.com/pangtuwi/ESA.NET/issues/68), [B59](https://github.com/pangtuwi/ESA.NET/issues/71)–[B62](https://github.com/pangtuwi/ESA.NET/issues/74), [B64](https://github.com/pangtuwi/ESA.NET/issues/76), [B65](https://github.com/pangtuwi/ESA.NET/issues/77) |
+| Wave solver | [B50](https://github.com/pangtuwi/ESA.NET/issues/62), [B54](https://github.com/pangtuwi/ESA.NET/issues/66)–[B56](https://github.com/pangtuwi/ESA.NET/issues/68), [B59](https://github.com/pangtuwi/ESA.NET/issues/71), [B61](https://github.com/pangtuwi/ESA.NET/issues/73), [B62](https://github.com/pangtuwi/ESA.NET/issues/74), [B64](https://github.com/pangtuwi/ESA.NET/issues/76), [B65](https://github.com/pangtuwi/ESA.NET/issues/77) |
 
 ## 3. Tier 3: a switch, not a new baseline
 
@@ -199,7 +200,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 24 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55 and B56 **done** — heat transfer complete, the wave solver under way — the fingerprint bit-identical under Legacy. Next: B59 to B62 |
+| Tier 3 | 23 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61 and B62 **done**; B60 closed as not a defect — heat transfer complete, the wave solver under way — the fingerprint bit-identical under Legacy. Next: B64 and B65 |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter

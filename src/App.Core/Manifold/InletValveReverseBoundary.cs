@@ -75,7 +75,8 @@ public static class InletValveReverseBoundary
         ThroatState throat,
         double reverseTuning,
         double gamma = CharacteristicSolver.InletGamma,
-        bool wholeSubsonicBracket = false)
+        bool wholeSubsonicBracket = false,
+        bool stallBelowThroat = false)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(pipe);
@@ -155,7 +156,8 @@ public static class InletValveReverseBoundary
             // The reverse tuning constant only ever appears here, nudging the throat
             // pressure down when the cylinder has fallen below it and the pipe end is
             // still running backwards faster than the constant allows.
-            if (iteration > 0 && cylinderPressure <= throatPressure && u4 < reverseTuning)
+            if (!stallBelowThroat
+                && iteration > 0 && cylinderPressure <= throatPressure && u4 < reverseTuning)
             {
                 throatPressure = 0.999999 * cylinderPressure;
             }
@@ -167,7 +169,12 @@ public static class InletValveReverseBoundary
                 r4 = grid.Density[q];
                 c4 = Math.Sqrt(gamma * p4 / r4);
 
-                if (cylinderPressure <= throatPressure)
+                // This nudge makes the stalled test below fail on the first pass whatever
+                // the pressures, so the no-flow branch is unreachable there and the
+                // subsonic branch runs at a ratio pinned just above 1 (ISSUES.md B59).
+                // stallBelowThroat skips both nudges, so a cylinder at or below the throat
+                // pressure stalls, as the branch was written to.
+                if (!stallBelowThroat && cylinderPressure <= throatPressure)
                 {
                     throatPressure = 0.999999 * cylinderPressure;
                 }

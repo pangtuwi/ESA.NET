@@ -54,7 +54,8 @@ public static class InletValveOpenBoundary
         InletValveReverseBoundary.ThroatState throat,
         (double Forward, double ForwardReverse, double Reverse) tuning,
         double gamma = CharacteristicSolver.InletGamma,
-        bool wholeSubsonicBracket = false)
+        bool wholeSubsonicBracket = false,
+        bool stallBelowThroat = false)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -253,7 +254,8 @@ public static class InletValveOpenBoundary
                         throatPressure, dischargeCoefficient),
                     tuning.Reverse,
                     gamma,
-                    wholeSubsonicBracket);
+                    wholeSubsonicBracket,
+                    stallBelowThroat);
 
                 throatMach = reverseResult.MachNumber;
                 throatVelocity = reverseResult.Velocity;

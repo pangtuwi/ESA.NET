@@ -109,12 +109,35 @@ public static class CorrectionCatalogue
     public static Correction SonicEntranceBracket { get; } =
         new("B56", "Sonic entrance velocity bracketed over the whole subsonic range at both valves");
 
+    /// <summary>
+    /// ISSUES.md B59: inlet reverse flow stalls when the cylinder is at or below the throat
+    /// pressure, instead of being nudged past the no-flow branch into a subsonic solve at a
+    /// ratio of 1.000001.
+    /// </summary>
+    public static Correction InletReverseStall { get; } =
+        new("B59", "Inlet reverse flow stalls when the cylinder is at or below the throat");
+
+    /// <summary>
+    /// ISSUES.md B61: the exhaust reverse substitution branch stops the loop, as the inlet's
+    /// does, so its throat relaxation is applied once and not twice.
+    /// </summary>
+    public static Correction ExhaustReverseSingleRelaxation { get; } =
+        new("B61", "Exhaust reverse substitution relaxes the throat once, as the inlet's does");
+
+    /// <summary>
+    /// ISSUES.md B62: the exhaust reverse routine decides choking on the pipe's stagnation
+    /// pressure, the one it builds the throat from, not on the static pipe-end pressure.
+    /// </summary>
+    public static Correction ExhaustReverseStagnationChoke { get; } =
+        new("B62", "Exhaust reverse choking decided on the pipe's stagnation pressure");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
         Rkf5Coefficient, ClosedCylinderMassFlow, WoschniMotoredAngle, WoschniSweptVolume,
         WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm, ManifoldGammas,
         ClosedValveWallVelocity, OpenEndDensityConvergence, SonicEntranceBracket,
+        InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
     ];
 }
 

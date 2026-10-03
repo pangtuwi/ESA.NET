@@ -212,6 +212,13 @@ public sealed class SimulationRunnerTests
         // B55 changes nothing on the baseline engine to the last bit: converging pressure to
         // 1e-3 Pa already pins density far inside its own tolerance (ISSUES.md B55).
         Assert.Equal(0, TorqueShift(CorrectionCatalogue.OpenEndDensityConvergence));
+        Assert.InRange(TorqueShift(CorrectionCatalogue.InletReverseStall), 1e-6, 0.005);
+
+        // Neither branch they change is reached at 4000 rpm: the exhaust substitution never
+        // runs on the baseline engine, and the static and stagnation choke tests agree at
+        // this speed (ISSUES.md B61, B62).
+        Assert.Equal(0, TorqueShift(CorrectionCatalogue.ExhaustReverseSingleRelaxation));
+        Assert.Equal(0, TorqueShift(CorrectionCatalogue.ExhaustReverseStagnationChoke));
 
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.

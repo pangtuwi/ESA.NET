@@ -53,7 +53,10 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B54", CorrectionCatalogue.ClosedValveWallVelocity.Entry);
         Assert.Equal("B55", CorrectionCatalogue.OpenEndDensityConvergence.Entry);
         Assert.Equal("B56", CorrectionCatalogue.SonicEntranceBracket.Entry);
-        Assert.Equal(11, CorrectionCatalogue.All.Count);
+        Assert.Equal("B59", CorrectionCatalogue.InletReverseStall.Entry);
+        Assert.Equal("B61", CorrectionCatalogue.ExhaustReverseSingleRelaxation.Entry);
+        Assert.Equal("B62", CorrectionCatalogue.ExhaustReverseStagnationChoke.Entry);
+        Assert.Equal(14, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections().Describe());
 
