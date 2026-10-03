@@ -129,7 +129,8 @@ its own check:
 | Order of convergence on an analytic problem (already in `Rkf5IntegratorTests`) | B14 |
 | Mass conservation through the cylinder over a cycle | B37, B46 |
 | No flow terms in a closed cylinder | B46 |
-| Energy-balance closure (heat + work + exhaust + pumping + friction against fuel energy) | B31–B33, B35, B38 |
+| Energy-balance closure (heat + work + exhaust + pumping + friction against fuel energy) | B31, B35, B38 |
+| The Woschni correlation's own terms: no combustion term at the motored pressure, and the displacement in the pressure-rise term (`CylinderHeatTransferTests`) | B32, B33 |
 | Wave-solver invariants: a stagnant uniform pipe stays put, symmetric boundaries stay symmetric (`CharacteristicSolverTests`) | B50, B54–B56, B59–B65 |
 
 ### Measure every correction
@@ -191,7 +192,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 23 entries | B14 and B46 **done**, the fingerprint bit-identical under Legacy. Next: B32 and B33 |
+| Tier 3 | 23 entries | B14, B46, B32 and B33 **done**, the fingerprint bit-identical under Legacy. Next: the wave solver, from B50 |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter

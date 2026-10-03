@@ -84,6 +84,8 @@ public sealed class CycleSolver
         {
             Rpm = engine.Rpm,
             WoschniCoefficient = engine.WoshiniCoefficient,
+            MotoredVolumeAtCallAngle = physics?.IsOn(CorrectionCatalogue.WoschniMotoredAngle) ?? false,
+            TrueSweptVolume = physics?.IsOn(CorrectionCatalogue.WoschniSweptVolume) ?? false,
         };
     }
 

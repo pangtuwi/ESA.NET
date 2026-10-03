@@ -39,7 +39,7 @@ public sealed class CylinderHeatTransferTests
         sparkAngle: -21,
         burnAngle: 55);
 
-    private static CylinderModel Model()
+    private static CylinderModel Model(bool motoredAtCallAngle = false, bool trueSweptVolume = false)
     {
         var geometry = new CylinderGeometry(
             bore: 0.081, stroke: 0.0774, compressionRatio: 9.2,
@@ -58,6 +58,8 @@ public sealed class CylinderHeatTransferTests
             Rpm = Rpm,
             CrankAngularVelocity = Rpm * Math.PI / 30,
             WoschniCoefficient = 150,
+            MotoredVolumeAtCallAngle = motoredAtCallAngle,
+            TrueSweptVolume = trueSweptVolume,
 
             // InitVars: the plenum pressure expression is (99000), the plenum
             // temperature is ambient, and the volume is taken at inlet valve closing.
@@ -168,5 +170,81 @@ public sealed class CylinderHeatTransferTests
         Assert.True(
             beyondHalfAUnit <= 10,
             $"{beyondHalfAUnit} of 1440 heat-loss values differ by more than half a printed unit.");
+    }
+
+    /// <summary>Woschni's published constant for the pressure-rise term, m/(s K).</summary>
+    private const double WoschniC2 = 3.24E-3;
+
+    /// <summary>
+    /// B32's oracle. A cylinder at exactly the motored pressure has no combustion term:
+    /// Woschni's velocity is the mean piston speed term alone. That has to hold at the
+    /// crank angle of the state being evaluated, which inside an RKF5 step is not the step's
+    /// start.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AtTheMotoredPressureOnlyThePistonSpeedTermRemains(bool corrected)
+    {
+        var model = Model(motoredAtCallAngle: corrected);
+        model.State = EngineState.Compression;
+
+        // The step starts 60 degrees before top dead centre; RKF5's fourth stage evaluates
+        // the state twelve thirteenths of a degree on.
+        var stepStart = -60 * Math.PI / 180;
+        var trialAngle = stepStart + (12.0 / 13 * Math.PI / 180);
+        model.CrankAngleRadians = stepStart;
+
+        var motoredPressure = model.PressureAtInletValveClosing
+                              * Math.Pow(model.VolumeAtInletValveClosing / model.Geometry.Volume(trialAngle), 1.30);
+        var pistonSpeedTerm = EsaLimits.WoshiniC1Closed * 2 * model.Geometry.Stroke * Rpm / 60;
+
+        var combustionTerm = model.CharacteristicVelocity(motoredPressure, trialAngle) - pistonSpeedTerm;
+
+        if (corrected)
+        {
+            Assert.Equal(0, combustionTerm / pistonSpeedTerm, 9);
+        }
+        else
+        {
+            // The original compares the trial pressure with the motored pressure a step
+            // behind it, so a motored cylinder appears to be burning.
+            Assert.True(Math.Abs(combustionTerm / pistonSpeedTerm) > 1e-4, $"{combustionTerm}");
+        }
+    }
+
+    /// <summary>
+    /// B33's oracle. The pressure-rise term of Woschni's velocity is
+    /// <c>C2 Vd Tr / (pr Vr) (p - pmot)</c>, so its slope in pressure gives back the swept
+    /// volume it was computed with. That should be the displacement, the volume at bottom
+    /// dead centre less the volume at top.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ThePressureRiseTermUsesTheDisplacement(bool corrected)
+    {
+        var model = Model(trueSweptVolume: corrected);
+        model.State = EngineState.Combustion;
+        model.CrankAngleRadians = 10 * Math.PI / 180;
+
+        var slope = (model.CharacteristicVelocity(4e6, model.CrankAngleRadians)
+                     - model.CharacteristicVelocity(3e6, model.CrankAngleRadians)) / 1e6;
+        var sweptVolume = slope * model.PressureAtInletValveClosing * model.VolumeAtInletValveClosing
+                          / (WoschniC2 * model.TemperatureAtInletValveClosing);
+
+        var displacement = model.Geometry.Volume(Math.PI) - model.Geometry.Volume(0);
+        var ratio = sweptVolume / displacement;
+
+        if (corrected)
+        {
+            Assert.Equal(1, ratio, 9);
+        }
+        else
+        {
+            // CR/(CR+1) where (CR-1)/CR belongs: CR^2/(CR^2-1), 1.012 at 9.2.
+            var cr = model.Geometry.CompressionRatio;
+            Assert.Equal(cr * cr / ((cr * cr) - 1), ratio, 9);
+        }
     }
 }
