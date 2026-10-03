@@ -40,21 +40,23 @@
   <DockPanel>
 
     <Border DockPanel.Dock="Bottom" Padding="12" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-        <!-- The original's Load and Save read and wrote the form as an .eng file. They are
-             not ported yet, so they say where the same thing lives rather than do nothing. -->
-        <Button x:Name="LoadButton" Content="_Load" IsEnabled="False"
-                ToolTip.ShowOnDisabled="True"
-                ToolTip.Tip="Not available in the editor yet - use File, Load on the main window." />
-        <Button x:Name="SaveButton" Content="_Save" IsEnabled="False"
-                ToolTip.ShowOnDisabled="True"
-                ToolTip.Tip="Not available in the editor yet - press OK, then File, Save As on the main window." />
+      <Grid ColumnDefinitions="*,Auto">
+      <TextBlock x:Name="FileStatusText" Grid.Column="0" VerticalAlignment="Center"
+                 TextWrapping="Wrap" Margin="0,0,12,0" Text="{Binding FileStatus}" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <!-- Load fills the form only; OK makes the form the current engine. Save writes a
+             copy and changes nothing else. -->
+        <Button x:Name="LoadButton" Content="_Load" Command="{Binding LoadFileCommand}"
+                ToolTip.Tip="Read another engine file into this form. OK makes it the current engine." />
+        <Button x:Name="SaveButton" Content="_Save" Command="{Binding SaveFileCommand}"
+                ToolTip.Tip="Save a copy of this form as an engine file." />
         <Button x:Name="OkButton" Content="_OK" IsDefault="True"
                 Command="{Binding OkCommand}"
                 IsEnabled="{Binding CanSave}" />
         <Button x:Name="CancelButton" Content="Cancel" IsCancel="True"
                 Command="{Binding CancelCommand}" />
       </StackPanel>
+      </Grid>
     </Border>
 
     <TextBlock DockPanel.Dock="Bottom"

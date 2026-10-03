@@ -55,9 +55,9 @@ public sealed class FileMenuWiringTests
         public int Opened { get; private set; }
 
         /// <summary>Lets a test press OK on the editor without opening a window.</summary>
-        public Action? OnApplied { get; private set; }
+        public Action<EngineDefinition, string>? OnApplied { get; private set; }
 
-        public void Show(EngineDefinition definition, string path, Action? onApplied = null)
+        public void Show(EngineDefinition definition, string path, Action<EngineDefinition, string>? onApplied = null)
         {
             Opened++;
             OnApplied = onApplied;

@@ -147,7 +147,7 @@ public sealed class DeadButtonTests
     {
         var path = Path.Combine(TestPaths.Samples, "Default.eng");
         var definition = new EngineDefinitionStore().Read(path);
-        var viewModel = new EditEngineViewModel();
+        var viewModel = TestServices.Resolve<EditEngineViewModel>();
         var closes = 0;
         var applied = 0;
 
@@ -170,7 +170,7 @@ public sealed class DeadButtonTests
     [AvaloniaFact]
     public void NoEditorButtonIsEnabledWithNothingBehindIt()
     {
-        var viewModel = new EditEngineViewModel();
+        var viewModel = TestServices.Resolve<EditEngineViewModel>();
         viewModel.Load(new EngineDefinitionStore().Read(Path.Combine(TestPaths.Samples, "Default.eng")));
 
         var window = new EditEngineWindow { DataContext = viewModel };

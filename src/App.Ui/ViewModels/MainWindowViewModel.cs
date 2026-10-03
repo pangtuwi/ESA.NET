@@ -318,11 +318,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Opens the eight-tab editor on the current engine. Port of <c>Edit1Click</c>.</summary>
     [RelayCommand(CanExecute = nameof(HasEngine))]
     private void EditEngine() =>
-        _editor.Show(CurrentEngine!.Definition, CurrentEngineFile, RebuildEngineAfterEdit);
+        _editor.Show(CurrentEngine!.Definition, CurrentEngineFile, AdoptEditedEngine);
 
     /// <summary>
-    /// Re-derives the engine from the definition the editor has just written to, so the
-    /// next run uses what the operator actually set.
+    /// Makes whatever the editor holds the current engine, re-derived so the next run uses
+    /// what the operator actually set.
     /// </summary>
     /// <remarks>
     /// <c>EngineLoadResult</c> carries an <c>Engine</c> and an <c>EngineDefinition</c> that
@@ -331,16 +331,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// operator changes - which is the port's own version of ISSUES.md C2, and worse than
     /// the original's, whose OK handler assigns onto the engine directly. Rebuilding also
     /// picks up any side file the operator renamed, and refreshes the load problems shown
-    /// in the status line.
+    /// in the status line. If the editor's Load read another file, OK adopts that one, and
+    /// its side files are resolved beside it.
     /// </remarks>
-    private void RebuildEngineAfterEdit()
+    private void AdoptEditedEngine(EngineDefinition definition, string path)
     {
-        if (CurrentEngine is null || string.IsNullOrEmpty(CurrentEngineFile))
+        if (string.IsNullOrEmpty(path))
         {
             return;
         }
 
-        CurrentEngine = _engineLoader.Rebuild(CurrentEngine.Definition, CurrentEngineFile);
+        CurrentEngine = _engineLoader.Rebuild(definition, path);
+        CurrentEngineFile = path;
     }
 
     /// <summary>

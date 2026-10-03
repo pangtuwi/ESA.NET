@@ -33,4 +33,18 @@ public sealed class EngineDefinitionStore : IEngineDefinitionStore
 
         File.WriteAllBytes(path, ini.Document.ToBytes());
     }
+
+    public EngineDefinition Copy(EngineDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+
+        if (definition is not IniEngineDefinition ini)
+        {
+            throw new ArgumentException(
+                $"Definition must have been produced by {nameof(EngineDefinitionStore)}.",
+                nameof(definition));
+        }
+
+        return new IniEngineDefinition(IniDocument.Parse(ini.Document.ToBytes()));
+    }
 }

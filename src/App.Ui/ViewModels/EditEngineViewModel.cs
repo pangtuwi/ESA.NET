@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using App.Core;
+using App.Ui.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -26,9 +27,32 @@ namespace App.Ui.ViewModels;
 /// </remarks>
 public sealed partial class EditEngineViewModel : ObservableValidator
 {
+    private readonly IFileDialogService _files;
+    private readonly IEngineDefinitionStore _store;
+
     private EngineDefinition? _definition;
 
-    public string Title => "Edit Engine Data";
+    public EditEngineViewModel(IFileDialogService files, IEngineDefinitionStore store)
+    {
+        _files = files;
+        _store = store;
+    }
+
+    /// <summary>The window caption, naming the file the form holds.</summary>
+    public string Title => FilePath.Length == 0 ? "Edit Engine Data" : $"Edit Engine - {FilePath}";
+
+    /// <summary>
+    /// The <c>.eng</c> file the form's values came from. It starts as the main window's
+    /// engine and changes when Load reads another; OK hands it back with the definition,
+    /// so side files named by relative paths are found beside the file they belong to.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
+    private string _filePath = string.Empty;
+
+    /// <summary>What Load or Save last did, or why it could not; empty until one is pressed.</summary>
+    [ObservableProperty]
+    private string _fileStatus = string.Empty;
 
     // --- Cylinders -----------------------------------------------------------
 
@@ -423,8 +447,14 @@ public sealed partial class EditEngineViewModel : ObservableValidator
             throw new InvalidOperationException("Load must be called before Apply.");
         }
 
-        var d = _definition;
+        ApplyTo(_definition);
+    }
 
+    /// <summary>The definition the form holds: the main window's, or whatever Load read.</summary>
+    public EngineDefinition? Definition => _definition;
+
+    private void ApplyTo(EngineDefinition d)
+    {
         SetIfChanged(d.Name, EngineName, v => d.Name = v);
         SetIfChanged(d.CylinderCount, CylinderCount, v => d.CylinderCount = v);
         SetIfChanged(d.Bore, Bore, v => d.Bore = v);
@@ -549,6 +579,67 @@ public sealed partial class EditEngineViewModel : ObservableValidator
         if (e.PropertyName is not (nameof(CanSave) or nameof(UsesOlderSchema)))
         {
             OnPropertyChanged(nameof(CanSave));
+            SaveFileCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    /// <summary>
+    /// Reads another <c>.eng</c> into the form. Port of <c>BLoadClick</c>. Only the form
+    /// changes: the main window keeps its engine unless OK is pressed, and Cancel leaves
+    /// it exactly as it was.
+    /// </summary>
+    [RelayCommand]
+    private async Task LoadFileAsync()
+    {
+        if (await _files.OpenEngineAsync() is not { } path)
+        {
+            return;
+        }
+
+        try
+        {
+            Load(_store.Read(path));
+            FilePath = path;
+            FileStatus = $"Loaded {Path.GetFileName(path)}. Press OK to make it the current engine.";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                                          or FormatException or LegacyDataException)
+        {
+            FileStatus = $"Could not load {Path.GetFileName(path)}: {error.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Writes the form to a file of the operator's choosing. Port of <c>BSaveClick</c>.
+    /// </summary>
+    /// <remarks>
+    /// It writes a <b>copy</b>: the form's values go into a byte-exact duplicate of the
+    /// definition, so neither the main window's engine nor the form's own definition is
+    /// touched, and nothing reaches the next run until OK. Untouched lines keep their bytes,
+    /// as OK's do. The save dialog asks before replacing an existing file.
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private async Task SaveFileAsync()
+    {
+        var suggested = FilePath.Length == 0 ? "Engine.eng" : Path.GetFileName(FilePath);
+
+        if (_definition is null || await _files.SaveEngineAsync(suggested) is not { } path)
+        {
+            return;
+        }
+
+        try
+        {
+            var copy = _store.Copy(_definition);
+
+            ApplyTo(copy);
+            _store.Write(path, copy);
+
+            FileStatus = $"Saved a copy as {Path.GetFileName(path)}.";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            FileStatus = $"Could not save {Path.GetFileName(path)}: {error.Message}";
         }
     }
 
