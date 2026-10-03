@@ -27,7 +27,18 @@ public sealed class EditEngineWindowService : IEditEngineWindowService
             window.Close();
         }
 
+        void Cancelled(object? sender, EventArgs args) => window.Close();
+
+        void Closed(object? sender, EventArgs args)
+        {
+            viewModel.Applied -= Applied;
+            viewModel.CloseRequested -= Cancelled;
+            window.Closed -= Closed;
+        }
+
         viewModel.Applied += Applied;
+        viewModel.CloseRequested += Cancelled;
+        window.Closed += Closed;
 
         window.Show();
     }

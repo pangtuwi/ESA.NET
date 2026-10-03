@@ -30,7 +30,7 @@ public sealed class FileDialogService : IFileDialogService
     /// <inheritdoc />
     public async Task<string?> OpenEngineAsync()
     {
-        if (MainWindow() is not { } window)
+        if (Owner() is not { } window)
         {
             return null;
         }
@@ -49,7 +49,7 @@ public sealed class FileDialogService : IFileDialogService
     /// <inheritdoc />
     public async Task<string?> OpenMultiRunAsync()
     {
-        if (MainWindow() is not { } window)
+        if (Owner() is not { } window)
         {
             return null;
         }
@@ -68,7 +68,7 @@ public sealed class FileDialogService : IFileDialogService
     /// <inheritdoc />
     public async Task<string?> SaveMultiRunAsync(string suggestedName)
     {
-        if (MainWindow() is not { } window)
+        if (Owner() is not { } window)
         {
             return null;
         }
@@ -88,7 +88,7 @@ public sealed class FileDialogService : IFileDialogService
     /// <inheritdoc />
     public async Task<string?> SaveEngineAsync(string suggestedName)
     {
-        if (MainWindow() is not { } window)
+        if (Owner() is not { } window)
         {
             return null;
         }
@@ -108,7 +108,7 @@ public sealed class FileDialogService : IFileDialogService
     /// <inheritdoc />
     public async Task<string?> SaveTextAsync(string title, string suggestedName, string startIn)
     {
-        if (MainWindow() is not { } window)
+        if (Owner() is not { } window)
         {
             return null;
         }
@@ -148,13 +148,26 @@ public sealed class FileDialogService : IFileDialogService
     }
 
     /// <summary>
-    /// The picker needs a window to parent itself to. Reaching for it through the
-    /// lifetime rather than injecting it avoids a cycle: the window's own view model is
-    /// what asks for the dialog.
+    /// The picker needs a window to parent itself to: the one the operator is working in.
+    /// Reaching for it through the lifetime rather than injecting it avoids a cycle: the
+    /// window's own view model is what asks for the dialog.
     /// </summary>
-    private static Window? MainWindow() =>
-        Avalonia.Application.Current?.ApplicationLifetime
-            is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
+    /// <remarks>
+    /// This used to be the main window every time. Behind a modal dialog - the multi-run
+    /// grid - the main window is disabled, and on macOS a picker parented to it opens as a
+    /// sheet on a window that cannot take input, so Load and Save did nothing at all
+    /// (GitHub issue 148).
+    /// </remarks>
+    private static Window? Owner()
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime
+            is not IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return null;
+        }
+
+        return desktop.Windows.LastOrDefault(window => window.IsActive)
+               ?? desktop.Windows.LastOrDefault(window => window.IsVisible)
+               ?? desktop.MainWindow;
+    }
 }

@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:App.Ui.ViewModels"
+        x:Class="App.Ui.Views.AboutWindow"
+        x:DataType="vm:AboutViewModel"
+        Title="{x:Static vm:AboutViewModel.Title}"
+        Width="380" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <!-- Port of TAboutBox (AboutBoxUnit.dfm): a panel of captions and an OK button. -->
+  <StackPanel Margin="12" Spacing="10">
+    <Border BorderBrush="#808080" BorderThickness="1" Padding="12,10">
+      <StackPanel Spacing="4">
+        <TextBlock x:Name="ProductNameText" FontWeight="Bold" FontSize="14"
+                   Text="{x:Static vm:AboutViewModel.ProductName}" />
+        <TextBlock Text="{x:Static vm:AboutViewModel.Institution}" />
+        <TextBlock Text="{x:Static vm:AboutViewModel.Copyright}" />
+        <TextBlock Text="Coding :" Margin="0,8,0,0" FontWeight="SemiBold" />
+        <ItemsControl ItemsSource="{x:Static vm:AboutViewModel.Credits}" />
+        <TextBlock x:Name="PortVersionText" Margin="0,8,0,0" Opacity="0.7"
+                   Text="{x:Static vm:AboutViewModel.PortVersion}" />
+      </StackPanel>
+    </Border>
+
+    <Button x:Name="OkButton" Content="OK" Width="90" HorizontalAlignment="Center"
+            HorizontalContentAlignment="Center"
+            IsDefault="True" IsCancel="True" Command="{Binding OkCommand}" />
+  </StackPanel>
+</Window>

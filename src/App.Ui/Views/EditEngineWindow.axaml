@@ -41,12 +41,19 @@
 
     <Border DockPanel.Dock="Bottom" Padding="12" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-        <Button Content="_Load" />
-        <Button Content="_Save" />
-        <Button Content="_OK" IsDefault="True"
+        <!-- The original's Load and Save read and wrote the form as an .eng file. They are
+             not ported yet, so they say where the same thing lives rather than do nothing. -->
+        <Button x:Name="LoadButton" Content="_Load" IsEnabled="False"
+                ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Not available in the editor yet - use File, Load on the main window." />
+        <Button x:Name="SaveButton" Content="_Save" IsEnabled="False"
+                ToolTip.ShowOnDisabled="True"
+                ToolTip.Tip="Not available in the editor yet - press OK, then File, Save As on the main window." />
+        <Button x:Name="OkButton" Content="_OK" IsDefault="True"
                 Command="{Binding OkCommand}"
                 IsEnabled="{Binding CanSave}" />
-        <Button Content="Cancel" IsCancel="True" />
+        <Button x:Name="CancelButton" Content="Cancel" IsCancel="True"
+                Command="{Binding CancelCommand}" />
       </StackPanel>
     </Border>
 

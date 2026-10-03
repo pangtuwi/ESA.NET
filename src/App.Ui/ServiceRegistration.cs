@@ -52,6 +52,8 @@ public static class ServiceRegistration
         services.AddSingleton<IMultiRunWindowService, MultiRunWindowService>();
         services.AddSingleton<ISimulateOptionsWindowService, SimulateOptionsWindowService>();
         services.AddSingleton<IRunTimeGraphOptionsWindowService, RunTimeGraphOptionsWindowService>();
+        services.AddSingleton<IAboutWindowService, AboutWindowService>();
+        services.AddSingleton<IApplicationShell, ApplicationShell>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<EditEngineViewModel>();
