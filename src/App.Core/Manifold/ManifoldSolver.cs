@@ -62,6 +62,15 @@ public sealed class ManifoldSolver : IManifoldSource
     /// <summary>B56: both sonic solvers bracket the whole range below the throat velocity.</summary>
     private readonly bool _wholeSubsonicBracket;
 
+    /// <summary>B59: inlet reverse flow stalls when the cylinder is at or below the throat.</summary>
+    private readonly bool _inletReverseStall;
+
+    /// <summary>B61: the exhaust reverse substitution relaxes the throat once.</summary>
+    private readonly bool _exhaustReverseSingleRelaxation;
+
+    /// <summary>B62: the exhaust reverse choke test uses the pipe's stagnation pressure.</summary>
+    private readonly bool _exhaustReverseStagnationChoke;
+
     /// <summary>
     /// The inlet and exhaust pipes' gammas: 1.3994 and 1.3 as the original hard-codes them,
     /// or under B50 the equilibrium values <c>InitVars</c> leaves in
@@ -110,6 +119,11 @@ public sealed class ManifoldSolver : IManifoldSource
         _imposedWallVelocity = physics?.IsOn(CorrectionCatalogue.ClosedValveWallVelocity) ?? false;
         _inletOpenEndChecksDensity = physics?.IsOn(CorrectionCatalogue.OpenEndDensityConvergence) ?? false;
         _wholeSubsonicBracket = physics?.IsOn(CorrectionCatalogue.SonicEntranceBracket) ?? false;
+        _inletReverseStall = physics?.IsOn(CorrectionCatalogue.InletReverseStall) ?? false;
+        _exhaustReverseSingleRelaxation =
+            physics?.IsOn(CorrectionCatalogue.ExhaustReverseSingleRelaxation) ?? false;
+        _exhaustReverseStagnationChoke =
+            physics?.IsOn(CorrectionCatalogue.ExhaustReverseStagnationChoke) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -314,7 +328,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 _inlet, _inletNext, _inletPipe, _inletValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _inletPipe.Area(_inletPipe.Length), request.InletValveArea,
-                _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket);
+                _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket, _inletReverseStall);
         }
         else
         {
@@ -338,7 +352,8 @@ public sealed class ManifoldSolver : IManifoldSource
                 _exhaust, _exhaustNext, _exhaustPipe, _exhaustValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
-                _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket);
+                _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket,
+                _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke);
         }
         else
         {

@@ -137,8 +137,10 @@ public sealed class ExhaustValveReverseBoundaryTests
     {
         // The inlet's forward routine derives its critical ratio from CritPress, which
         // accounts for discharge coefficient and area ratio; the exhaust reverse routine
-        // uses the plain isentropic value. Same valve, different switching criteria.
-        // See ISSUES.md B60.
+        // uses the plain isentropic value. The two differ because a pipe-fed restriction
+        // compared on static pressure needs CritPress and a reservoir-fed one does not
+        // (ISSUES.md B60, closed as not a defect). This routine is pipe-fed, so the plain
+        // value is only right against the stagnation pressure, which is B62.
         const double Gamma = CharacteristicSolver.ExhaustGamma;
         var plain = Math.Pow((Gamma + 1) / 2, Gamma / (Gamma - 1));
 

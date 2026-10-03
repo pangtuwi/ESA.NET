@@ -18,7 +18,9 @@ namespace App.Core.Manifold;
 /// <para>
 /// Note also that the critical ratio here is the plain isentropic
 /// <c>((gam+1)/2)^(gam/(gam-1))</c>, not the discharge-coefficient-aware value
-/// <c>INLET_VALVE_OPEN</c> derives from <c>CritPress</c>. See ISSUES.md B60.
+/// <c>INLET_VALVE_OPEN</c> derives from <c>CritPress</c>. For a pipe-fed nozzle that
+/// is right against the pipe's stagnation pressure and wrong against its static one,
+/// which is the pressure the original tests. See ISSUES.md B60 and B62.
 /// </para>
 /// </remarks>
 public static class ExhaustValveReverseBoundary
@@ -43,7 +45,9 @@ public static class ExhaustValveReverseBoundary
         double valveFlowArea,
         InletValveReverseBoundary.ThroatState throat,
         (double Forward, double Reverse) tuning,
-        double gamma = CharacteristicSolver.ExhaustGamma)
+        double gamma = CharacteristicSolver.ExhaustGamma,
+        bool singleRelaxation = false,
+        bool stagnationChoke = false)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(pipe);
@@ -83,6 +87,7 @@ public static class ExhaustValveReverseBoundary
 
         var iteration = 0;
         bool converged;
+        var substituted = false;
 
         do
         {
@@ -222,6 +227,7 @@ public static class ExhaustValveReverseBoundary
 
                 u4 = 0;
                 c4 = Math.Sqrt(gamma * p4 / r4);
+                substituted = true;
             }
             else
             {
@@ -231,7 +237,10 @@ public static class ExhaustValveReverseBoundary
                 // the choked test is made on the static pipe-end pressure against the
                 // cylinder's. The original carries its own "???????????" on this line.
                 // See ISSUES.md B62.
-                if (p4 / cylinderPressure >= criticalRatio)
+                // stagnationChoke tests the pressure the throat is built from instead.
+                var chokingPressure = stagnationChoke ? stagnationPressure : p4;
+
+                if (chokingPressure / cylinderPressure >= criticalRatio)
                 {
                     // ---- Choked ----
                     throatMach = 1;
@@ -327,10 +336,13 @@ public static class ExhaustValveReverseBoundary
                     1 + ((gamma - 1) / 2 * (u4 / c4) * (u4 / c4)), gamma / (gamma - 1));
             }
 
-            converged = iteration != 0
-                        && Math.Abs(u4 - previousU) < VelocityTolerance
-                        && Math.Abs(r4 - previousR) < DensityTolerance
-                        && Math.Abs(p4 - previousP) < PressureTolerance;
+            // singleRelaxation stops on the substitution, as the inlet's equivalent branch
+            // does, so its throat relaxation is applied once rather than twice (B61).
+            converged = (singleRelaxation && substituted)
+                        || (iteration != 0
+                            && Math.Abs(u4 - previousU) < VelocityTolerance
+                            && Math.Abs(r4 - previousR) < DensityTolerance
+                            && Math.Abs(p4 - previousP) < PressureTolerance);
 
             previousU = u4;
             previousP = p4;
