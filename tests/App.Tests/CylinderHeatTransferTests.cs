@@ -39,7 +39,11 @@ public sealed class CylinderHeatTransferTests
         sparkAngle: -21,
         burnAngle: 55);
 
-    private static CylinderModel Model(bool motoredAtCallAngle = false, bool trueSweptVolume = false)
+    private static CylinderModel Model(
+        bool motoredAtCallAngle = false,
+        bool trueSweptVolume = false,
+        bool clampPressureRise = false,
+        bool pressureRiseInCombustionOnly = false)
     {
         var geometry = new CylinderGeometry(
             bore: 0.081, stroke: 0.0774, compressionRatio: 9.2,
@@ -60,6 +64,8 @@ public sealed class CylinderHeatTransferTests
             WoschniCoefficient = 150,
             MotoredVolumeAtCallAngle = motoredAtCallAngle,
             TrueSweptVolume = trueSweptVolume,
+            ClampPressureRiseTerm = clampPressureRise,
+            PressureRiseTermInCombustionOnly = pressureRiseInCombustionOnly,
 
             // InitVars: the plenum pressure expression is (99000), the plenum
             // temperature is ambient, and the volume is taken at inlet valve closing.
@@ -245,6 +251,83 @@ public sealed class CylinderHeatTransferTests
             // CR/(CR+1) where (CR-1)/CR belongs: CR^2/(CR^2-1), 1.012 at 9.2.
             var cr = model.Geometry.CompressionRatio;
             Assert.Equal(cr * cr / ((cr * cr) - 1), ratio, 9);
+        }
+    }
+
+    private static double PistonSpeedTerm(EngineState state, double rpm = Rpm) =>
+        (state is EngineState.Compression or EngineState.Combustion or EngineState.Expansion
+            ? EsaLimits.WoshiniC1Closed
+            : EsaLimits.WoshiniC1GasExchange)
+        * 2 * 0.0774 * rpm / 60;
+
+    /// <summary>
+    /// B31's oracle. Woschni's pressure-rise term stands for combustion-driven turbulence,
+    /// which cannot be negative, so below the motored pressure the velocity is the piston
+    /// speed term and the coefficient follows from it. The original lets the term go
+    /// negative, and once it outweighs the piston speed term <c>Pwr</c> answers a
+    /// coefficient of exactly zero.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BelowTheMotoredPressureTheCoefficientFollowsThePistonSpeedTerm(bool corrected)
+    {
+        // A misfire: 1 bar at top dead centre against 11 bar motored. At 1500 rpm the
+        // piston speed term is small enough for the negative term to outweigh it; at the
+        // baseline's 4000 rpm it cannot, and the baseline never gets here (ISSUES.md B31).
+        const double rpm = 1500;
+        var model = Model(clampPressureRise: corrected);
+        model.Rpm = rpm;
+        model.State = EngineState.Expansion;
+        model.CrankAngleRadians = 0;
+
+        const double pressure = 1e5;
+        var velocity = model.CharacteristicVelocity(pressure, model.CrankAngleRadians);
+        var coefficient = model.HeatTransferCoefficient(pressure, 1500, model.CrankAngleRadians);
+
+        if (corrected)
+        {
+            Assert.Equal(PistonSpeedTerm(EngineState.Expansion, rpm), velocity, 9);
+            Assert.True(coefficient > 0);
+        }
+        else
+        {
+            Assert.True(velocity < 0, $"{velocity}");
+            Assert.Equal(0, coefficient);
+        }
+    }
+
+    /// <summary>
+    /// B75's oracle. Woschni published <c>C2 = 3.24e-3</c> for combustion and expansion and
+    /// zero for gas exchange and compression, so outside those two states the velocity is
+    /// the piston speed term whatever the pressure. The original applies the term in every
+    /// state.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ThePressureRiseTermBelongsToCombustionAndExpansion(bool corrected)
+    {
+        var model = Model(pressureRiseInCombustionOnly: corrected);
+        model.CrankAngleRadians = 20 * Math.PI / 180;
+
+        // Well above the motored pressure, so the term is positive wherever it applies.
+        const double pressure = 4e6;
+
+        foreach (var state in Enum.GetValues<EngineState>())
+        {
+            model.State = state;
+            var term = model.CharacteristicVelocity(pressure, model.CrankAngleRadians) - PistonSpeedTerm(state);
+            var applies = !corrected || state is EngineState.Combustion or EngineState.Expansion;
+
+            if (applies)
+            {
+                Assert.True(term > 1, $"{state}: {term}");
+            }
+            else
+            {
+                Assert.Equal(0, term, 9);
+            }
         }
     }
 }

@@ -59,9 +59,33 @@ public static class CorrectionCatalogue
     public static Correction WoschniSweptVolume { get; } =
         new("B33", "Woschni velocity uses the swept volume, not VCyl(pi) * CR/(CR+1)");
 
+    /// <summary>
+    /// ISSUES.md B31: Woschni's pressure-rise term is floored at zero, so the heat-transfer
+    /// coefficient never collapses to zero when the pressure falls below motored.
+    /// </summary>
+    public static Correction WoschniNegativeVelocity { get; } =
+        new("B31", "Woschni pressure-rise term floored at zero, so h never collapses to zero below motored");
+
+    /// <summary>
+    /// ISSUES.md B38: Woschni's reference conditions are the cylinder's state at each
+    /// inlet valve closing, not the plenum's at initialisation.
+    /// </summary>
+    public static Correction IvcReference { get; } =
+        new("B38", "Woschni reference conditions taken at each inlet valve closing, not fixed at initialisation");
+
+    /// <summary>
+    /// ISSUES.md B75: Woschni's pressure-rise term applies in combustion and expansion
+    /// only; the original applies it through compression and gas exchange as well.
+    /// </summary>
+    public static Correction WoschniCombustionTerm { get; } =
+        new("B75", "Woschni pressure-rise term in combustion and expansion only, as published");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
-        [Rkf5Coefficient, ClosedCylinderMassFlow, WoschniMotoredAngle, WoschniSweptVolume];
+    [
+        Rkf5Coefficient, ClosedCylinderMassFlow, WoschniMotoredAngle, WoschniSweptVolume,
+        WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm,
+    ];
 }
 
 /// <summary>

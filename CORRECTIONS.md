@@ -24,6 +24,7 @@ Treating all 44 the same way would be a mistake in either direction:
 
 They are not alike, though. Sorted by what each fix would do to the baseline, they fall
 into three tiers - 12, 3 and 23 entries - and only the third needs any machinery at all.
+B75, found while scoping B31, joined tier 3 later and makes it 24.
 
 ## 2. The three tiers
 
@@ -88,7 +89,7 @@ possibly by more.
 | Integrator | [B14](https://github.com/pangtuwi/ESA.NET/issues/26) (the transposed RKF5 digit) |
 | Lookups | [B4](https://github.com/pangtuwi/ESA.NET/issues/16) (area cliff — `AreaGradient`'s end-of-pipe branch depends on it), [B5](https://github.com/pangtuwi/ESA.NET/issues/17) (Cd axes crossed) |
 | Gas properties | [B16](https://github.com/pangtuwi/ESA.NET/issues/28) (analytic `dudp` thrown away), [B18](https://github.com/pangtuwi/ESA.NET/issues/30) (first-call transient) |
-| Heat transfer | [B31](https://github.com/pangtuwi/ESA.NET/issues/43) (`Pwr` zero for a negative base), [B32](https://github.com/pangtuwi/ESA.NET/issues/44) (motored volume at the wrong angle), [B33](https://github.com/pangtuwi/ESA.NET/issues/45) (swept volume), [B38](https://github.com/pangtuwi/ESA.NET/issues/50) (IVC conditions never updated) |
+| Heat transfer | [B31](https://github.com/pangtuwi/ESA.NET/issues/43) (`Pwr` zero for a negative base), [B32](https://github.com/pangtuwi/ESA.NET/issues/44) (motored volume at the wrong angle), [B33](https://github.com/pangtuwi/ESA.NET/issues/45) (swept volume), [B38](https://github.com/pangtuwi/ESA.NET/issues/50) (IVC conditions never updated), [B75](https://github.com/pangtuwi/ESA.NET/issues/157) (the pressure-rise term in every state) |
 | Cylinder equations | [B35](https://github.com/pangtuwi/ESA.NET/issues/47) (gamma fixed at 1.4), [B36](https://github.com/pangtuwi/ESA.NET/issues/48) (transfer enthalpy either side of the update), [B37](https://github.com/pangtuwi/ESA.NET/issues/49) (no gas-exchange equations), [B46](https://github.com/pangtuwi/ESA.NET/issues/58) (stale mass-flow derivatives) |
 | Wave solver | [B50](https://github.com/pangtuwi/ESA.NET/issues/62), [B54](https://github.com/pangtuwi/ESA.NET/issues/66)–[B56](https://github.com/pangtuwi/ESA.NET/issues/68), [B59](https://github.com/pangtuwi/ESA.NET/issues/71)–[B62](https://github.com/pangtuwi/ESA.NET/issues/74), [B64](https://github.com/pangtuwi/ESA.NET/issues/76), [B65](https://github.com/pangtuwi/ESA.NET/issues/77) |
 
@@ -129,8 +130,9 @@ its own check:
 | Order of convergence on an analytic problem (already in `Rkf5IntegratorTests`) | B14 |
 | Mass conservation through the cylinder over a cycle | B37, B46 |
 | No flow terms in a closed cylinder | B46 |
-| Energy-balance closure (heat + work + exhaust + pumping + friction against fuel energy) | B31, B35, B38 |
-| The Woschni correlation's own terms: no combustion term at the motored pressure, and the displacement in the pressure-rise term (`CylinderHeatTransferTests`) | B32, B33 |
+| Energy-balance closure (heat + work + exhaust + pumping + friction against fuel energy) | B35 |
+| The Woschni correlation's own terms: no combustion term at the motored pressure, the displacement in the pressure-rise term, no negative term, and the term only where Woschni published it (`CylinderHeatTransferTests`) | B31, B32, B33, B75 |
+| The motored pressure tracking compression (`ClosedCylinderTests`) | B38 |
 | Wave-solver invariants: a stagnant uniform pipe stays put, symmetric boundaries stay symmetric (`CharacteristicSolverTests`) | B50, B54–B56, B59–B65 |
 
 ### Measure every correction
@@ -148,7 +150,8 @@ single flag from moving results by surprise.
 B46 is where Corrected leaves the reference behind. With it on, expansion pressure runs up
 to 17 % above `A2China.txt` and torque rises about 6 %, because the reference reproduces
 the defect. From B46 on, the reference run is evidence of what Legacy does and not of
-what is right; each flag's physical oracle is what says it is right.
+what is right; each flag's physical oracle is what says it is right. B38 widened the gap
+again: heat loss about 17 % lower, and with all seven corrections torque about 10 % higher.
 
 ## 4. Suggested order
 
@@ -192,7 +195,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 23 entries | B14, B46, B32 and B33 **done**, the fingerprint bit-identical under Legacy. Next: the wave solver, from B50 |
+| Tier 3 | 24 entries | B14, B46, B32, B33, B31, B38 and B75 **done** — heat transfer complete — the fingerprint bit-identical under Legacy. Next: the wave solver, from B50 |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter

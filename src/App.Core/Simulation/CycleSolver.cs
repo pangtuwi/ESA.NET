@@ -39,6 +39,9 @@ public sealed class CycleSolver
     /// <summary>B46: zero the mass-flow derivatives on entry to compression.</summary>
     private readonly bool _zeroClosedCylinderMassFlow;
 
+    /// <summary>B38: take Woschni's reference conditions at each inlet valve closing.</summary>
+    private readonly bool _updateIvcReference;
+
     /// <param name="engine">The engine to simulate.</param>
     /// <param name="manifold">Where the manifold boundary conditions come from.</param>
     /// <param name="evaluator">Evaluates the <c>.eng</c> file's expressions.</param>
@@ -66,6 +69,8 @@ public sealed class CycleSolver
         _zeroClosedCylinderMassFlow =
             physics?.IsOn(CorrectionCatalogue.ClosedCylinderMassFlow) ?? false;
 
+        _updateIvcReference = physics?.IsOn(CorrectionCatalogue.IvcReference) ?? false;
+
         _cylinder = new TwoZoneGas(engine.Cylinder);
         _plenum = new TwoZoneGas(engine.Plenum);
         _exhaust = new TwoZoneGas(engine.Exhaust);
@@ -86,6 +91,9 @@ public sealed class CycleSolver
             WoschniCoefficient = engine.WoshiniCoefficient,
             MotoredVolumeAtCallAngle = physics?.IsOn(CorrectionCatalogue.WoschniMotoredAngle) ?? false,
             TrueSweptVolume = physics?.IsOn(CorrectionCatalogue.WoschniSweptVolume) ?? false,
+            ClampPressureRiseTerm = physics?.IsOn(CorrectionCatalogue.WoschniNegativeVelocity) ?? false,
+            PressureRiseTermInCombustionOnly =
+                physics?.IsOn(CorrectionCatalogue.WoschniCombustionTerm) ?? false,
         };
     }
 
@@ -426,6 +434,30 @@ public sealed class CycleSolver
 
         ResetCycleAccumulators();
         InstallEquations(CylinderModel.Zero, Cylinder.PressureRateSingleZone, CylinderModel.Zero, CylinderModel.Zero);
+        TakeIvcReference();
+    }
+
+    /// <summary>
+    /// B38: Woschni's reference conditions become the cylinder's state as the inlet valve
+    /// closes - the last intake step's - where Legacy keeps the plenum's from
+    /// initialisation for the whole run.
+    /// </summary>
+    private void TakeIvcReference()
+    {
+        if (!_updateIvcReference)
+        {
+            return;
+        }
+
+        var engine = _engine;
+
+        engine.PressureAtIvc = engine.Cylinder.PGas;
+        engine.TemperatureAtIvc = _cylinder.GasTemperature();
+        engine.VolumeAtIvc = engine.Cylinder.VGas;
+
+        Cylinder.PressureAtInletValveClosing = engine.PressureAtIvc;
+        Cylinder.TemperatureAtInletValveClosing = engine.TemperatureAtIvc;
+        Cylinder.VolumeAtInletValveClosing = engine.VolumeAtIvc;
     }
 
     private void EnterTwoZoneState()
@@ -451,6 +483,7 @@ public sealed class CycleSolver
 
                 _cylinder.Burnt.Equilibrium!.Frozen = false;
                 ResetCycleAccumulators();
+                TakeIvcReference();
 
                 // The original's mass block has no case for the closed states, so these
                 // keep the last intake step's value and the previous cycle's last exhaust
