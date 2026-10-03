@@ -153,7 +153,9 @@ the defect. From B46 on, the reference run is evidence of what Legacy does and n
 what is right; each flag's physical oracle is what says it is right. B38 widened the gap
 again: heat loss about 17 % lower, and with all seven corrections torque about 10 % higher.
 B50 was the first correction whose effect changes sign with speed: it moves the inlet
-tuning, so torque rises at 3000 rpm and falls at 6000.
+tuning, so torque rises at 3000 rpm and falls at 6000. B55 was the first with no effect at
+all on the baseline engine; it is kept behind the switch, and pinned to change nothing,
+rather than being moved to tier 1 after the fact.
 
 ## 4. Suggested order
 
@@ -197,7 +199,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 24 entries | B14, B46, B32, B33, B31, B38, B75 and B50 **done** — heat transfer complete, the wave solver begun — the fingerprint bit-identical under Legacy. Next: B54 to B56 |
+| Tier 3 | 24 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55 and B56 **done** — heat transfer complete, the wave solver under way — the fingerprint bit-identical under Legacy. Next: B59 to B62 |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter

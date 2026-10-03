@@ -26,19 +26,25 @@ public static class ClosedValveBoundary
     private const int MaxIterations = 1000;
 
     /// <summary>Applies the wall condition at the inlet pipe's valve end, its last point.</summary>
+    /// <param name="imposedWallVelocityInInterpolant">
+    /// ISSUES.md B54: build the interpolant from the imposed wall velocity, as the exhaust
+    /// routine does, rather than from the velocity still stored at the wall. False is the
+    /// original's inlet routine.
+    /// </param>
     public static void ApplyInlet(
         PipeGrid current,
         PipeGrid target,
         PipeGeometry pipe,
         double dt,
         double wallVelocity = 0,
-        double gamma = CharacteristicSolver.InletGamma) =>
+        double gamma = CharacteristicSolver.InletGamma,
+        bool imposedWallVelocityInInterpolant = false) =>
         Apply(
             current, target, pipe, gamma, dt, wallVelocity,
             wall: current.ActiveCount - 1,
             interior: current.ActiveCount - 2,
             sign: 1,
-            interpolantUsesWallVelocity: false);
+            interpolantUsesWallVelocity: imposedWallVelocityInInterpolant);
 
     /// <summary>Applies the wall condition at the exhaust pipe's valve end, its first point.</summary>
     public static void ApplyExhaust(
@@ -99,8 +105,14 @@ public static class ClosedValveBoundary
         // intercept on opposite points. Algebraically it is the same straight line either
         // way; in floating point it is not, so each is built the way its own routine
         // builds it.
+        // B54: the inlet's line takes the imposed wall velocity only when asked. Legacy builds
+        // it from the stored grid values, as INLET_VALVE_CLOSED does.
         var line = sign > 0
-            ? GridInterpolants.Through(current, from: interior, to: wall)
+            ? interpolantUsesWallVelocity
+                ? GridInterpolants.Through(
+                    current, from: interior, to: wall, velocityOverrideAt: wall,
+                    velocityOverride: interpolantWallVelocity)
+                : GridInterpolants.Through(current, from: interior, to: wall)
             : GridInterpolants.Through(
                 current, from: wall, to: interior, velocityOverrideAt: wall,
                 velocityOverride: interpolantWallVelocity);

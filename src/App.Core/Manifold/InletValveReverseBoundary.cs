@@ -74,7 +74,8 @@ public static class InletValveReverseBoundary
         double valveFlowArea,
         ThroatState throat,
         double reverseTuning,
-        double gamma = CharacteristicSolver.InletGamma)
+        double gamma = CharacteristicSolver.InletGamma,
+        bool wholeSubsonicBracket = false)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(pipe);
@@ -209,7 +210,8 @@ public static class InletValveReverseBoundary
                         crankAngle - 360, cylinderPressure / throatPressure, reverse: true);
 
                     entranceVelocity = ThroatVelocitySolvers.InletSonic(
-                        gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound);
+                        gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
+                        wholeSubsonicBracket);
 
                     var machRatio = entranceVelocity / cylinderSpeedOfSound;
 
