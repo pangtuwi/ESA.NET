@@ -209,7 +209,7 @@ work.
   Legacy/Corrected switch. Read it before touching anything in section B.
 - **Corrected is no longer close to `data/baseline/`.** Since B46 it runs expansion
   pressure up to 17 % above the reference trace, and since B38 heat loss about 15 % lower;
-  with every correction so far torque is about 10 % higher at 4000 rpm, because the
+  with every correction so far torque is about 12 % higher at 4000 rpm, because the
   reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 

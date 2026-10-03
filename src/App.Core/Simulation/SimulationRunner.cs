@@ -85,7 +85,7 @@ public sealed class SimulationRunner
         ArgumentNullException.ThrowIfNull(engine);
         ArgumentNullException.ThrowIfNull(settings);
 
-        var manifold = new ManifoldSolver(engine, _evaluator);
+        var manifold = new ManifoldSolver(engine, _evaluator, settings.Physics);
         var solver = new CycleSolver(engine, manifold, _evaluator, settings.Physics);
 
         if (!solver.Initialise())

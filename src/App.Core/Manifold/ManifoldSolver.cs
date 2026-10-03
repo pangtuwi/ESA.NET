@@ -50,6 +50,24 @@ public sealed class ManifoldSolver : IManifoldSource
 
     private bool _started;
 
+    /// <summary>B50: run the pipes on the gammas <c>InitVars</c> computes.</summary>
+    private readonly bool _computedGammas;
+
+    /// <summary>
+    /// The inlet and exhaust pipes' gammas: 1.3994 and 1.3 as the original hard-codes them,
+    /// or under B50 the equilibrium values <c>InitVars</c> leaves in
+    /// <see cref="Model.Manifolds.GammaIn"/> and <see cref="Model.Manifolds.GammaEx"/>.
+    /// </summary>
+    private double _inletGamma = CharacteristicSolver.InletGamma;
+
+    private double _exhaustGamma = CharacteristicSolver.ExhaustGamma;
+
+    /// <summary>The inlet pipe's gamma, settled at the first step.</summary>
+    internal double InletGamma => _inletGamma;
+
+    /// <summary>The exhaust pipe's gamma, settled at the first step.</summary>
+    internal double ExhaustGamma => _exhaustGamma;
+
     /// <summary>
     /// Where the nine output files' rows go, or <see langword="null"/> to record nothing.
     /// </summary>
@@ -68,11 +86,18 @@ public sealed class ManifoldSolver : IManifoldSource
     /// </summary>
     public ManifoldDiagnostics Diagnostics { get; } = new();
 
-    public ManifoldSolver(Engine engine, IExpressionEvaluator? evaluator = null)
+    /// <param name="engine">The engine whose manifolds to solve.</param>
+    /// <param name="evaluator">Evaluates the <c>.eng</c> file's expressions.</param>
+    /// <param name="physics">
+    /// Which corrections to apply (<c>CORRECTIONS.md</c>). Null is Legacy.
+    /// </param>
+    public ManifoldSolver(
+        Engine engine, IExpressionEvaluator? evaluator = null, PhysicsCorrections? physics = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
 
         _engine = engine;
+        _computedGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -148,17 +173,24 @@ public sealed class ManifoldSolver : IManifoldSource
     {
         _plenumTemperature = _engine.Manifold.PlenumTemperature;
 
+        // InitVars has run by the first step, so its gammas are there to be read.
+        if (_computedGammas)
+        {
+            _inletGamma = _engine.Manifold.GammaIn;
+            _exhaustGamma = _engine.Manifold.GammaEx;
+        }
+
         foreach (var (grid, points, length, pressure, temperature, gamma) in
                  new[]
                  {
                      (_inlet, inletPoints, _inletPipe.Length, _plenumPressure, _plenumTemperature,
-                         CharacteristicSolver.InletGamma),
+                         _inletGamma),
                      (_inletNext, inletPoints, _inletPipe.Length, _plenumPressure, _plenumTemperature,
-                         CharacteristicSolver.InletGamma),
+                         _inletGamma),
                      (_exhaust, exhaustPoints, _exhaustPipe.Length, _backPressure, _backTemperature,
-                         CharacteristicSolver.ExhaustGamma),
+                         _exhaustGamma),
                      (_exhaustNext, exhaustPoints, _exhaustPipe.Length, _backPressure, _backTemperature,
-                         CharacteristicSolver.ExhaustGamma),
+                         _exhaustGamma),
                  })
         {
             PipeGridInitialiser.Initialise(grid, points, length, pressure, temperature, gamma);
@@ -255,12 +287,12 @@ public sealed class ManifoldSolver : IManifoldSource
     private void SolveInletPipe(in ManifoldRequest request, double dt, double crankAngle, bool open)
     {
         OpenEndBoundary.ApplyInlet(
-            _inlet, _inletNext, _inletPipe, dt, _plenumPressure, _plenumTemperature);
+            _inlet, _inletNext, _inletPipe, dt, _plenumPressure, _plenumTemperature, _inletGamma);
 
         for (var i = 1; i <= _inlet.ActiveCount - 2; i++)
         {
             CharacteristicSolver.UpdateInteriorPoint(
-                _inlet, _inletNext, _inletPipe, CharacteristicSolver.InletGamma, dt, i, Diagnostics);
+                _inlet, _inletNext, _inletPipe, _inletGamma, dt, i, Diagnostics);
         }
 
         if (open)
@@ -269,11 +301,11 @@ public sealed class ManifoldSolver : IManifoldSource
                 _inlet, _inletNext, _inletPipe, _inletValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _inletPipe.Area(_inletPipe.Length), request.InletValveArea,
-                _inletThroat, _inletTuning);
+                _inletThroat, _inletTuning, _inletGamma);
         }
         else
         {
-            ClosedValveBoundary.ApplyInlet(_inlet, _inletNext, _inletPipe, dt);
+            ClosedValveBoundary.ApplyInlet(_inlet, _inletNext, _inletPipe, dt, gamma: _inletGamma);
 
             // A shut valve passes nothing, so the throat quantities MassFlow multiplies
             // are left at whatever the last open step produced; the areas below are zero,
@@ -291,21 +323,21 @@ public sealed class ManifoldSolver : IManifoldSource
                 _exhaust, _exhaustNext, _exhaustPipe, _exhaustValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
-                _exhaustThroat, _exhaustTuning);
+                _exhaustThroat, _exhaustTuning, _exhaustGamma);
         }
         else
         {
-            ClosedValveBoundary.ApplyExhaust(_exhaust, _exhaustNext, _exhaustPipe, dt);
+            ClosedValveBoundary.ApplyExhaust(_exhaust, _exhaustNext, _exhaustPipe, dt, gamma: _exhaustGamma);
         }
 
         for (var i = 1; i <= _exhaust.ActiveCount - 2; i++)
         {
             CharacteristicSolver.UpdateInteriorPoint(
-                _exhaust, _exhaustNext, _exhaustPipe, CharacteristicSolver.ExhaustGamma, dt, i, Diagnostics);
+                _exhaust, _exhaustNext, _exhaustPipe, _exhaustGamma, dt, i, Diagnostics);
         }
 
         OpenEndBoundary.ApplyExhaust(
-            _exhaust, _exhaustNext, _exhaustPipe, dt, _backPressure, _backTemperature);
+            _exhaust, _exhaustNext, _exhaustPipe, dt, _backPressure, _backTemperature, _exhaustGamma);
 
         Advance(_exhaust, _exhaustNext);
     }
@@ -330,12 +362,13 @@ public sealed class ManifoldSolver : IManifoldSource
     /// alternatives the tests were meant to select are commented out between them
     /// (ISSUES.md B43), so only one form survives here. Note also that this runs at the
     /// inlet gamma even for the exhaust side, because <c>Main_Prog</c> passes its own
-    /// 1.3994 rather than either pipe's value.
+    /// 1.3994 rather than either pipe's value. Under B50 each side uses its own pipe's.
     /// </remarks>
     private (double MassIn, double MassOut, double PressureCorrection) MassFlow(
         in ManifoldRequest request, double dt)
     {
-        const double gamma = MassFlowGamma;
+        var inletGamma = _computedGammas ? _inletGamma : MassFlowGamma;
+        var exhaustGamma = _computedGammas ? _exhaustGamma : MassFlowGamma;
 
         var massIn = _inletThroat.Velocity * _inletThroat.Density
                      * _inletThroat.DischargeCoefficient * request.InletValveArea * dt;
@@ -345,11 +378,11 @@ public sealed class ManifoldSolver : IManifoldSource
 
         var inletStagnation = Math.Sqrt(
             (_inletThroat.SpeedOfSound * _inletThroat.SpeedOfSound)
-            + ((gamma - 1) / 2 * _inletThroat.Velocity * _inletThroat.Velocity));
+            + ((inletGamma - 1) / 2 * _inletThroat.Velocity * _inletThroat.Velocity));
 
         var exhaustStagnation = Math.Sqrt(
             (_exhaustThroat.SpeedOfSound * _exhaustThroat.SpeedOfSound)
-            + ((gamma - 1) / 2 * _exhaustThroat.Velocity * _exhaustThroat.Velocity));
+            + ((exhaustGamma - 1) / 2 * _exhaustThroat.Velocity * _exhaustThroat.Velocity));
 
         var correction =
             ((inletStagnation * inletStagnation * massIn)

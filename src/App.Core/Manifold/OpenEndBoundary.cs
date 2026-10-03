@@ -45,9 +45,10 @@ public static class OpenEndBoundary
         PipeGeometry pipe,
         double dt,
         double plenumPressure,
-        double plenumTemperature) =>
+        double plenumTemperature,
+        double gamma = CharacteristicSolver.InletGamma) =>
         Apply(
-            current, target, pipe, CharacteristicSolver.InletGamma, dt,
+            current, target, pipe, gamma, dt,
             plenumPressure, plenumTemperature,
             boundary: 0,
             interior: 1,
@@ -64,9 +65,10 @@ public static class OpenEndBoundary
         PipeGeometry pipe,
         double dt,
         double backPressure,
-        double backTemperature) =>
+        double backTemperature,
+        double gamma = CharacteristicSolver.ExhaustGamma) =>
         Apply(
-            current, target, pipe, CharacteristicSolver.ExhaustGamma, dt,
+            current, target, pipe, gamma, dt,
             backPressure, backTemperature,
             boundary: current.ActiveCount - 1,
             interior: current.ActiveCount - 2,

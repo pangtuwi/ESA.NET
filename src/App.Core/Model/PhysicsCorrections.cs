@@ -80,11 +80,19 @@ public static class CorrectionCatalogue
     public static Correction WoschniCombustionTerm { get; } =
         new("B75", "Woschni pressure-rise term in combustion and expansion only, as published");
 
+    /// <summary>
+    /// ISSUES.md B50: the wave solver runs on the gammas <c>InitVars</c> computes from the
+    /// equilibrium property model, not on the hard-coded 1.3994 and 1.3, and
+    /// <c>MassFlow</c> uses each pipe's own rather than 1.3994 for both.
+    /// </summary>
+    public static Correction ManifoldGammas { get; } =
+        new("B50", "Wave solver runs on the computed inlet and exhaust gammas, not 1.3994 and 1.3");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
         Rkf5Coefficient, ClosedCylinderMassFlow, WoschniMotoredAngle, WoschniSweptVolume,
-        WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm,
+        WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm, ManifoldGammas,
     ];
 }
 
