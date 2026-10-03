@@ -47,7 +47,8 @@ public static class ExhaustValveOpenBoundary
         double gamma = CharacteristicSolver.ExhaustGamma,
         bool wholeSubsonicBracket = false,
         bool singleRelaxation = false,
-        bool stagnationChoke = false)
+        bool stagnationChoke = false,
+        bool upwardProbe = false)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -265,8 +266,8 @@ public static class ExhaustValveOpenBoundary
                         previousProbeMach = mach;
 
                         // 0.99999 here, where the other three routines all probe upward
-                        // with 1.001. See ISSUES.md B64.
-                        p4 = 0.99999 * p4;
+                        // with 1.001; upwardProbe makes this one agree. See ISSUES.md B64.
+                        p4 = upwardProbe ? 1.001 * p4 : 0.99999 * p4;
                     }
                     else
                     {

@@ -220,6 +220,11 @@ public sealed class SimulationRunnerTests
         Assert.Equal(0, TorqueShift(CorrectionCatalogue.ExhaustReverseSingleRelaxation));
         Assert.Equal(0, TorqueShift(CorrectionCatalogue.ExhaustReverseStagnationChoke));
 
+        // B64 changes only the secant's path; B65 heats the charge with the gas actually at
+        // the inlet valve, by about three per cent of torque at this speed.
+        Assert.InRange(TorqueShift(CorrectionCatalogue.SecantProbe), 1e-7, 0.005);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.LiveInletTemperature), 0.01, 0.06);
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });

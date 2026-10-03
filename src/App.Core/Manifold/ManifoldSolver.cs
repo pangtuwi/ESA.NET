@@ -71,6 +71,12 @@ public sealed class ManifoldSolver : IManifoldSource
     /// <summary>B62: the exhaust reverse choke test uses the pipe's stagnation pressure.</summary>
     private readonly bool _exhaustReverseStagnationChoke;
 
+    /// <summary>B64: the exhaust open routine probes its secant upward, as the other three do.</summary>
+    private readonly bool _exhaustUpwardProbe;
+
+    /// <summary>B65: report the inlet valve end's temperature from the speed of sound it holds.</summary>
+    private readonly bool _liveInletTemperature;
+
     /// <summary>
     /// The inlet and exhaust pipes' gammas: 1.3994 and 1.3 as the original hard-codes them,
     /// or under B50 the equilibrium values <c>InitVars</c> leaves in
@@ -124,6 +130,8 @@ public sealed class ManifoldSolver : IManifoldSource
             physics?.IsOn(CorrectionCatalogue.ExhaustReverseSingleRelaxation) ?? false;
         _exhaustReverseStagnationChoke =
             physics?.IsOn(CorrectionCatalogue.ExhaustReverseStagnationChoke) ?? false;
+        _exhaustUpwardProbe = physics?.IsOn(CorrectionCatalogue.SecantProbe) ?? false;
+        _liveInletTemperature = physics?.IsOn(CorrectionCatalogue.LiveInletTemperature) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -305,9 +313,12 @@ public sealed class ManifoldSolver : IManifoldSource
             ExhaustVelocity: _exhaust.Velocity[0],
 
             // The pipe temperature arrays are written once at initialisation and never
-            // again, so this is permanently the starting plenum temperature. See
-            // ISSUES.md B65.
-            InletTemperature: _inlet.Temperature[inletEnd]);
+            // again, so this is permanently the starting plenum temperature. The solver
+            // carries temperature in the speed of sound it holds, and under B65 that is
+            // what is reported. See ISSUES.md B65.
+            InletTemperature: _liveInletTemperature
+                ? _inlet.SpeedOfSound[inletEnd] * _inlet.SpeedOfSound[inletEnd] / (_inletGamma * 287)
+                : _inlet.Temperature[inletEnd]);
     }
 
     private void SolveInletPipe(in ManifoldRequest request, double dt, double crankAngle, bool open)
@@ -353,7 +364,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
                 _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket,
-                _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke);
+                _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke, _exhaustUpwardProbe);
         }
         else
         {
