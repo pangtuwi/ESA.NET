@@ -25,8 +25,10 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The original's manual, a copy of legacy/ESA/Help/User_Manual.pdf. Help, User
-         Manual opens it from beside the executable. -->
+    <!-- The original's manual, converted from legacy/ESA User Manual.doc with LibreOffice.
+         Not the legacy User_Manual.pdf: that was made by running txt2pdf over the binary
+         .doc, so its 39 pages are the Word file's raw bytes printed as text. Help, User
+         Manual opens this from beside the executable. -->
     <None Include="Help\User_Manual.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

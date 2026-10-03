@@ -83,6 +83,20 @@ public sealed class DeadButtonTests
     public void TheUserManualIsInstalledBesideTheExecutable() =>
         Assert.True(File.Exists(MainWindowViewModel.UserManualPath), MainWindowViewModel.UserManualPath);
 
+    /// <summary>
+    /// The legacy PDF was made by running <c>txt2pdf</c> over the binary Word file, so it
+    /// opens as pages of noise. What ships must be a real conversion of the manual.
+    /// </summary>
+    [Fact]
+    public void TheShippedManualIsNotTheGarbledLegacyPdf()
+    {
+        var bytes = File.ReadAllBytes(MainWindowViewModel.UserManualPath);
+        var text = System.Text.Encoding.Latin1.GetString(bytes);
+
+        Assert.StartsWith("%PDF-", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("txt2pdf", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task AManualThatWillNotOpenIsReportedWithItsPath()
     {
