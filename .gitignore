@@ -6,3 +6,4 @@ obj/
 .idea/
 artifacts/
 .DS_Store
+.vscode/ESA.NET.code-workspace

@@ -27,9 +27,14 @@ public static class ClosedValveBoundary
 
     /// <summary>Applies the wall condition at the inlet pipe's valve end, its last point.</summary>
     public static void ApplyInlet(
-        PipeGrid current, PipeGrid target, PipeGeometry pipe, double dt, double wallVelocity = 0) =>
+        PipeGrid current,
+        PipeGrid target,
+        PipeGeometry pipe,
+        double dt,
+        double wallVelocity = 0,
+        double gamma = CharacteristicSolver.InletGamma) =>
         Apply(
-            current, target, pipe, CharacteristicSolver.InletGamma, dt, wallVelocity,
+            current, target, pipe, gamma, dt, wallVelocity,
             wall: current.ActiveCount - 1,
             interior: current.ActiveCount - 2,
             sign: 1,
@@ -37,9 +42,14 @@ public static class ClosedValveBoundary
 
     /// <summary>Applies the wall condition at the exhaust pipe's valve end, its first point.</summary>
     public static void ApplyExhaust(
-        PipeGrid current, PipeGrid target, PipeGeometry pipe, double dt, double wallVelocity = 0) =>
+        PipeGrid current,
+        PipeGrid target,
+        PipeGeometry pipe,
+        double dt,
+        double wallVelocity = 0,
+        double gamma = CharacteristicSolver.ExhaustGamma) =>
         Apply(
-            current, target, pipe, CharacteristicSolver.ExhaustGamma, dt, wallVelocity,
+            current, target, pipe, gamma, dt, wallVelocity,
             wall: 0,
             interior: 1,
             sign: -1,

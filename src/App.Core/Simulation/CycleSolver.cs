@@ -42,6 +42,9 @@ public sealed class CycleSolver
     /// <summary>B38: take Woschni's reference conditions at each inlet valve closing.</summary>
     private readonly bool _updateIvcReference;
 
+    /// <summary>B50: compute the manifold gammas, as <c>InitVars</c> does, for the wave solver.</summary>
+    private readonly bool _computeManifoldGammas;
+
     /// <param name="engine">The engine to simulate.</param>
     /// <param name="manifold">Where the manifold boundary conditions come from.</param>
     /// <param name="evaluator">Evaluates the <c>.eng</c> file's expressions.</param>
@@ -70,6 +73,7 @@ public sealed class CycleSolver
             physics?.IsOn(CorrectionCatalogue.ClosedCylinderMassFlow) ?? false;
 
         _updateIvcReference = physics?.IsOn(CorrectionCatalogue.IvcReference) ?? false;
+        _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
 
         _cylinder = new TwoZoneGas(engine.Cylinder);
         _plenum = new TwoZoneGas(engine.Plenum);
@@ -174,6 +178,26 @@ public sealed class CycleSolver
         // InitVars: PlenumT := Plenum.Tgas. The manifold solver reads this when it lays
         // out its grids on the first step.
         engine.Manifold.PlenumTemperature = _plenum.GasTemperature();
+
+        // InitVars computes GammaIn and GammaEx here and nothing ever reads them. B50 hands
+        // them to the wave solver, and only then are they computed, because the property
+        // models' solves would otherwise disturb Legacy's call history. Neither is computed
+        // as the original wrote it, because both of those are wrong (ISSUES.md B50):
+        if (_computeManifoldGammas)
+        {
+            // The unburnt model's first evaluation carries B18's transient - it starts the
+            // residual iteration from zeros - so the settled second one is taken. The
+            // original's would have been 1.3718 on the baseline engine; settled it is 1.3557.
+            _cylinder.Unburnt.Gamma(engine.Plenum.PGas, engine.Manifold.PlenumTemperature);
+            engine.Manifold.GammaIn = _cylinder.Unburnt.Gamma(
+                engine.Plenum.PGas, engine.Manifold.PlenumTemperature);
+
+            // The original asks at Exh.TGas, which is the unburnt 293.15 K because the
+            // exhaust holds no burnt mass yet, and so gets cold products. The exhaust
+            // temperature is in Tb, raw from the .exh table and therefore Celsius (B66).
+            engine.Manifold.GammaEx = _cylinder.Burnt.Gamma(
+                engine.Exhaust.PGas, engine.Exhaust.Tb + 273.15);
+        }
 
         engine.PressureAtIvc = engine.Plenum.PGas;
         engine.TemperatureAtIvc = _plenum.GasTemperature();

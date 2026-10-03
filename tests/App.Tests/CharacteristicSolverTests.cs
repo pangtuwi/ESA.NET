@@ -158,8 +158,10 @@ public sealed class CharacteristicSolverTests
     public void TheTwoPipesRunAtDifferentHardCodedGammas()
     {
         // INTERNAL_PIPE overwrites the gamma it is handed: 1.3994 for the inlet branch,
-        // 1.3 for the exhaust one. The equilibrium-derived GammaIn and GammaEx that
-        // InitVars computes are never read by anything. See ISSUES.md B50.
+        // 1.3 for the exhaust one, and these remain Legacy's. The equilibrium-derived
+        // GammaIn and GammaEx that InitVars computes are never read by anything in the
+        // original; under B50 the wave solver runs on computed gammas instead (see
+        // ManifoldGammaTests and ISSUES.md B50).
         Assert.Equal(1.3994, CharacteristicSolver.InletGamma);
         Assert.Equal(1.3, CharacteristicSolver.ExhaustGamma);
         Assert.NotEqual(CharacteristicSolver.InletGamma, CharacteristicSolver.ExhaustGamma);
