@@ -109,6 +109,10 @@ public sealed class RunFolderWiringTests
                                           && line.EndsWith(" 0", StringComparison.Ordinal));
         Assert.DoesNotContain("Solver warnings", viewModel.RunStatus, StringComparison.Ordinal);
 
+        // Lastcyc.txt's HC column is a literal zero; the manifest says so (ISSUES.md B71).
+        Assert.Contains(manifest, line => line.StartsWith("HC", StringComparison.Ordinal)
+                                          && line.Contains("not modelled", StringComparison.Ordinal));
+
         // Nothing was written beside the engine file, which is where the port used to put
         // the manifold files and where the original put them if you were lucky.
         Assert.False(File.Exists(Path.Combine(BaselinePaths.Directory!, RunArchive.ManifestFileName)));
