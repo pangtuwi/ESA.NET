@@ -88,11 +88,33 @@ public static class CorrectionCatalogue
     public static Correction ManifoldGammas { get; } =
         new("B50", "Wave solver runs on the computed inlet and exhaust gammas, not 1.3994 and 1.3");
 
+    /// <summary>
+    /// ISSUES.md B54: the inlet's closed-valve interpolant is built from the imposed wall
+    /// velocity, as the exhaust's is, not from the velocity left at the wall while it was open.
+    /// </summary>
+    public static Correction ClosedValveWallVelocity { get; } =
+        new("B54", "Inlet closed-valve interpolant uses the imposed wall velocity, as the exhaust's does");
+
+    /// <summary>
+    /// ISSUES.md B55: the inlet's open end requires density to converge as well as velocity
+    /// and pressure, as the exhaust's does.
+    /// </summary>
+    public static Correction OpenEndDensityConvergence { get; } =
+        new("B55", "Inlet open end converges on density too, as the exhaust's does");
+
+    /// <summary>
+    /// ISSUES.md B56: both sonic entrance-velocity solvers bracket the whole range below the
+    /// throat velocity, where the original used 0.6 of it at the inlet and 0.8 at the exhaust.
+    /// </summary>
+    public static Correction SonicEntranceBracket { get; } =
+        new("B56", "Sonic entrance velocity bracketed over the whole subsonic range at both valves");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
         Rkf5Coefficient, ClosedCylinderMassFlow, WoschniMotoredAngle, WoschniSweptVolume,
         WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm, ManifoldGammas,
+        ClosedValveWallVelocity, OpenEndDensityConvergence, SonicEntranceBracket,
     ];
 }
 

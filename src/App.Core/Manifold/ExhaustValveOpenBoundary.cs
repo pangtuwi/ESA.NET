@@ -44,7 +44,8 @@ public static class ExhaustValveOpenBoundary
         double valveFlowArea,
         InletValveReverseBoundary.ThroatState throat,
         (double Forward, double ForwardReverse, double Reverse) tuning,
-        double gamma = CharacteristicSolver.ExhaustGamma)
+        double gamma = CharacteristicSolver.ExhaustGamma,
+        bool wholeSubsonicBracket = false)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -186,7 +187,8 @@ public static class ExhaustValveOpenBoundary
                         crankAngle - 360, cylinderPressure / throatPressure, reverse: false);
 
                     entranceVelocity = ThroatVelocitySolvers.ExhaustSonic(
-                        gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound);
+                        gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
+                        wholeSubsonicBracket);
 
                     var machRatio = entranceVelocity / cylinderSpeedOfSound;
 

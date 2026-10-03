@@ -50,7 +50,10 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B38", CorrectionCatalogue.IvcReference.Entry);
         Assert.Equal("B75", CorrectionCatalogue.WoschniCombustionTerm.Entry);
         Assert.Equal("B50", CorrectionCatalogue.ManifoldGammas.Entry);
-        Assert.Equal(8, CorrectionCatalogue.All.Count);
+        Assert.Equal("B54", CorrectionCatalogue.ClosedValveWallVelocity.Entry);
+        Assert.Equal("B55", CorrectionCatalogue.OpenEndDensityConvergence.Entry);
+        Assert.Equal("B56", CorrectionCatalogue.SonicEntranceBracket.Entry);
+        Assert.Equal(11, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections().Describe());
 

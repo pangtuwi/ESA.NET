@@ -39,6 +39,10 @@ public static class OpenEndBoundary
     /// <summary>
     /// The inlet pipe's plenum end, its first point. Port of <c>INFLOW_INLET_PIPE</c>.
     /// </summary>
+    /// <param name="checksDensity">
+    /// ISSUES.md B55: require density to settle as well as velocity and pressure, as the
+    /// exhaust routine does. False is the original's inlet routine.
+    /// </param>
     public static void ApplyInlet(
         PipeGrid current,
         PipeGrid target,
@@ -46,14 +50,15 @@ public static class OpenEndBoundary
         double dt,
         double plenumPressure,
         double plenumTemperature,
-        double gamma = CharacteristicSolver.InletGamma) =>
+        double gamma = CharacteristicSolver.InletGamma,
+        bool checksDensity = false) =>
         Apply(
             current, target, pipe, gamma, dt,
             plenumPressure, plenumTemperature,
             boundary: 0,
             interior: 1,
             sign: -1,
-            checksDensityForConvergence: false);
+            checksDensityForConvergence: checksDensity);
 
     /// <summary>
     /// The exhaust pipe's tailpipe end, its last point. Port of

@@ -53,6 +53,15 @@ public sealed class ManifoldSolver : IManifoldSource
     /// <summary>B50: run the pipes on the gammas <c>InitVars</c> computes.</summary>
     private readonly bool _computedGammas;
 
+    /// <summary>B54: the inlet's closed-valve interpolant uses the imposed wall velocity.</summary>
+    private readonly bool _imposedWallVelocity;
+
+    /// <summary>B55: the inlet's open end waits for density to settle too.</summary>
+    private readonly bool _inletOpenEndChecksDensity;
+
+    /// <summary>B56: both sonic solvers bracket the whole range below the throat velocity.</summary>
+    private readonly bool _wholeSubsonicBracket;
+
     /// <summary>
     /// The inlet and exhaust pipes' gammas: 1.3994 and 1.3 as the original hard-codes them,
     /// or under B50 the equilibrium values <c>InitVars</c> leaves in
@@ -98,6 +107,9 @@ public sealed class ManifoldSolver : IManifoldSource
 
         _engine = engine;
         _computedGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
+        _imposedWallVelocity = physics?.IsOn(CorrectionCatalogue.ClosedValveWallVelocity) ?? false;
+        _inletOpenEndChecksDensity = physics?.IsOn(CorrectionCatalogue.OpenEndDensityConvergence) ?? false;
+        _wholeSubsonicBracket = physics?.IsOn(CorrectionCatalogue.SonicEntranceBracket) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -287,7 +299,8 @@ public sealed class ManifoldSolver : IManifoldSource
     private void SolveInletPipe(in ManifoldRequest request, double dt, double crankAngle, bool open)
     {
         OpenEndBoundary.ApplyInlet(
-            _inlet, _inletNext, _inletPipe, dt, _plenumPressure, _plenumTemperature, _inletGamma);
+            _inlet, _inletNext, _inletPipe, dt, _plenumPressure, _plenumTemperature, _inletGamma,
+            _inletOpenEndChecksDensity);
 
         for (var i = 1; i <= _inlet.ActiveCount - 2; i++)
         {
@@ -301,11 +314,13 @@ public sealed class ManifoldSolver : IManifoldSource
                 _inlet, _inletNext, _inletPipe, _inletValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _inletPipe.Area(_inletPipe.Length), request.InletValveArea,
-                _inletThroat, _inletTuning, _inletGamma);
+                _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket);
         }
         else
         {
-            ClosedValveBoundary.ApplyInlet(_inlet, _inletNext, _inletPipe, dt, gamma: _inletGamma);
+            ClosedValveBoundary.ApplyInlet(
+                _inlet, _inletNext, _inletPipe, dt, gamma: _inletGamma,
+                imposedWallVelocityInInterpolant: _imposedWallVelocity);
 
             // A shut valve passes nothing, so the throat quantities MassFlow multiplies
             // are left at whatever the last open step produced; the areas below are zero,
@@ -323,7 +338,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 _exhaust, _exhaustNext, _exhaustPipe, _exhaustValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
-                _exhaustThroat, _exhaustTuning, _exhaustGamma);
+                _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket);
         }
         else
         {

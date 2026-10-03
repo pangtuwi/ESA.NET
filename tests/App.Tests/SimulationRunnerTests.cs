@@ -206,6 +206,12 @@ public sealed class SimulationRunnerTests
         Assert.InRange(TorqueShift(CorrectionCatalogue.IvcReference), 0.02, 0.07);
         Assert.InRange(TorqueShift(CorrectionCatalogue.WoschniCombustionTerm), 1e-6, 0.005);
         Assert.InRange(TorqueShift(CorrectionCatalogue.ManifoldGammas), 0.005, 0.03);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.ClosedValveWallVelocity), 0, 0.005);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.SonicEntranceBracket), 0, 0.005);
+
+        // B55 changes nothing on the baseline engine to the last bit: converging pressure to
+        // 1e-3 Pa already pins density far inside its own tolerance (ISSUES.md B55).
+        Assert.Equal(0, TorqueShift(CorrectionCatalogue.OpenEndDensityConvergence));
 
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
