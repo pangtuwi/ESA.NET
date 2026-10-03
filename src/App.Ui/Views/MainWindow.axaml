@@ -21,12 +21,14 @@
     The shortcut captions are faithful to the original, which assigned Ctrl+Q to
     both Exit and QuickRun. MenuItem.InputGesture only displays the caption in
     Avalonia, so the KeyBindings below give the keys real behaviour; Ctrl+Q is
-    bound to Exit only, per ISSUES.md C8.
+    bound to Exit only, per ISSUES.md C8. Meta+Q is Cmd+Q, where a Mac user reaches
+    for it.
   -->
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+E" Command="{Binding EditEngineCommand}" />
     <KeyBinding Gesture="Ctrl+L" Command="{Binding LoadDefaultCommand}" />
     <KeyBinding Gesture="Ctrl+Q" Command="{Binding ExitCommand}" />
+    <KeyBinding Gesture="Meta+Q" Command="{Binding ExitCommand}" />
     <KeyBinding Gesture="Ctrl+R" Command="{Binding SinglePointSimulationCommand}" />
     <KeyBinding Gesture="Ctrl+M" Command="{Binding MultiPointSimulationCommand}" />
     <KeyBinding Gesture="Ctrl+P" Command="{Binding PauseCommand}" />

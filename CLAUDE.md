@@ -135,8 +135,14 @@ work.
   `[InManifold]` and `[ExManifold]` sections. The reader must not drop them.
 - The original menu assigned `Ctrl+Q` to both Exit and QuickRun. The shell
   reproduces both captions; in Avalonia `MenuItem.InputGesture` is display-only,
-  so nothing actually clashes yet. Resolve it when the commands get real
-  behaviour.
+  so the window's `KeyBinding`s decide, and `Ctrl+Q` (and `Cmd+Q`) go to Exit only.
+  QuickRun is still a stub; give it a different key when it gets behaviour (C8).
+- **Test a dialog through its real window, not just its view model.** The multi-run
+  grid's view model was tested thoroughly while its `DataGrid` refused to edit a
+  single cell, and four buttons shipped with no command at all (`ISSUES.md`
+  A20-A25). A `DataGridTextColumn` bound through an indexer is inferred read-only,
+  and `IsCancel` closes nothing in Avalonia. File pickers parent to the active
+  window, because a modal dialog disables the main one.
 - **`^` is left-associative**, so `2^3^2` is 64 and not 512. AdCalc recurses only
   while the next operator scores *strictly* higher, and `^` following `^` fails
   that test (`ADCALC.PAS:2555-2620`). Almost every other language disagrees.

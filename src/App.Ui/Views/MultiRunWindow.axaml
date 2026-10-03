@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:App.Ui.ViewModels"
+        xmlns:views="using:App.Ui.Views"
         mc:Ignorable="d" d:DesignWidth="1330" d:DesignHeight="660"
         x:Class="App.Ui.Views.MultiRunWindow"
         x:DataType="vm:MultiRunViewModel"
@@ -47,43 +48,48 @@
                Text="{Binding Warning}" TextWrapping="Wrap" Foreground="#B03030"
                IsVisible="{Binding Warning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
+    <!-- Each column says IsReadOnly="False" outright. Left to itself the grid infers
+         read-only from a Cells[n].Value binding, an indexer into a read-only list, and
+         then no cell will enter edit mode at all (GitHub issue 149). Typing starts an
+         edit, as it did in the original's TStringGrid; Avalonia otherwise needs F2. -->
     <DataGrid x:Name="RunGrid" Margin="10,0,10,0"
               ItemsSource="{Binding Rows}"
               SelectedItem="{Binding SelectedRow}"
               CanUserReorderColumns="False" CanUserSortColumns="False"
               CanUserResizeColumns="True" GridLinesVisibility="All"
               HeadersVisibility="All" IsReadOnly="False"
-              AutoGenerateColumns="False">
+              AutoGenerateColumns="False"
+              views:DataGridTyping.BeginEditOnTyping="True">
       <DataGrid.Columns>
         <DataGridTextColumn Header="No" Width="Auto" MinWidth="56" IsReadOnly="True"
                             Binding="{Binding Number}" />
-        <DataGridTextColumn Header="Speed" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="Speed" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[0].Value}" />
-        <DataGridTextColumn Header="Iters" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="Iters" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[1].Value}" />
-        <DataGridTextColumn Header="IManfFile" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="IManfFile" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[2].Value}" />
-        <DataGridTextColumn Header="EManfFile" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="EManfFile" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[3].Value}" />
-        <DataGridTextColumn Header="ICamFile" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="ICamFile" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[4].Value}" />
-        <DataGridTextColumn Header="ECamFile" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="ECamFile" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[5].Value}" />
-        <DataGridTextColumn Header="IVO" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="IVO" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[6].Value}" />
-        <DataGridTextColumn Header="IVC" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="IVC" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[7].Value}" />
-        <DataGridTextColumn Header="EVO" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="EVO" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[8].Value}" />
-        <DataGridTextColumn Header="EVC" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="EVC" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[9].Value}" />
-        <DataGridTextColumn Header="IValveLift" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="IValveLift" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[10].Value}" />
-        <DataGridTextColumn Header="EValveLift" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="EValveLift" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[11].Value}" />
-        <DataGridTextColumn Header="Spark °BTDC" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="Spark °BTDC" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[12].Value}" />
-        <DataGridTextColumn Header="Burn Angle°" Width="Auto" MinWidth="56"
+        <DataGridTextColumn Header="Burn Angle°" Width="Auto" MinWidth="56" IsReadOnly="False"
                             Binding="{Binding Cells[13].Value}" />
       </DataGrid.Columns>
     </DataGrid>

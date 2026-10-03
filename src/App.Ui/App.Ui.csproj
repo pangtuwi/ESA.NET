@@ -24,6 +24,11 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The original's manual, a copy of legacy/ESA/Help/User_Manual.pdf. Help, User
+         Manual opens it from beside the executable. -->
+    <None Include="Help\User_Manual.pdf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\App.Core\App.Core.csproj" />

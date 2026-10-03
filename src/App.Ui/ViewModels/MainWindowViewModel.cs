@@ -33,6 +33,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly MultiRunner _multiRunner;
     private readonly IRunTimeGraphOptionsWindowService _runTimeGraphOptions;
     private readonly IWorkspace _workspace;
+    private readonly IApplicationShell _shell;
+    private readonly IAboutWindowService _about;
 
     private CancellationTokenSource? _running;
 
@@ -48,7 +50,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         MultiRunner multiRunner,
         ISimulateOptionsWindowService simulateOptions,
         IRunTimeGraphOptionsWindowService runTimeGraphOptions,
-        IWorkspace workspace)
+        IWorkspace workspace,
+        IApplicationShell shell,
+        IAboutWindowService about)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
@@ -62,6 +66,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _simulateOptions = simulateOptions;
         _runTimeGraphOptions = runTimeGraphOptions;
         _workspace = workspace;
+        _shell = shell;
+        _about = about;
     }
 
     /// <summary>
@@ -394,10 +400,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Ends the application, stopping any run first. Port of <c>Exit1Click</c>.
+    /// </summary>
+    /// <remarks>
+    /// This was an empty stub, so File, Exit and Ctrl+Q both did nothing (GitHub issue
+    /// 144). Ctrl+Q reaches only this command, never QuickRun - ISSUES.md C8.
+    /// </remarks>
     [RelayCommand]
-    private static void Exit()
+    private void Exit()
     {
-        // The lifetime shutdown belongs to the view.
+        _running?.Cancel();
+        _shell.Exit();
     }
 
     // Run. Delphi: SinglePointSimulation1Click, MultiPointSimulation1Click,
@@ -935,17 +949,28 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     // Help. Delphi: Contents1Click, About1Click.
 
+    /// <summary>Where the user manual is installed, beside the executable.</summary>
+    public static string UserManualPath { get; } =
+        Path.Combine(AppContext.BaseDirectory, "Help", "User_Manual.pdf");
+
+    /// <summary>
+    /// Opens the user manual. Port of <c>Contents1Click</c>, which only said where to find
+    /// it: <c>'Open "User_Manual.doc" or "User_Manual.pdf" in C:\ESA\Help'</c>. The PDF now
+    /// ships with the application and opens in the system viewer; if it cannot, the status
+    /// line says where it is, as the original did (GitHub issue 146).
+    /// </summary>
     [RelayCommand]
-    private static void UserManual()
+    private async Task UserManualAsync()
     {
-        // Phase 3.
+        if (!await _shell.OpenFileAsync(UserManualPath))
+        {
+            RunStatus = $"The user manual could not be opened. It is at {UserManualPath}";
+        }
     }
 
+    /// <summary>Shows the About box. Port of <c>About1Click</c> (GitHub issue 145).</summary>
     [RelayCommand]
-    private static void About()
-    {
-        // Phase 3.
-    }
+    private Task AboutAsync() => _about.ShowAsync();
 
     /// <summary>
     /// The status line for one run: progress while it runs, then its outcome, and nothing

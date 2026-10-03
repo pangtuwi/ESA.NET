@@ -4,7 +4,10 @@ using App.Ui.Dialogs;
 using App.Ui.ViewModels;
 using App.Ui.Views;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Threading;
 
 namespace App.Tests;
 
@@ -272,6 +275,85 @@ public sealed class MultiRunEditorTests
 
         Assert.NotNull(window.FindControl<TextBlock>("BaseFileText"));
         Assert.NotNull(window.FindControl<TextBlock>("SummaryText"));
+    }
+
+    /// <summary>Shows the window with the Speed cell of the first row current and focused.</summary>
+    private static (MultiRunViewModel ViewModel, MultiRunWindow Window, DataGrid Grid) ShowWithSpeedCellSelected()
+    {
+        var (viewModel, _) = Build();
+        var window = new MultiRunWindow { DataContext = viewModel };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var grid = window.FindControl<DataGrid>("RunGrid")
+                   ?? throw new InvalidOperationException("The multi-run window has no grid.");
+
+        grid.SelectedIndex = 0;
+        grid.CurrentColumn = grid.Columns[1];
+        grid.Focus();
+        Dispatcher.UIThread.RunJobs();
+
+        return (viewModel, window, grid);
+    }
+
+    /// <summary>
+    /// GitHub issue 149. Bound to <c>Cells[n].Value</c>, an indexer into a read-only list,
+    /// the grid inferred every column as read-only, so no cell could enter edit mode at all.
+    /// </summary>
+    [AvaloniaFact]
+    public void EveryEditableColumnCanBeEdited()
+    {
+        var (_, window, grid) = ShowWithSpeedCellSelected();
+
+        foreach (var column in grid.Columns.Skip(1))
+        {
+            Assert.False(column.IsReadOnly, $"{column.Header} is read-only");
+
+            grid.CurrentColumn = column;
+
+            Assert.True(grid.BeginEdit(), $"{column.Header} will not enter edit mode");
+            Assert.True(grid.CancelEdit());
+        }
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void AnEditCommittedWithEnterReachesTheGrid()
+    {
+        var (viewModel, window, _) = ShowWithSpeedCellSelected();
+
+        window.KeyPressQwerty(PhysicalKey.F2, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+        window.KeyPressQwerty(PhysicalKey.Backspace, RawInputModifiers.None);
+        window.KeyTextInput("3500");
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("3500", viewModel.Grid[0, 0]);
+        Assert.Equal(1, viewModel.RunCount);
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// The original's <c>TStringGrid</c> starts editing on a keystroke. Avalonia's needs F2,
+    /// which is Fn+F2 on a Mac, so typing alone has to be enough.
+    /// </summary>
+    [AvaloniaFact]
+    public void TypingIntoASelectedCellReplacesWhatItHeld()
+    {
+        var (viewModel, window, _) = ShowWithSpeedCellSelected();
+
+        window.KeyTextInput("4");
+        window.KeyTextInput("000");
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("4000", viewModel.Grid[0, 0]);
+
+        window.Close();
     }
 
     [Fact]

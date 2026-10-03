@@ -560,6 +560,21 @@ public sealed partial class EditEngineViewModel : ObservableValidator
     }
 
     /// <summary>
+    /// Delphi <c>BCancel</c>, a <c>ModalResult</c> button that closed the form without
+    /// <c>ReadFromEdits</c>. The form's fields are copies, so discarding them is all
+    /// cancelling has to do: nothing reaches the definition unless OK is pressed.
+    /// </summary>
+    /// <remarks>
+    /// The button carried <c>IsCancel</c> and no command, which in Avalonia only makes
+    /// Escape press it - so it did nothing at all (GitHub issue 147).
+    /// </remarks>
+    [RelayCommand]
+    private void Cancel() => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Raised when Cancel asks for the window to close with nothing applied.</summary>
+    public event EventHandler? CloseRequested;
+
+    /// <summary>
     /// Raised after OK has written the form back to the definition, so the shell can
     /// re-derive the engine the simulation reads. Without it the operator's edits reach
     /// the definition and stop there - ISSUES.md C2.
