@@ -308,12 +308,94 @@ public sealed class SimulationWiringTests
         Assert.Equal("Pressure [bar]", viewModel.GasFlowChart!.YAxisLabel);
     }
 
-    /// <summary>Answers the Graph Options dialog with OK and a chosen mode.</summary>
+    /// <summary>Answers the Graph Options dialog with OK, changing what a test asks for.</summary>
     private sealed class StubGraphOptions : IRunTimeGraphOptionsWindowService
     {
-        public bool Velocities { get; set; }
+        public Func<GraphOptions, GraphOptions> Change { get; set; } = options => options;
 
-        public Task<RunTimeGraphOptionsResult> ShowAsync(bool showGasFlowVelocities) =>
-            Task.FromResult(new RunTimeGraphOptionsResult(Accepted: true, Velocities));
+        public bool Velocities
+        {
+            set => Change = options => options with
+            {
+                GasFlow = value ? GasFlowGraph.Velocity : GasFlowGraph.Pressure,
+            };
+        }
+
+        public Task<RunTimeGraphOptionsResult> ShowAsync(GraphOptions current) =>
+            Task.FromResult(new RunTimeGraphOptionsResult(Accepted: true, Change(current)));
+    }
+
+    private static async Task<(MainWindowViewModel ViewModel, StubGraphOptions Options)> RunWithGraphOptionsAsync()
+    {
+        var options = new StubGraphOptions();
+
+        var viewModel = TestServices.Resolve<MainWindowViewModel>(services =>
+        {
+            services.AddSingleton<IMultiRunWindowService>(new StubMultiRunEditor());
+            services.AddSingleton<ISimulateOptionsWindowService>(new StubSimulateOptions());
+            services.AddSingleton<IRunTimeGraphOptionsWindowService>(options);
+        });
+
+        viewModel.CurrentEngine = TestServices.Resolve<IEngineLoader>()
+            .Load(BaselinePaths.File("A2China.eng"));
+        viewModel.EngineSpeed = 4000;
+        viewModel.Settings.CycleCount = 6;
+        viewModel.Settings.OneZoneCycleCount = 1;
+        viewModel.Settings.MassBalance = 1;
+
+        await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
+
+        return (viewModel, options);
+    }
+
+    /// <summary>
+    /// ISSUES.md A27: the dialog shipped with Mass Transfer and Nothing greyed out, no P-V
+    /// or In Cylinder groups and no Y-axis scaling. Each now reaches the charts.
+    /// </summary>
+    [Fact]
+    public async Task EveryGraphOptionReachesTheEmbeddedCharts()
+    {
+        BaselinePaths.Require();
+
+        var (viewModel, options) = await RunWithGraphOptionsAsync();
+
+        // Mass Transfer draws the mass balance.
+        options.Change = o => o with { GasFlow = GasFlowGraph.MassTransfer };
+        await viewModel.RunTimeGraphOptionsCommand.ExecuteAsync(null);
+
+        Assert.Equal("Gas Flow: Mass Balance", viewModel.GasFlowChart!.Title);
+        Assert.All(viewModel.GasFlowChart.Series, s => Assert.NotEmpty(s.Y));
+
+        // Nothing leaves each quadrant empty.
+        options.Change = o => o with { GasFlow = GasFlowGraph.Nothing, PressureVolume = false, InCylinder = false };
+        await viewModel.RunTimeGraphOptionsCommand.ExecuteAsync(null);
+
+        Assert.Null(viewModel.GasFlowChart);
+        Assert.Null(viewModel.PressureVolumeChart);
+        Assert.Null(viewModel.InCylinderChart);
+
+        // Limits are laid over each chart's own, a negative minimum included - which the
+        // original's "greater than zero" test could never take.
+        options.Change = _ => GraphOptions.Default with
+        {
+            GasFlow = GasFlowGraph.Velocity,
+            GasFlowAxis = new AxisLimits(-200, 300),
+            PressureVolumeAxis = new AxisLimits(null, 80),
+            InCylinderAxis = new AxisLimits(5, 90),
+        };
+        await viewModel.RunTimeGraphOptionsCommand.ExecuteAsync(null);
+
+        Assert.Equal(-200, viewModel.GasFlowChart!.YMinimum);
+        Assert.Equal(300, viewModel.GasFlowChart.YMaximum);
+        Assert.Equal(80, viewModel.PressureVolumeChart!.YMaximum);
+        Assert.Equal(5, viewModel.InCylinderChart!.YMinimum);
+        Assert.Equal(90, viewModel.InCylinderChart.YMaximum);
+
+        // A blank limit leaves the chart's own: the velocity chart's -150 to 450.
+        options.Change = o => o with { GasFlowAxis = AxisLimits.Automatic };
+        await viewModel.RunTimeGraphOptionsCommand.ExecuteAsync(null);
+
+        Assert.Equal(-150, viewModel.GasFlowChart!.YMinimum);
+        Assert.Equal(450, viewModel.GasFlowChart.YMaximum);
     }
 }

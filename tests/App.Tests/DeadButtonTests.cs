@@ -188,6 +188,13 @@ public sealed class DeadButtonTests
             }
 
             Assert.NotNull(window.FindControl<Button>("CancelButton")!.Command);
+
+            // ISSUES.md A5: No Cylinders stays editable, deliberately unlike the original.
+            var cylinders = window.FindControl<TextBox>("CylinderCountBox");
+
+            Assert.NotNull(cylinders);
+            Assert.True(cylinders.IsEnabled);
+            Assert.False(cylinders.IsReadOnly);
         }
         finally
         {

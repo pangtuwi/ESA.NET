@@ -38,6 +38,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private CancellationTokenSource? _running;
 
+    /// <summary>Run ▸ Pause for the run in progress; null when nothing is running.</summary>
+    private RunPause? _pause;
+
     public MainWindowViewModel(
         IEngineLoader engineLoader,
         IEngineDefinitionStore definitions,
@@ -162,13 +165,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private double _engineSpeed = 4000;
 
-    /// <summary>
-    /// Which run-time charts the last run was asked for, Delphi <c>ShowGraphs</c>,
-    /// <c>ShowFlowGraphs</c>, <c>ShowPVGraphs</c> and <c>ShowCylGraphs</c>.
-    /// </summary>
-    [ObservableProperty]
-    private GraphSelection _runGraphs = new(true, true, true);
-
     /// <summary>The headline figures, shown in the top-left panel.</summary>
     public SimulationResultsViewModel Results { get; } = new();
 
@@ -185,13 +181,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private ChartDefinition? _inCylinderChart;
 
     /// <summary>
-    /// Whether the gas-flow quadrant shows velocities rather than pressures. The original
-    /// offers the same choice on its run-time graph options dialog.
+    /// What each embedded chart plots and how its Y axis is scaled: the Run-Time Graph
+    /// Options dialog, Delphi <c>FGraphOptions</c>. The Single Speed dialog's chart choice
+    /// is written into it before each run, as <c>Main.pas:861-882</c> does.
     /// </summary>
     [ObservableProperty]
-    private bool _showGasFlowVelocities;
+    private GraphOptions _graphs = GraphOptions.Default;
 
-    partial void OnShowGasFlowVelocitiesChanged(bool value) => RefreshEmbeddedCharts();
+    partial void OnGraphsChanged(GraphOptions value) => RefreshEmbeddedCharts();
 
     /// <summary>What the simulation is doing, for the status bar.</summary>
     [ObservableProperty]
@@ -202,6 +199,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(SinglePointSimulationCommand))]
     [NotifyCanExecuteChangedFor(nameof(MultiPointSimulationCommand))]
     [NotifyCanExecuteChangedFor(nameof(StopCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PauseCommand))]
+    [NotifyCanExecuteChangedFor(nameof(QuickRunCommand))]
     private bool _isRunning;
 
     /// <summary>
@@ -442,12 +441,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         // Delphi FormClose hard-codes No1zCycles to 1 whatever ESA.ini said.
         Settings.OneZoneCycleCount = 1;
 
-        RunGraphs = options.Graphs;
+        Graphs = Graphs.WithSelection(options.Graphs);
 
         var engine = CurrentEngine!.Engine;
         engine.Rpm = EngineSpeed;
 
         _running = new CancellationTokenSource();
+        _pause = new RunPause();
         IsRunning = true;
         RunStatus = "Simulating...";
 
@@ -467,17 +467,27 @@ public sealed partial class MainWindowViewModel : ObservableObject
             // Progress<T> posts each report to the context it was made on. Only the gate
             // stops one that arrives late from overwriting the final status: see
             // RunStatusGate.
+            var pause = _pause;
+
+            // A report posted just before Pause would otherwise land after "Paused" and
+            // replace it, so reports delivered while paused are dropped.
             var progress = new Progress<SimulationProgress>(
-                p => status.Report(
-                    $"Cycle {p.Cycle} of {p.RequestedCycles}   "
-                    + $"{p.CrankAngle,4:F0}°   mass balance {p.MassBalance:F2} mg"));
+                p =>
+                {
+                    if (!pause.IsPaused)
+                    {
+                        status.Report(
+                            $"Cycle {p.Cycle} of {p.RequestedCycles}   "
+                            + $"{p.CrankAngle,4:F0}°   mass balance {p.MassBalance:F2} mg");
+                    }
+                });
 
             // Every run archives its manifold files, so the engine's Save Manifold Data
             // flag no longer gates them - see ISSUES.md C1 to C4.
             result = await Task.Run(
                 () => _runner.Run(
                     engine, Settings, progress, token,
-                    manifoldRecorder: manifoldWriter, recordManifoldData: true),
+                    manifoldRecorder: manifoldWriter, recordManifoldData: true, pause: pause),
                 token);
 
             Trace = result.Trace;
@@ -529,6 +539,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         finally
         {
             IsRunning = false;
+            ReleasePause();
             _running.Dispose();
             _running = null;
         }
@@ -570,6 +581,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         _running = new CancellationTokenSource();
+        _pause = new RunPause();
         IsRunning = true;
 
         var status = new RunStatusGate(text => RunStatus = text);
@@ -601,11 +613,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
             var token = _running.Token;
             var path = CurrentEngineFile;
 
-            // Through the gate, as the single-point run's are: see RunStatusGate.
+            var pause = _pause;
+
+            // Through the gate, as the single-point run's are: see RunStatusGate. Dropped
+            // while paused, for the same reason.
             var progress = new Progress<MultiRunProgress>(
-                p => status.Report(
-                    $"Run {p.Row + 1} of {p.TotalRows} at {p.Speed:F0} rev/min   "
-                    + $"cycle {p.Inner.Cycle}   {p.Inner.CrankAngle,4:F0}°"));
+                p =>
+                {
+                    if (!pause.IsPaused)
+                    {
+                        status.Report(
+                            $"Run {p.Row + 1} of {p.TotalRows} at {p.Speed:F0} rev/min   "
+                            + $"cycle {p.Inner.Cycle}   {p.Inner.CrankAngle,4:F0}°");
+                    }
+                });
 
             // A row at a time, awaited individually, so the curve builds as the sweep
             // proceeds - the original adds its performance point and redraws inside the
@@ -620,7 +641,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
                 var completed = await Task.Run(
                     () => _multiRunner.RunRow(
-                        path, MultiRun, index, Settings, progress, token, manifoldWriter),
+                        path, MultiRun, index, Settings, progress, token, manifoldWriter, pause),
                     token);
 
                 results.Add(completed);
@@ -656,6 +677,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         finally
         {
             IsRunning = false;
+            ReleasePause();
             _running.Dispose();
             _running = null;
         }
@@ -790,32 +812,89 @@ public sealed partial class MainWindowViewModel : ObservableObject
     // reason to disable it.
     private bool CanStartMultiRun => CurrentEngine is not null && !IsRunning;
 
-    [RelayCommand]
-    private static void Pause()
+    /// <summary>
+    /// Holds the run, or lets it carry on. Port of <c>Pause1Click</c>, which toggled
+    /// <c>Paused</c> and the status line between "Paused" and "Running Simulation".
+    /// </summary>
+    /// <remarks>
+    /// The run stops at the end of the step in progress and nothing about it changes, so
+    /// a resumed run finishes exactly as an uninterrupted one would. Stop still works while
+    /// paused. The elapsed time includes the pause, as the original's did.
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(IsRunning))]
+    private void Pause()
     {
-        // Phase 4.
+        if (_pause is not { } pause)
+        {
+            return;
+        }
+
+        if (pause.IsPaused)
+        {
+            pause.Resume();
+            RunStatus = "Running Simulation";
+        }
+        else
+        {
+            pause.Pause();
+            RunStatus = "Paused";
+        }
+    }
+
+    /// <summary>Lets go of a finished run's pause, so nothing is left waiting on it.</summary>
+    private void ReleasePause()
+    {
+        var pause = _pause;
+        _pause = null;
+
+        pause?.Resume();
+        pause?.Dispose();
     }
 
     /// <summary>Asks a running simulation to stop at the next step.</summary>
     [RelayCommand(CanExecute = nameof(IsRunning))]
     private void Stop() => _running?.Cancel();
 
-    [RelayCommand]
-    private static void QuickRun()
+    /// <summary>
+    /// Opens the default engine and runs it. Port of <c>QuickRunClick</c>, which is
+    /// <c>LoadDefault1Click</c> followed by <c>SinglePointSimulation1Click</c> - so the
+    /// Single Speed dialog still appears, and Cancel there still abandons the run.
+    /// </summary>
+    /// <remarks>
+    /// No key of its own: the original gave it Ctrl+Q, which Exit also had, and Exit keeps
+    /// it (ISSUES.md C8).
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(CanQuickRun))]
+    private async Task QuickRunAsync()
     {
-        // Phase 4.
+        var before = CurrentEngine;
+
+        LoadDefault();
+
+        // LoadDefault has already said why in the status line if nothing opened. The
+        // original carried on regardless and ran whatever engine was open before; a
+        // failed load stops here instead.
+        if (CurrentEngine is null || ReferenceEquals(CurrentEngine, before)
+            || !SinglePointSimulationCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        await SinglePointSimulationCommand.ExecuteAsync(null);
     }
+
+    private bool CanQuickRun => !IsRunning;
 
     // Graph. Delphi: Options1Click, ShowTorqueCurve1Click, ValveOpening1Click, HeatLoss1Click.
 
     [RelayCommand]
     private async Task RunTimeGraphOptionsAsync()
     {
-        var result = await _runTimeGraphOptions.ShowAsync(ShowGasFlowVelocities);
+        var result = await _runTimeGraphOptions.ShowAsync(Graphs);
 
         if (result.Accepted)
         {
-            ShowGasFlowVelocities = result.ShowGasFlowVelocities;
+            Graphs = result.Options;
         }
     }
 
@@ -897,21 +976,30 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 LegacyInterpolation.AtSpeed(
                     engine.SparkAngle.Rpm, engine.SparkAngle.Values, engine.Rpm));
 
-        // The Single Speed Simulation dialog decides which of the three the run draws, as
-        // ShowFlowGraphs, ShowPVGraphs and ShowCylGraphs do in the original. A quadrant
-        // that was not asked for is left empty rather than drawn anyway.
-        PressureVolumeChart = RunGraphs.PressureVolume
-            ? EngineCharts.PressureVolume(trace)
+        // What each quadrant plots, and any Y-axis limits laid over the chart's own, come
+        // from the Run-Time Graph Options dialog. The Single Speed dialog's On, Off or
+        // Selection has already been written into it, as the original does. A quadrant set
+        // to Nothing is left empty rather than drawn anyway.
+        var graphs = Graphs;
+
+        PressureVolumeChart = graphs.PressureVolume
+            ? graphs.PressureVolumeAxis.ApplyTo(EngineCharts.PressureVolume(trace))
             : null;
 
-        GasFlowChart = RunGraphs.GasFlow
-            ? ShowGasFlowVelocities
-                ? EngineCharts.GasFlowVelocity(trace, events)
-                : EngineCharts.GasFlowPressure(trace, engine?.Rpm ?? 0, events)
+        GasFlowChart = graphs.GasFlow switch
+        {
+            GasFlowGraph.Pressure => EngineCharts.GasFlowPressure(trace, engine?.Rpm ?? 0, events),
+            GasFlowGraph.Velocity => EngineCharts.GasFlowVelocity(trace, events),
+            GasFlowGraph.MassTransfer => EngineCharts.GasFlowMass(trace),
+            _ => null,
+        } is { } gasFlow
+            ? graphs.GasFlowAxis.ApplyTo(gasFlow)
             : null;
 
-        InCylinderChart = RunGraphs.InCylinder
-            ? EngineCharts.InCylinder(trace)
+        // The original also scales the right-hand temperature axis in step with the left
+        // (Max / 100 * 6000); here it keeps fitting its own data.
+        InCylinderChart = graphs.InCylinder
+            ? graphs.InCylinderAxis.ApplyTo(EngineCharts.InCylinder(trace))
             : null;
     }
 

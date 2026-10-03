@@ -113,6 +113,11 @@ public sealed class RunManifest
         Line("Mass balance reached", Number(
             Math.Abs(engine.TotalMassInInletValve - engine.TotalMassOutExhaustValve) * 1e6, 3) + " mg");
 
+        // Lastcyc.txt keeps its HC column, byte for byte the original's format, but nothing
+        // computes it: the equilibrium model has no unburnt fuel to report. Said here,
+        // beside the file, so a zero column is not read as a clean burn (ISSUES.md B71).
+        Line("HC", "not modelled; the HC column in Lastcyc.txt is always 0");
+
         return this;
     }
 

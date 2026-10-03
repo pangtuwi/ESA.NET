@@ -84,6 +84,26 @@ public sealed class EngineEditRefreshTests
         Assert.True(viewModel.CurrentEngine.Engine.SaveManifoldData);
     }
 
+    /// <summary>
+    /// No Cylinders is editable on purpose, where the original greyed it out (ISSUES.md A5,
+    /// F3): since B1 every performance figure is right for any count, so a changed count
+    /// has to reach the engine the next run reads.
+    /// </summary>
+    [Fact]
+    public void AnEditedCylinderCountReachesTheEngineTheRunReads()
+    {
+        BaselinePaths.Require();
+
+        var (viewModel, editor) = Loaded();
+
+        Assert.Equal(4, viewModel.CurrentEngine!.Engine.CylinderCount);
+
+        Edit(viewModel, editor, form => form.CylinderCount = 6);
+
+        Assert.Equal(6, viewModel.CurrentEngine!.Definition.CylinderCount);
+        Assert.Equal(6, viewModel.CurrentEngine.Engine.CylinderCount);
+    }
+
     [Fact]
     public void UntickingItTurnsOutputOffAgain()
     {

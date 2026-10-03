@@ -13,10 +13,12 @@ public sealed class RunTimeGraphOptionsWindowService : IRunTimeGraphOptionsWindo
     public RunTimeGraphOptionsWindowService(Func<RunTimeGraphOptionsViewModel> viewModels) =>
         _viewModels = viewModels;
 
-    public async Task<RunTimeGraphOptionsResult> ShowAsync(bool showGasFlowVelocities)
+    public async Task<RunTimeGraphOptionsResult> ShowAsync(GraphOptions current)
     {
+        ArgumentNullException.ThrowIfNull(current);
+
         var viewModel = _viewModels();
-        viewModel.Load(showGasFlowVelocities);
+        viewModel.Load(current);
 
         var window = new RunTimeGraphOptionsWindow { DataContext = viewModel };
 
@@ -39,9 +41,9 @@ public sealed class RunTimeGraphOptionsWindowService : IRunTimeGraphOptionsWindo
             viewModel.CloseRequested -= Close;
         }
 
-        return new RunTimeGraphOptionsResult(
-            viewModel.Accepted,
-            viewModel.ShowGasFlowVelocities);
+        return viewModel.Accepted
+            ? new RunTimeGraphOptionsResult(true, viewModel.Options)
+            : new RunTimeGraphOptionsResult(false, current);
     }
 
     private static Window? Owner() =>

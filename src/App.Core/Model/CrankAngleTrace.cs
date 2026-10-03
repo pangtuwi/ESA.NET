@@ -20,6 +20,11 @@ public sealed class CrankAngleTrace
     /// The scale factors are what turn cubic metres into cc, kilograms into milligrams
     /// and mole fractions into parts per thousand. They belong to the presentation, not
     /// the simulation, which is why the stored values stay in SI.
+    /// <para>
+    /// <c>HC</c> is always zero: <c>UpdateCApoint</c> writes a literal 0 and nothing models
+    /// unburnt hydrocarbons (ISSUES.md B71). The heading is kept so the export stays the
+    /// original's format; the run manifest says the column is not modelled.
+    /// </para>
     /// </remarks>
     private static readonly (string Name, int Decimals, double Scale)[] Columns =
     [

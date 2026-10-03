@@ -72,7 +72,10 @@
           <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding EngineName}" />
 
           <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="No Cylinders" />
-          <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CylinderCount}" />
+          <!-- Editable on purpose. The original's ENoCylS was Enabled=False, but since B1 the
+               performance figures are right for any count, so it is a deliberate
+               departure (ISSUES.md A5, F3). Capacity stays read-only, as derived values are. -->
+          <TextBox x:Name="CylinderCountBox" Grid.Row="1" Grid.Column="1" Text="{Binding CylinderCount}" />
 
           <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Bore" />
           <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Bore}" />
