@@ -44,6 +44,9 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B14", CorrectionCatalogue.Rkf5Coefficient.Entry);
         Assert.Contains(CorrectionCatalogue.ClosedCylinderMassFlow, CorrectionCatalogue.All);
         Assert.Equal("B46", CorrectionCatalogue.ClosedCylinderMassFlow.Entry);
+        Assert.Equal("B32", CorrectionCatalogue.WoschniMotoredAngle.Entry);
+        Assert.Equal("B33", CorrectionCatalogue.WoschniSweptVolume.Entry);
+        Assert.Equal(4, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections().Describe());
 

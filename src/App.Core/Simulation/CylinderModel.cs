@@ -69,6 +69,18 @@ public sealed class CylinderModel
     /// <summary>Delphi <c>WoshiniCoeff</c>, read from the <c>.eng</c> file.</summary>
     public double WoschniCoefficient { get; set; }
 
+    /// <summary>
+    /// ISSUES.md B32: take the Woschni motored volume at the angle the derivative was
+    /// called with, not at <see cref="CrankAngleRadians"/>. Off reproduces the original.
+    /// </summary>
+    public bool MotoredVolumeAtCallAngle { get; init; }
+
+    /// <summary>
+    /// ISSUES.md B33: use the cylinder's swept volume in the Woschni velocity, not
+    /// <c>VCyl(pi) * CR/(CR+1)</c>. Off reproduces the original.
+    /// </summary>
+    public bool TrueSweptVolume { get; init; }
+
     /// <summary>The current crank-angle state, Delphi <c>State</c>.</summary>
     public EngineState State { get; set; }
 
@@ -110,16 +122,36 @@ public sealed class CylinderModel
     /// The motored volume comes from <see cref="CrankAngleRadians"/> - the solver's
     /// current crank angle - and not from the angle the calling derivative was handed.
     /// Inside an RKF5 step the two differ at five of the six stages, so the motored
-    /// pressure lags the trial state. Reproduced. See ISSUES.md B32.
+    /// pressure lags the trial state. Reproduced unless
+    /// <see cref="MotoredVolumeAtCallAngle"/> is set. See ISSUES.md B32.
     /// </para>
     /// <para>
     /// <c>Vswept</c> is computed as <c>VCyl(pi) * CR/(CR+1)</c>. The swept volume of a
     /// cylinder whose volume at bottom dead centre is <c>VCyl(pi)</c> is
-    /// <c>VCyl(pi) * (CR-1)/CR</c>; at a compression ratio of 9.2 the two differ by a
-    /// factor of 1.13. Reproduced. See ISSUES.md B33.
+    /// <c>VCyl(pi) * (CR-1)/CR</c>; the two differ by a factor of <c>CR^2/(CR^2-1)</c>,
+    /// 1.012 at a compression ratio of 9.2. Reproduced unless <see cref="TrueSweptVolume"/> is set. See
+    /// ISSUES.md B33.
     /// </para>
     /// </remarks>
-    public double HeatTransferCoefficient(double pressure, double temperature)
+    /// <param name="pressure">Cylinder pressure, Pa.</param>
+    /// <param name="temperature">Zone temperature, K.</param>
+    /// <param name="crankAngleRadians">The angle the calling derivative was handed.</param>
+    public double HeatTransferCoefficient(double pressure, double temperature, double crankAngleRadians)
+    {
+        var w = CharacteristicVelocity(pressure, crankAngleRadians);
+
+        return WoschniCoefficient
+               * DelphiMath.Pwr(_geometry.Bore, -0.2)
+               * DelphiMath.Pwr(pressure / 101325, 0.8)
+               * DelphiMath.Pwr(temperature, -0.53)
+               * DelphiMath.Pwr(w, 0.8);
+    }
+
+    /// <summary>
+    /// Woschni's characteristic gas velocity <c>w</c>: the mean piston speed term and the
+    /// combustion term, which grows with how far the pressure stands above motored.
+    /// </summary>
+    internal double CharacteristicVelocity(double pressure, double crankAngleRadians)
     {
         var c1 = State switch
         {
@@ -130,24 +162,21 @@ public sealed class CylinderModel
 
         var meanPistonSpeed = 2 * _geometry.Stroke * Rpm / 60;
 
-        var motoredVolume = _geometry.Volume(CrankAngleRadians);
+        var motoredVolume = _geometry.Volume(
+            MotoredVolumeAtCallAngle ? crankAngleRadians : CrankAngleRadians);
         var motoredPressure = PressureAtInletValveClosing
                               * DelphiMath.Pwr(VolumeAtInletValveClosing / motoredVolume, 1.30);
 
-        var sweptVolume = _geometry.Volume(Math.PI)
-                          * _geometry.CompressionRatio / (_geometry.CompressionRatio + 1);
+        var sweptVolume = TrueSweptVolume
+            ? _geometry.SweptVolume
+            : _geometry.Volume(Math.PI)
+              * _geometry.CompressionRatio / (_geometry.CompressionRatio + 1);
 
-        var w = (c1 * meanPistonSpeed)
-                + (WoschniC2
-                   * (sweptVolume * TemperatureAtInletValveClosing)
-                   / (PressureAtInletValveClosing * VolumeAtInletValveClosing)
-                   * (pressure - motoredPressure));
-
-        return WoschniCoefficient
-               * DelphiMath.Pwr(_geometry.Bore, -0.2)
-               * DelphiMath.Pwr(pressure / 101325, 0.8)
-               * DelphiMath.Pwr(temperature, -0.53)
-               * DelphiMath.Pwr(w, 0.8);
+        return (c1 * meanPistonSpeed)
+               + (WoschniC2
+                  * (sweptVolume * TemperatureAtInletValveClosing)
+                  / (PressureAtInletValveClosing * VolumeAtInletValveClosing)
+                  * (pressure - motoredPressure));
     }
 
     private double AverageLinerTemperature(double crankAngleRadians)
@@ -190,13 +219,13 @@ public sealed class CylinderModel
         var q = State switch
         {
             EngineState.Combustion =>
-                HeatTransferCoefficient(gas.PGas, gas.Tb) * gas.Vb / gas.VGas * pistonArea
+                HeatTransferCoefficient(gas.PGas, gas.Tb, crankAngleRadians) * gas.Vb / gas.VGas * pistonArea
                 * (gas.Tb - Piston + gas.Tb - Head),
 
             EngineState.Intake or EngineState.Compression => 0,
 
             _ =>
-                HeatTransferCoefficient(gas.PGas, gas.Tb)
+                HeatTransferCoefficient(gas.PGas, gas.Tb, crankAngleRadians)
                 * ((pistonArea * (gas.Tb - Piston + gas.Tb - Head))
                    + (wallArea * (gas.Tb - averageLiner))),
         };
@@ -217,14 +246,14 @@ public sealed class CylinderModel
         var q = State switch
         {
             EngineState.Combustion =>
-                HeatTransferCoefficient(gas.PGas, gas.Tu)
+                HeatTransferCoefficient(gas.PGas, gas.Tu, crankAngleRadians)
                 * ((gas.Vu / gas.VGas * pistonArea * (gas.Tu - Piston + gas.Tu - Head))
                    + (wallArea * (gas.Tu - averageLiner))),
 
             EngineState.Expansion or EngineState.Exhaust => 0,
 
             _ =>
-                HeatTransferCoefficient(gas.PGas, gas.Tu)
+                HeatTransferCoefficient(gas.PGas, gas.Tu, crankAngleRadians)
                 * ((pistonArea * (gas.Tu - Piston + gas.Tu - Head))
                    + (wallArea * (gas.Tu - averageLiner))),
         };
@@ -243,7 +272,7 @@ public sealed class CylinderModel
         var pistonArea = _geometry.PistonArea;
         var averageLiner = AverageLinerTemperature(crankAngleRadians);
 
-        var q = HeatTransferCoefficient(gas.PGas, gas.Tb)
+        var q = HeatTransferCoefficient(gas.PGas, gas.Tb, crankAngleRadians)
                 * ((pistonArea * (gas.Tb - Piston + gas.Tb - Head))
                    + (wallArea * (gas.Tb - averageLiner)));
 

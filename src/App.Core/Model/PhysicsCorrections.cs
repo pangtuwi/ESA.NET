@@ -44,8 +44,24 @@ public static class CorrectionCatalogue
     public static Correction ClosedCylinderMassFlow { get; } =
         new("B46", "Mass-flow derivatives are zeroed through the closed period, not left stale from gas exchange");
 
+    /// <summary>
+    /// ISSUES.md B32: the Woschni motored pressure is taken at the angle of the state it
+    /// is compared with. The original takes it at the step's start, so at five of RKF5's
+    /// six stages it lags the trial state.
+    /// </summary>
+    public static Correction WoschniMotoredAngle { get; } =
+        new("B32", "Woschni motored pressure at the trial state's own crank angle, not the step's start");
+
+    /// <summary>
+    /// ISSUES.md B33: the Woschni velocity uses the cylinder's swept volume, not
+    /// <c>VCyl(pi) * CR/(CR+1)</c>, which is 1.2 per cent larger at a compression ratio of 9.2.
+    /// </summary>
+    public static Correction WoschniSweptVolume { get; } =
+        new("B33", "Woschni velocity uses the swept volume, not VCyl(pi) * CR/(CR+1)");
+
     /// <summary>Every correction, in the order they landed.</summary>
-    public static IReadOnlyList<Correction> All { get; } = [Rkf5Coefficient, ClosedCylinderMassFlow];
+    public static IReadOnlyList<Correction> All { get; } =
+        [Rkf5Coefficient, ClosedCylinderMassFlow, WoschniMotoredAngle, WoschniSweptVolume];
 }
 
 /// <summary>
