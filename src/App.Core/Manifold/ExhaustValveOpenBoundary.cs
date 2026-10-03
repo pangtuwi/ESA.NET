@@ -43,14 +43,13 @@ public static class ExhaustValveOpenBoundary
         double pipeAreaAtValve,
         double valveFlowArea,
         InletValveReverseBoundary.ThroatState throat,
-        (double Forward, double ForwardReverse, double Reverse) tuning)
+        (double Forward, double ForwardReverse, double Reverse) tuning,
+        double gamma = CharacteristicSolver.ExhaustGamma)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(valve);
-
-        const double gamma = CharacteristicSolver.ExhaustGamma;
 
         var criticalRatio = ManifoldNumerics.Power((gamma + 1) / 2, gamma / (gamma - 1));
         var areaRatio = Math.Min(valveFlowArea / pipeAreaAtValve, 1);
@@ -151,7 +150,8 @@ public static class ExhaustValveOpenBoundary
                     new InletValveReverseBoundary.ThroatState(
                         throatMach, throatVelocity, throatSpeedOfSound, throatDensity,
                         throatPressure, dischargeCoefficient),
-                    (tuning.Forward, tuning.Reverse));
+                    (tuning.Forward, tuning.Reverse),
+                    gamma);
 
                 throatMach = reverseResult.MachNumber;
                 throatVelocity = reverseResult.Velocity;

@@ -52,14 +52,13 @@ public static class InletValveOpenBoundary
         double pipeAreaAtValve,
         double valveFlowArea,
         InletValveReverseBoundary.ThroatState throat,
-        (double Forward, double ForwardReverse, double Reverse) tuning)
+        (double Forward, double ForwardReverse, double Reverse) tuning,
+        double gamma = CharacteristicSolver.InletGamma)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(valve);
-
-        const double gamma = CharacteristicSolver.InletGamma;
 
         var q = current.ActiveCount - 1;
         var interior = q - 1;
@@ -251,7 +250,8 @@ public static class InletValveOpenBoundary
                     new InletValveReverseBoundary.ThroatState(
                         throatMach, throatVelocity, throatSpeedOfSound, throatDensity,
                         throatPressure, dischargeCoefficient),
-                    tuning.Reverse);
+                    tuning.Reverse,
+                    gamma);
 
                 throatMach = reverseResult.MachNumber;
                 throatVelocity = reverseResult.Velocity;

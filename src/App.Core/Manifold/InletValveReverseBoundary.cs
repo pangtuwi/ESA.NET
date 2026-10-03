@@ -73,13 +73,12 @@ public static class InletValveReverseBoundary
         double pipeAreaAtValve,
         double valveFlowArea,
         ThroatState throat,
-        double reverseTuning)
+        double reverseTuning,
+        double gamma = CharacteristicSolver.InletGamma)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(valve);
-
-        const double gamma = CharacteristicSolver.InletGamma;
 
         var criticalRatio = ManifoldNumerics.Power((gamma + 1) / 2, gamma / (gamma - 1));
         var areaRatio = Math.Min(valveFlowArea / pipeAreaAtValve, 1);
