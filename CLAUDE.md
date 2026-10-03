@@ -208,8 +208,9 @@ work.
   fingerprint of the baseline runs; entries that move the baseline go behind a
   Legacy/Corrected switch. Read it before touching anything in section B.
 - **Corrected is no longer close to `data/baseline/`.** Since B46 it runs expansion
-  pressure up to 17 % above the reference trace and torque about 6 % higher, because the
-  reference reproduces the defect. Baseline comparisons are Legacy's; a correction is
+  pressure up to 17 % above the reference trace, and since B38 heat loss about 15 % lower;
+  with every correction so far torque is about 10 % higher at 4000 rpm, because the
+  reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 
 ## Build and test

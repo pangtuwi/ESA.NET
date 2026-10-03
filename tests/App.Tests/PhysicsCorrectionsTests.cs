@@ -46,7 +46,10 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B46", CorrectionCatalogue.ClosedCylinderMassFlow.Entry);
         Assert.Equal("B32", CorrectionCatalogue.WoschniMotoredAngle.Entry);
         Assert.Equal("B33", CorrectionCatalogue.WoschniSweptVolume.Entry);
-        Assert.Equal(4, CorrectionCatalogue.All.Count);
+        Assert.Equal("B31", CorrectionCatalogue.WoschniNegativeVelocity.Entry);
+        Assert.Equal("B38", CorrectionCatalogue.IvcReference.Entry);
+        Assert.Equal("B75", CorrectionCatalogue.WoschniCombustionTerm.Entry);
+        Assert.Equal(7, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections().Describe());
 

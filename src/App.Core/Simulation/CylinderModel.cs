@@ -81,6 +81,19 @@ public sealed class CylinderModel
     /// </summary>
     public bool TrueSweptVolume { get; init; }
 
+    /// <summary>
+    /// ISSUES.md B31: floor Woschni's pressure-rise term at zero. Off reproduces the
+    /// original, where a pressure far enough below motored drives <c>w</c> negative and
+    /// <c>Pwr</c> then returns a heat-transfer coefficient of exactly zero.
+    /// </summary>
+    public bool ClampPressureRiseTerm { get; init; }
+
+    /// <summary>
+    /// ISSUES.md B75: apply Woschni's pressure-rise term in combustion and expansion only,
+    /// as Woschni published it. Off reproduces the original, which applies it in every state.
+    /// </summary>
+    public bool PressureRiseTermInCombustionOnly { get; init; }
+
     /// <summary>The current crank-angle state, Delphi <c>State</c>.</summary>
     public EngineState State { get; set; }
 
@@ -151,6 +164,11 @@ public sealed class CylinderModel
     /// Woschni's characteristic gas velocity <c>w</c>: the mean piston speed term and the
     /// combustion term, which grows with how far the pressure stands above motored.
     /// </summary>
+    /// <remarks>
+    /// Woschni's <c>C2</c> is zero in gas exchange and compression; the original applies it
+    /// in every state, against a motored pressure that means nothing outside the closed
+    /// period, and lets the term go negative below motored (ISSUES.md B75, B31).
+    /// </remarks>
     internal double CharacteristicVelocity(double pressure, double crankAngleRadians)
     {
         var c1 = State switch
@@ -172,11 +190,24 @@ public sealed class CylinderModel
             : _geometry.Volume(Math.PI)
               * _geometry.CompressionRatio / (_geometry.CompressionRatio + 1);
 
+        var pressureRise = pressure - motoredPressure;
+
+        if (ClampPressureRiseTerm && pressureRise < 0)
+        {
+            pressureRise = 0;
+        }
+
+        if (PressureRiseTermInCombustionOnly
+            && State is not (EngineState.Combustion or EngineState.Expansion))
+        {
+            pressureRise = 0;
+        }
+
         return (c1 * meanPistonSpeed)
                + (WoschniC2
                   * (sweptVolume * TemperatureAtInletValveClosing)
                   / (PressureAtInletValveClosing * VolumeAtInletValveClosing)
-                  * (pressure - motoredPressure));
+                  * pressureRise);
     }
 
     private double AverageLinerTemperature(double crankAngleRadians)

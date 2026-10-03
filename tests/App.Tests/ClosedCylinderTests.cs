@@ -141,4 +141,93 @@ public sealed class ClosedCylinderTests
         Assert.InRange(legacy.LargestFlowTerm, 1e-5, 1e-3);
         Assert.InRange(Math.Abs(legacy.EnergyResidual), 0.08, 0.2);
     }
+
+    /// <summary>
+    /// B38's oracle. Woschni's motored pressure is what the cylinder would reach without
+    /// combustion, compressed from its state at inlet valve closing, so through compression
+    /// it has to track the actual pressure. That needs the reference to be the cylinder's
+    /// own state at closing, taken each cycle.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TheMotoredPressureTracksCompressionFromTheCylindersStateAtClosing(bool corrected)
+    {
+        BaselinePaths.Require();
+
+        var engine = BaselineEngine();
+        var physics = new PhysicsCorrections();
+        physics.Overrides[CorrectionCatalogue.IvcReference.Entry] = corrected;
+
+        var solver = new CycleSolver(engine, new ManifoldSolver(engine), physics: physics);
+        Assert.True(solver.Initialise(), "Both cam profiles should have loaded.");
+
+        const int measuredCycle = 3;
+        var cycle = 0;
+        double closingPressure = 0, closingTemperature = 0, closingVolume = 0;
+        var worstTracking = 0.0;
+        var referenceChecked = false;
+
+        solver.StepCompleted += s =>
+        {
+            var gas = s.Engine.Cylinder;
+
+            if (s.Engine.State == EngineState.Intake)
+            {
+                // The state the last intake step leaves is the state at closing.
+                var burntFraction = gas.Mb == 0 ? 0 : gas.Mb / gas.MGas;
+                closingPressure = gas.PGas;
+                closingTemperature = (burntFraction * gas.Tb) + ((1 - burntFraction) * gas.Tu);
+                closingVolume = gas.VGas;
+                return;
+            }
+
+            if (cycle != measuredCycle || s.Engine.State != EngineState.Compression)
+            {
+                return;
+            }
+
+            var model = s.Cylinder;
+
+            if (corrected && !referenceChecked)
+            {
+                Assert.Equal(closingPressure, model.PressureAtInletValveClosing);
+                Assert.Equal(closingTemperature, model.TemperatureAtInletValveClosing);
+                Assert.Equal(closingVolume, model.VolumeAtInletValveClosing);
+                referenceChecked = true;
+            }
+
+            var x = s.Engine.Integration.X;
+            var motored = model.PressureAtInletValveClosing
+                          * Math.Pow(model.VolumeAtInletValveClosing / s.Geometry.Volume(x), 1.30);
+            worstTracking = Math.Max(worstTracking, Math.Abs((gas.PGas / motored) - 1));
+        };
+
+        engine.ZoneCount = 1;
+
+        for (cycle = 1; cycle <= measuredCycle; cycle++)
+        {
+            if (cycle > 1)
+            {
+                engine.ZoneCount = 2;
+            }
+
+            solver.RunOneCycle();
+        }
+
+        if (corrected)
+        {
+            Assert.True(referenceChecked);
+
+            // Measured at 4.5 per cent: the fixed polytropic index of 1.3 and the heat lost
+            // through compression, not the reference.
+            Assert.InRange(worstTracking, 0, 0.08);
+        }
+        else
+        {
+            // The plenum's 0.99 bar against about 2.1 bar in the cylinder at closing: the
+            // motored pressure is less than half the real one. Measured at 123 per cent.
+            Assert.True(worstTracking > 0.5, $"{worstTracking}");
+        }
+    }
 }

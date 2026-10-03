@@ -196,12 +196,15 @@ public sealed class SimulationRunnerTests
         }
 
         // Each correction on its own moves the answer by about what its register entry
-        // measured at the reference settings: B14, B32 and B33 by a tenth of a per cent or
-        // less, B46 by about six.
+        // measured at the reference settings: B14, B31, B32, B33 and B75 by a tenth of a
+        // per cent or less, B38 by about four, B46 by about six.
         Assert.InRange(TorqueShift(CorrectionCatalogue.Rkf5Coefficient), 1e-6, 0.005);
         Assert.InRange(TorqueShift(CorrectionCatalogue.ClosedCylinderMassFlow), 0.03, 0.10);
         Assert.InRange(TorqueShift(CorrectionCatalogue.WoschniMotoredAngle), 1e-6, 0.005);
         Assert.InRange(TorqueShift(CorrectionCatalogue.WoschniSweptVolume), 1e-6, 0.005);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.WoschniNegativeVelocity), 1e-6, 0.005);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.IvcReference), 0.02, 0.07);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.WoschniCombustionTerm), 1e-6, 0.005);
 
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
