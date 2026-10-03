@@ -165,13 +165,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private double _engineSpeed = 4000;
 
-    /// <summary>
-    /// Which run-time charts the last run was asked for, Delphi <c>ShowGraphs</c>,
-    /// <c>ShowFlowGraphs</c>, <c>ShowPVGraphs</c> and <c>ShowCylGraphs</c>.
-    /// </summary>
-    [ObservableProperty]
-    private GraphSelection _runGraphs = new(true, true, true);
-
     /// <summary>The headline figures, shown in the top-left panel.</summary>
     public SimulationResultsViewModel Results { get; } = new();
 
@@ -188,13 +181,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private ChartDefinition? _inCylinderChart;
 
     /// <summary>
-    /// Whether the gas-flow quadrant shows velocities rather than pressures. The original
-    /// offers the same choice on its run-time graph options dialog.
+    /// What each embedded chart plots and how its Y axis is scaled: the Run-Time Graph
+    /// Options dialog, Delphi <c>FGraphOptions</c>. The Single Speed dialog's chart choice
+    /// is written into it before each run, as <c>Main.pas:861-882</c> does.
     /// </summary>
     [ObservableProperty]
-    private bool _showGasFlowVelocities;
+    private GraphOptions _graphs = GraphOptions.Default;
 
-    partial void OnShowGasFlowVelocitiesChanged(bool value) => RefreshEmbeddedCharts();
+    partial void OnGraphsChanged(GraphOptions value) => RefreshEmbeddedCharts();
 
     /// <summary>What the simulation is doing, for the status bar.</summary>
     [ObservableProperty]
@@ -447,7 +441,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         // Delphi FormClose hard-codes No1zCycles to 1 whatever ESA.ini said.
         Settings.OneZoneCycleCount = 1;
 
-        RunGraphs = options.Graphs;
+        Graphs = Graphs.WithSelection(options.Graphs);
 
         var engine = CurrentEngine!.Engine;
         engine.Rpm = EngineSpeed;
@@ -896,11 +890,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task RunTimeGraphOptionsAsync()
     {
-        var result = await _runTimeGraphOptions.ShowAsync(ShowGasFlowVelocities);
+        var result = await _runTimeGraphOptions.ShowAsync(Graphs);
 
         if (result.Accepted)
         {
-            ShowGasFlowVelocities = result.ShowGasFlowVelocities;
+            Graphs = result.Options;
         }
     }
 
@@ -982,21 +976,30 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 LegacyInterpolation.AtSpeed(
                     engine.SparkAngle.Rpm, engine.SparkAngle.Values, engine.Rpm));
 
-        // The Single Speed Simulation dialog decides which of the three the run draws, as
-        // ShowFlowGraphs, ShowPVGraphs and ShowCylGraphs do in the original. A quadrant
-        // that was not asked for is left empty rather than drawn anyway.
-        PressureVolumeChart = RunGraphs.PressureVolume
-            ? EngineCharts.PressureVolume(trace)
+        // What each quadrant plots, and any Y-axis limits laid over the chart's own, come
+        // from the Run-Time Graph Options dialog. The Single Speed dialog's On, Off or
+        // Selection has already been written into it, as the original does. A quadrant set
+        // to Nothing is left empty rather than drawn anyway.
+        var graphs = Graphs;
+
+        PressureVolumeChart = graphs.PressureVolume
+            ? graphs.PressureVolumeAxis.ApplyTo(EngineCharts.PressureVolume(trace))
             : null;
 
-        GasFlowChart = RunGraphs.GasFlow
-            ? ShowGasFlowVelocities
-                ? EngineCharts.GasFlowVelocity(trace, events)
-                : EngineCharts.GasFlowPressure(trace, engine?.Rpm ?? 0, events)
+        GasFlowChart = graphs.GasFlow switch
+        {
+            GasFlowGraph.Pressure => EngineCharts.GasFlowPressure(trace, engine?.Rpm ?? 0, events),
+            GasFlowGraph.Velocity => EngineCharts.GasFlowVelocity(trace, events),
+            GasFlowGraph.MassTransfer => EngineCharts.GasFlowMass(trace),
+            _ => null,
+        } is { } gasFlow
+            ? graphs.GasFlowAxis.ApplyTo(gasFlow)
             : null;
 
-        InCylinderChart = RunGraphs.InCylinder
-            ? EngineCharts.InCylinder(trace)
+        // The original also scales the right-hand temperature axis in step with the left
+        // (Max / 100 * 6000); here it keeps fitting its own data.
+        InCylinderChart = graphs.InCylinder
+            ? graphs.InCylinderAxis.ApplyTo(EngineCharts.InCylinder(trace))
             : null;
     }
 

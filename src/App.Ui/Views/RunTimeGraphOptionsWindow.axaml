@@ -4,29 +4,111 @@
         x:Class="App.Ui.Views.RunTimeGraphOptionsWindow"
         x:DataType="vm:RunTimeGraphOptionsViewModel"
         Title="Run-Time Graph Options"
-        Width="320" SizeToContent="Height"
+        Width="380" SizeToContent="Height"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
 
+  <!--
+    Port of TFGraphOptions (FflowGraphOptions.dfm): three radio groups, one per embedded
+    chart, each beside a Y Axis Scaling box. A blank limit is automatic; the original used
+    zero for that and so could not take a negative minimum (ISSUES.md A27). The original
+    captions its first buttons "Nothing (fastest)" because it plotted live, step by step;
+    the port draws once the run is over, so there is nothing to be faster.
+  -->
+
+  <Window.Styles>
+    <Style Selector="Border.group">
+      <Setter Property="BorderBrush" Value="#808080" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="TextBox.limit">
+      <Setter Property="Width" Value="80" />
+      <Setter Property="Margin" Value="0,2" />
+    </Style>
+  </Window.Styles>
+
   <StackPanel Margin="12" Spacing="10">
-    <Border BorderBrush="#808080" BorderThickness="1" Padding="10,8">
-      <StackPanel Spacing="6">
-        <TextBlock Text="Gas Flow Properties" FontWeight="Bold" />
-        <RadioButton GroupName="GasFlow" Content="Nothing (fastest)" IsEnabled="False" />
-        <RadioButton GroupName="GasFlow" Content="Cyl., Inlet and Exh. Pressure"
-                     IsChecked="{Binding Pressure, Mode=TwoWay}" />
-        <RadioButton GroupName="GasFlow" Content="Inlet and Exh. Velocity"
-                     IsChecked="{Binding Velocity, Mode=TwoWay}" />
-        <RadioButton GroupName="GasFlow" Content="Mass Transfer"
-                     IsChecked="{Binding MassTransfer, Mode=TwoWay}" IsEnabled="False" />
-      </StackPanel>
+
+    <Border Classes="group">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="6">
+          <TextBlock Classes="heading" Text="Gas Flow Properties" />
+          <RadioButton x:Name="GasFlowNothing" GroupName="GasFlow" Content="Nothing"
+                       IsChecked="{Binding GasFlowNothing, Mode=TwoWay}" />
+          <RadioButton x:Name="GasFlowPressure" GroupName="GasFlow" Content="Cyl., Inlet and Exh. Pressure"
+                       IsChecked="{Binding GasFlowPressure, Mode=TwoWay}" />
+          <RadioButton x:Name="GasFlowVelocity" GroupName="GasFlow" Content="Inlet and Exh. Velocity"
+                       IsChecked="{Binding GasFlowVelocity, Mode=TwoWay}" />
+          <RadioButton x:Name="GasFlowMassTransfer" GroupName="GasFlow" Content="Mass Transfer"
+                       IsChecked="{Binding GasFlowMassTransfer, Mode=TwoWay}" />
+        </StackPanel>
+        <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+          <TextBlock Grid.ColumnSpan="2" Classes="heading" Text="Y Axis Scaling" />
+          <TextBlock Grid.Row="1" Text="Max" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox x:Name="GasFlowMaximumBox" Grid.Row="1" Grid.Column="1" Classes="limit"
+                   Text="{Binding GasFlowMaximum}" Watermark="auto" />
+          <TextBlock Grid.Row="2" Text="Min" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox x:Name="GasFlowMinimumBox" Grid.Row="2" Grid.Column="1" Classes="limit"
+                   Text="{Binding GasFlowMinimum}" Watermark="auto" />
+        </Grid>
+      </Grid>
     </Border>
 
+    <Border Classes="group">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="6">
+          <TextBlock Classes="heading" Text="P-V Diagram Properties" />
+          <RadioButton x:Name="PressureVolumeNothing" GroupName="PressureVolume" Content="Nothing"
+                       IsChecked="{Binding PressureVolumeNothing, Mode=TwoWay}" />
+          <RadioButton x:Name="PressureVolumeOn" GroupName="PressureVolume" Content="Cylinder Pressure"
+                       IsChecked="{Binding PressureVolume, Mode=TwoWay}" />
+        </StackPanel>
+        <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+          <TextBlock Grid.ColumnSpan="2" Classes="heading" Text="Y Axis Scaling" />
+          <TextBlock Grid.Row="1" Text="Max" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox x:Name="PressureVolumeMaximumBox" Grid.Row="1" Grid.Column="1" Classes="limit"
+                   Text="{Binding PressureVolumeMaximum}" Watermark="auto" />
+          <TextBlock Grid.Row="2" Text="Min" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox x:Name="PressureVolumeMinimumBox" Grid.Row="2" Grid.Column="1" Classes="limit"
+                   Text="{Binding PressureVolumeMinimum}" Watermark="auto" />
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border Classes="group">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="6">
+          <TextBlock Classes="heading" Text="In Cylinder Properties" />
+          <RadioButton x:Name="InCylinderNothing" GroupName="InCylinder" Content="Nothing"
+                       IsChecked="{Binding InCylinderNothing, Mode=TwoWay}" />
+          <RadioButton x:Name="InCylinderOn" GroupName="InCylinder" Content="Cyl. Press., Tb and Tu"
+                       IsChecked="{Binding InCylinder, Mode=TwoWay}" />
+        </StackPanel>
+        <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+          <TextBlock Grid.ColumnSpan="2" Classes="heading" Text="Y Axis Scaling" />
+          <TextBlock Grid.Row="1" Text="Max" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox x:Name="InCylinderMaximumBox" Grid.Row="1" Grid.Column="1" Classes="limit"
+                   Text="{Binding InCylinderMaximum}" Watermark="auto" />
+          <TextBlock Grid.Row="2" Text="Min" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBox x:Name="InCylinderMinimumBox" Grid.Row="2" Grid.Column="1" Classes="limit"
+                   Text="{Binding InCylinderMinimum}" Watermark="auto" />
+        </Grid>
+      </Grid>
+    </Border>
+
+    <TextBlock x:Name="ErrorText" Text="{Binding Error}" Foreground="#B03030" TextWrapping="Wrap"
+               IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
     <Grid ColumnDefinitions="*,*">
-      <Button Grid.Column="0" Content="Cancel" Command="{Binding CancelCommand}"
-              IsCancel="True" Margin="0,0,4,0" />
-      <Button Grid.Column="1" Content="OK" Command="{Binding AcceptCommand}"
-              IsDefault="True" Margin="4,0,0,0" />
+      <Button x:Name="CancelButton" Grid.Column="0" Content="Cancel" Command="{Binding CancelCommand}"
+              IsCancel="True" Margin="0,0,4,0" HorizontalAlignment="Stretch" />
+      <Button x:Name="OkButton" Grid.Column="1" Content="OK" Command="{Binding AcceptCommand}"
+              IsDefault="True" Margin="4,0,0,0" HorizontalAlignment="Stretch" />
     </Grid>
   </StackPanel>
 </Window>
