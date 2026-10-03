@@ -51,10 +51,10 @@
           <TextBlock Grid.ColumnSpan="2" Classes="heading" Text="Y Axis Scaling" />
           <TextBlock Grid.Row="1" Text="Max" VerticalAlignment="Center" Margin="0,0,6,0" />
           <TextBox x:Name="GasFlowMaximumBox" Grid.Row="1" Grid.Column="1" Classes="limit"
-                   Text="{Binding GasFlowMaximum}" Watermark="auto" />
+                   Text="{Binding GasFlowMaximum}" PlaceholderText="auto" />
           <TextBlock Grid.Row="2" Text="Min" VerticalAlignment="Center" Margin="0,0,6,0" />
           <TextBox x:Name="GasFlowMinimumBox" Grid.Row="2" Grid.Column="1" Classes="limit"
-                   Text="{Binding GasFlowMinimum}" Watermark="auto" />
+                   Text="{Binding GasFlowMinimum}" PlaceholderText="auto" />
         </Grid>
       </Grid>
     </Border>
@@ -72,10 +72,10 @@
           <TextBlock Grid.ColumnSpan="2" Classes="heading" Text="Y Axis Scaling" />
           <TextBlock Grid.Row="1" Text="Max" VerticalAlignment="Center" Margin="0,0,6,0" />
           <TextBox x:Name="PressureVolumeMaximumBox" Grid.Row="1" Grid.Column="1" Classes="limit"
-                   Text="{Binding PressureVolumeMaximum}" Watermark="auto" />
+                   Text="{Binding PressureVolumeMaximum}" PlaceholderText="auto" />
           <TextBlock Grid.Row="2" Text="Min" VerticalAlignment="Center" Margin="0,0,6,0" />
           <TextBox x:Name="PressureVolumeMinimumBox" Grid.Row="2" Grid.Column="1" Classes="limit"
-                   Text="{Binding PressureVolumeMinimum}" Watermark="auto" />
+                   Text="{Binding PressureVolumeMinimum}" PlaceholderText="auto" />
         </Grid>
       </Grid>
     </Border>
@@ -93,10 +93,10 @@
           <TextBlock Grid.ColumnSpan="2" Classes="heading" Text="Y Axis Scaling" />
           <TextBlock Grid.Row="1" Text="Max" VerticalAlignment="Center" Margin="0,0,6,0" />
           <TextBox x:Name="InCylinderMaximumBox" Grid.Row="1" Grid.Column="1" Classes="limit"
-                   Text="{Binding InCylinderMaximum}" Watermark="auto" />
+                   Text="{Binding InCylinderMaximum}" PlaceholderText="auto" />
           <TextBlock Grid.Row="2" Text="Min" VerticalAlignment="Center" Margin="0,0,6,0" />
           <TextBox x:Name="InCylinderMinimumBox" Grid.Row="2" Grid.Column="1" Classes="limit"
-                   Text="{Binding InCylinderMinimum}" Watermark="auto" />
+                   Text="{Binding InCylinderMinimum}" PlaceholderText="auto" />
         </Grid>
       </Grid>
     </Border>
