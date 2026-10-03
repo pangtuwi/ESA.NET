@@ -113,8 +113,9 @@ public sealed class ChartRenderingTests
         var graph = menu.Items.OfType<MenuItem>().Single(i => (i.Header as string) == "_Graph");
         var leaves = graph.Items.OfType<MenuItem>().ToList();
 
-        // Four from the original plus the five run-time charts it drew in its main window.
-        Assert.Equal(9, leaves.Count);
+        // Four from the original, the five run-time charts it drew in its main window, and
+        // Multi-Run Results, which it never had.
+        Assert.Equal(10, leaves.Count);
         Assert.All(leaves, item => Assert.NotNull(item.Command));
     }
 
@@ -133,6 +134,7 @@ public sealed class ChartRenderingTests
         // an engine - neither of which is loaded either.
         Assert.False(viewModel.TorqueCurveCommand.CanExecute(null));
         Assert.False(viewModel.ValveOpeningCommand.CanExecute(null));
+        Assert.False(viewModel.SweepResultsCommand.CanExecute(null));
 
         // Setting the trace must not only make CanExecute true but say so: without a
         // change notification the menu items would stay greyed out until something else

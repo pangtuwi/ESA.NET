@@ -299,6 +299,42 @@ public static class EngineCharts
     /// Torque, power and volumetric efficiency against engine speed, across the points a
     /// multi-run has produced. Port of <c>TPerfData</c> and its curve.
     /// </summary>
+    /// <summary>
+    /// One sweep variable against another, a point per row that ran. Not in the original,
+    /// which plotted a sweep only as <see cref="TorqueCurve"/>.
+    /// </summary>
+    /// <remarks>
+    /// Rows that failed have no engine to read and are left out. The points are sorted by
+    /// <paramref name="x"/>, so a sweep drawn as a line is a curve rather than a path
+    /// through the grid's row order.
+    /// </remarks>
+    public static ChartDefinition SweepPlot(
+        IReadOnlyList<MultiRunRowResult> rows, SweepVariable x, SweepVariable y, bool joinPoints = true)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(x);
+        ArgumentNullException.ThrowIfNull(y);
+
+        var points = rows
+            .Where(r => r.Result is not null)
+            .Select(r => (X: x.Value(r.Result!.Engine), Y: y.Value(r.Result.Engine)))
+            .OrderBy(p => p.X)
+            .ToList();
+
+        return new ChartDefinition(
+            $"{y.Name} vs {x.Name}",
+            x.DisplayName,
+            y.DisplayName,
+            [
+                new ChartSeries(
+                    y.Name,
+                    [.. points.Select(p => p.X)],
+                    [.. points.Select(p => p.Y)],
+                    ShowMarkers: true,
+                    ShowLine: joinPoints),
+            ]);
+    }
+
     public static ChartDefinition TorqueCurve(PerformanceData data)
     {
         ArgumentNullException.ThrowIfNull(data);

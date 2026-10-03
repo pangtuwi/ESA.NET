@@ -103,6 +103,7 @@
         <MenuItem Header="_Run-Time Graph Options" Command="{Binding RunTimeGraphOptionsCommand}" />
         <Separator />
         <MenuItem Header="_Torque Curve" Command="{Binding TorqueCurveCommand}" />
+        <MenuItem Header="M_ulti-Run Results..." Command="{Binding SweepResultsCommand}" />
         <MenuItem Header="_Valve Opening" Command="{Binding ValveOpeningCommand}" />
         <MenuItem Header="_Energy Balance" Command="{Binding EnergyBalanceCommand}" />
         <Separator />

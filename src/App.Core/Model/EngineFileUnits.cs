@@ -57,4 +57,22 @@ public static class EngineFileUnits
     /// </summary>
     public static double ExhaustClose(double degreesAfterTopDeadCentre) =>
         -360 + degreesAfterTopDeadCentre;
+
+    // The way back, for showing an engine's values in the units the editor and the
+    // multi-run grid use. Each undoes the conversion above it exactly.
+
+    /// <summary>Metres back to millimetres.</summary>
+    public static double ToMillimetres(double metres) => metres * 1000;
+
+    /// <summary>Delphi <c>IV.O</c> back to degrees before top dead centre.</summary>
+    public static double ToInletOpen(double openAngle) => 360 - openAngle;
+
+    /// <summary>Delphi <c>IV.C</c> back to degrees after bottom dead centre.</summary>
+    public static double ToInletClose(double closeAngle) => closeAngle + 180;
+
+    /// <summary>Delphi <c>EV.O</c> back to degrees before bottom dead centre.</summary>
+    public static double ToExhaustOpen(double openAngle) => 180 - openAngle;
+
+    /// <summary>Delphi <c>EV.C</c> back to degrees after top dead centre.</summary>
+    public static double ToExhaustClose(double closeAngle) => closeAngle + 360;
 }

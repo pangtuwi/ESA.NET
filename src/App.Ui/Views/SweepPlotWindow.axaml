@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:App.Ui.ViewModels"
+        xmlns:charts="clr-namespace:App.Ui.Charts"
+        xmlns:sp="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+        x:Class="App.Ui.Views.SweepPlotWindow"
+        x:DataType="vm:SweepPlotViewModel"
+        Title="Multi-Run Results"
+        Width="960" Height="620" MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterOwner">
+
+  <!-- Not a port: the original had no way to plot a sweep beyond its torque curve. -->
+  <DockPanel Margin="12">
+
+    <StackPanel DockPanel.Dock="Left" Width="230" Spacing="8" Margin="0,0,12,0">
+      <TextBlock Text="Horizontal axis" FontWeight="SemiBold" />
+      <ComboBox x:Name="XAxisBox" HorizontalAlignment="Stretch"
+                ItemsSource="{Binding Variables}" SelectedItem="{Binding SelectedX}" />
+
+      <TextBlock Text="Vertical axis" FontWeight="SemiBold" Margin="0,8,0,0" />
+      <ComboBox x:Name="YAxisBox" HorizontalAlignment="Stretch"
+                ItemsSource="{Binding Variables}" SelectedItem="{Binding SelectedY}" />
+
+      <CheckBox x:Name="JoinPointsBox" Content="Join points" Margin="0,8,0,0"
+                IsChecked="{Binding JoinPoints}" />
+
+      <TextBlock x:Name="SummaryText" Text="{Binding Summary}" TextWrapping="Wrap"
+                 Opacity="0.8" Margin="0,8,0,0" />
+
+      <Button x:Name="CloseButton" Content="Close" Width="90" Margin="0,16,0,0"
+              IsCancel="True" IsDefault="True" Command="{Binding CloseCommand}" />
+    </StackPanel>
+
+    <sp:AvaPlot x:Name="SweepPlot" charts:ChartHost.Definition="{Binding Chart}" />
+  </DockPanel>
+</Window>

@@ -200,6 +200,17 @@ public sealed class SimulationWiringTests
         Assert.True(viewModel.PressureVolumeCommand.CanExecute(null));
 
         Assert.Contains("Completed 2 runs", viewModel.RunStatus, StringComparison.Ordinal);
+
+        // Both rows are kept for Graph > Multi-Run Results, each with the engine it ran on.
+        Assert.NotNull(viewModel.LastSweep);
+        Assert.Equal([3000, 4000], viewModel.LastSweep.Select(r => r.Result!.Engine.Rpm));
+        Assert.True(viewModel.SweepResultsCommand.CanExecute(null));
+
+        var plot = App.Core.Charts.EngineCharts.SweepPlot(
+            viewModel.LastSweep, App.Core.Charts.SweepVariables.Speed, App.Core.Charts.SweepVariables.Torque);
+
+        Assert.Equal([3000, 4000], plot.Series[0].X);
+        Assert.Equal(viewModel.Performance.Points.Select(p => p.Torque), plot.Series[0].Y);
     }
 
     [Fact]
