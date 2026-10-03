@@ -16,7 +16,7 @@ public sealed class EditEngineViewModelTests
 
     private static EditEngineViewModel LoadedFrom(EngineDefinition definition)
     {
-        var viewModel = new EditEngineViewModel();
+        var viewModel = TestServices.Resolve<EditEngineViewModel>();
         viewModel.Load(definition);
         return viewModel;
     }

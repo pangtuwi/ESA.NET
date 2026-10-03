@@ -228,6 +228,11 @@ dotnet run   --project src/App.Ui      # launches the shell
 
 The solution is an `.slnx` file, the SDK 10 default format.
 
+**Check "zero warnings" with `--no-incremental`.** Avalonia's XAML compiler reports its
+warnings (an obsolete property, say) only when it recompiles the `.axaml`, and they do
+not fail the build the way C# warnings do. An incremental build can report none while a
+clean one reports several; that is how #159 merged with six.
+
 On a headless Linux box, `xvfb-run -a dotnet run --project src/App.Ui` will start
 the app; `MenuStructureTests` also exercises the window through
 `Avalonia.Headless` with no display at all.

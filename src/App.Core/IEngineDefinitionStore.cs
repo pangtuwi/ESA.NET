@@ -13,4 +13,10 @@ public interface IEngineDefinitionStore
     /// reproduce the source file byte for byte.
     /// </summary>
     void Write(string path, EngineDefinition definition);
+
+    /// <summary>
+    /// An independent copy of a definition, byte for byte the same, so it can be changed
+    /// and saved without touching the original. The engine editor's Save writes one.
+    /// </summary>
+    EngineDefinition Copy(EngineDefinition definition);
 }

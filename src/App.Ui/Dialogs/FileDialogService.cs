@@ -97,6 +97,9 @@ public sealed class FileDialogService : IFileDialogService
         {
             Title = "Save Engine As",
             SuggestedFileName = suggestedName,
+            // Asked for outright rather than left to the platform: the editor's Save and
+            // File, Save As can both land on an existing engine file.
+            ShowOverwritePrompt = true,
             DefaultExtension = "eng",
             FileTypeChoices = [EngineFiles],
             SuggestedStartLocation = await FolderAsync(window, _workspace.EnginesDirectory),

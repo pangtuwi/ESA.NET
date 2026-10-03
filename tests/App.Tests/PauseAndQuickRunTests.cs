@@ -31,22 +31,38 @@ public sealed class PauseAndQuickRunTests
     private static SimulationSettings Settings() =>
         new() { CycleCount = 3, OneZoneCycleCount = 1, MassBalance = 0 };
 
-    /// <summary>Counts steps as they happen, on the simulation's own thread.</summary>
-    private sealed class StepCounter : IProgress<SimulationProgress>
+    /// <summary>
+    /// Counts steps as they happen, on the simulation's own thread, and presses Pause at
+    /// a given step.
+    /// </summary>
+    /// <remarks>
+    /// Pressing it from here rather than from the test's thread is what makes the test
+    /// deterministic. Polled from outside, a busy machine can leave the poll unscheduled
+    /// until the run has finished, and the pause then catches nothing.
+    /// </remarks>
+    private sealed class StepCounter(RunPause pause, int pauseAt) : IProgress<SimulationProgress>
     {
         private int _steps;
 
         public int Steps => Volatile.Read(ref _steps);
 
-        public void Report(SimulationProgress value) => Interlocked.Increment(ref _steps);
+        public void Report(SimulationProgress value)
+        {
+            if (Interlocked.Increment(ref _steps) == pauseAt)
+            {
+                pause.Pause();
+            }
+        }
     }
 
-    /// <summary>Waits for the run to get going, with a limit so a fault cannot hang the suite.</summary>
-    private static async Task WaitForStepsAsync(StepCounter steps, int count, CancellationToken token)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(60);
+    private const int PauseAt = 50;
 
-        while (steps.Steps < count)
+    /// <summary>Waits until the run has been paused, with a limit so a fault cannot hang the suite.</summary>
+    private static async Task WaitForPauseAsync(StepCounter steps, CancellationToken token)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(120);
+
+        while (steps.Steps < PauseAt)
         {
             Assert.True(DateTime.UtcNow < deadline, $"The run made only {steps.Steps} step(s).");
             await Task.Delay(10, token);
@@ -68,23 +84,17 @@ public sealed class PauseAndQuickRunTests
         var uninterrupted = runner.Run(BaselineEngine(), Settings(), cancellation: token);
 
         using var pause = new RunPause();
-        var steps = new StepCounter();
+        var steps = new StepCounter(pause, PauseAt);
 
         var paused = Task.Run(
             () => runner.Run(BaselineEngine(), Settings(), steps, token, pause: pause), token);
 
-        // Pause part-way through, as the operator would. The step in hand may still finish
-        // and report, so measure from a moment after.
-        await WaitForStepsAsync(steps, 50, token);
+        // Paused part-way through, at the end of step 50. Nothing more happens however long
+        // it is left.
+        await WaitForPauseAsync(steps, token);
+        await Task.Delay(500, token);
 
-        pause.Pause();
-        await Task.Delay(200, token);
-
-        var held = steps.Steps;
-
-        await Task.Delay(300, token);
-
-        Assert.Equal(held, steps.Steps);
+        Assert.Equal(PauseAt, steps.Steps);
         Assert.False(paused.IsCompleted);
 
         pause.Resume();
@@ -110,15 +120,16 @@ public sealed class PauseAndQuickRunTests
 
         using var pause = new RunPause();
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
-        var steps = new StepCounter();
+        var steps = new StepCounter(pause, PauseAt);
 
         var paused = Task.Run(
             () => runner.Run(BaselineEngine(), Settings(), steps, stop.Token, pause: pause), token);
 
-        await WaitForStepsAsync(steps, 50, token);
-
-        pause.Pause();
+        await WaitForPauseAsync(steps, token);
         await Task.Delay(200, token);
+
+        Assert.False(paused.IsCompleted);
+
         await stop.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => paused);

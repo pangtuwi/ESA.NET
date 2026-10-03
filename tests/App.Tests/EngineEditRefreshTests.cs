@@ -29,11 +29,14 @@ public sealed class EngineEditRefreshTests
     {
         public EngineDefinition? Definition { get; private set; }
 
-        public Action? OnApplied { get; private set; }
+        public string? Path { get; private set; }
 
-        public void Show(EngineDefinition definition, string path, Action? onApplied = null)
+        public Action<EngineDefinition, string>? OnApplied { get; private set; }
+
+        public void Show(EngineDefinition definition, string path, Action<EngineDefinition, string>? onApplied = null)
         {
             Definition = definition;
+            Path = path;
             OnApplied = onApplied;
         }
     }
@@ -61,10 +64,11 @@ public sealed class EngineEditRefreshTests
         var form = TestServices.Resolve<EditEngineViewModel>();
 
         form.Load(editor.Definition!);
+        form.FilePath = editor.Path!;
         change(form);
         form.OkCommand.Execute(null);
 
-        editor.OnApplied!();
+        editor.OnApplied!(form.Definition!, form.FilePath);
     }
 
     [Fact]

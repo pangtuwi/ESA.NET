@@ -12,18 +12,20 @@ public sealed class EditEngineWindowService : IEditEngineWindowService
     public EditEngineWindowService(Func<EditEngineViewModel> viewModels) => _viewModels = viewModels;
 
     /// <inheritdoc />
-    public void Show(EngineDefinition definition, string path, Action? onApplied = null)
+    public void Show(EngineDefinition definition, string path, Action<EngineDefinition, string>? onApplied = null)
     {
         ArgumentNullException.ThrowIfNull(definition);
 
         var viewModel = _viewModels();
         viewModel.Load(definition);
+        viewModel.FilePath = path;
 
-        var window = new EditEngineWindow { DataContext = viewModel, Title = $"Edit Engine - {path}" };
+        // The caption is bound to the view model, so it follows a Load inside the editor.
+        var window = new EditEngineWindow { DataContext = viewModel };
 
         void Applied(object? sender, EventArgs args)
         {
-            onApplied?.Invoke();
+            onApplied?.Invoke(viewModel.Definition!, viewModel.FilePath);
             window.Close();
         }
 
