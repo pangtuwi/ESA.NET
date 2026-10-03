@@ -309,9 +309,12 @@ with data in it, and switches back.
 those commands get real behaviour. **Resolved**: Exit is real since A20, and the
 window's only `Ctrl+Q` key binding goes to it (with `Cmd+Q` beside it for macOS).
 QuickRun is real since A26 - `LoadDefault1Click` then `SinglePointSimulation1Click`, as
-`Main.pas:1472` has it - and deliberately has no key binding, so nothing clashes. The menu
-still shows the original's duplicate `Ctrl+Q` caption on both items, faithfully; only the
-key binding decides what the key does.
+`Main.pas:1472` has it. **Fixed** by the project owner's decision: Exit keeps `Ctrl+Q`,
+the Linux convention and the original's caption for it (Windows quits with Alt+F4 whatever
+the menu says), and QuickRun moves to **`Ctrl+Shift+R`**, beside the `Ctrl+R` of the
+single-point run it starts. Each caption now has a key binding to the same command, and
+`MenuStructureTests.EveryShortcutCaptionIsUniqueAndDoesWhatItSays` fails if a shortcut is
+ever shown twice or shown with nothing behind it.
 
 **C9 ([#95](https://github.com/pangtuwi/ESA.NET/issues/95)) — `BOKClick` swallows `EConvertError` and tells the user nothing**, so one
 bad numeric field silently discards the whole edit. The port does not reproduce
