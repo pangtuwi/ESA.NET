@@ -174,7 +174,7 @@ public sealed class SimulationRunnerTests
     }
 
     [Fact]
-    public void CorrectedPhysicsReachesTheIntegratorAndAnOverrideTakesItBackOut()
+    public void EachCorrectionReachesTheRunAndOverridesTakeThemAllBackOut()
     {
         BaselinePaths.Require();
 
@@ -187,22 +187,34 @@ public sealed class SimulationRunnerTests
                 .Run(BaselineEngine(), settings, cancellation: TestContext.Current.CancellationToken);
         }
 
-        var legacy = Run(_ => { });
-        var corrected = Run(p => p.Mode = PhysicsMode.Corrected);
-        var correctedWithoutB14 = Run(p =>
+        double TorqueShift(Correction alone)
+        {
+            var legacy = Run(_ => { });
+            var corrected = Run(p => p.Overrides[alone.Entry] = true);
+
+            return Math.Abs(corrected.Engine.Torque / legacy.Engine.Torque - 1);
+        }
+
+        // Each correction on its own moves the answer by about what its register entry
+        // measured at the reference settings: B14 by under a tenth of a per cent, B46 by
+        // about six.
+        Assert.InRange(TorqueShift(CorrectionCatalogue.Rkf5Coefficient), 1e-6, 0.005);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.ClosedCylinderMassFlow), 0.03, 0.10);
+
+        // With every correction overridden off, Corrected is Legacy to the last bit - the
+        // switch adds nothing of its own.
+        var legacyRun = Run(_ => { });
+        var nothingOn = Run(p =>
         {
             p.Mode = PhysicsMode.Corrected;
-            p.Overrides["B14"] = false;
+
+            foreach (var correction in CorrectionCatalogue.All)
+            {
+                p.Overrides[correction.Entry] = false;
+            }
         });
 
-        // B14 changes the answer, by a small amount: measured at well under a tenth of a
-        // per cent on torque at the reference settings (ISSUES.md B14).
-        Assert.NotEqual(legacy.Engine.Torque, corrected.Engine.Torque);
-        Assert.InRange(Math.Abs(corrected.Engine.Torque / legacy.Engine.Torque - 1), 1e-6, 0.005);
-
-        // With B14 overridden off and nothing else in the catalogue, Corrected is Legacy to
-        // the last bit - the switch adds nothing of its own.
-        Assert.Equal(legacy.Engine.Torque, correctedWithoutB14.Engine.Torque);
-        Assert.Equal(legacy.Engine.Imep, correctedWithoutB14.Engine.Imep);
+        Assert.Equal(legacyRun.Engine.Torque, nothingOn.Engine.Torque);
+        Assert.Equal(legacyRun.Engine.Imep, nothingOn.Engine.Imep);
     }
 }

@@ -36,8 +36,16 @@ public static class CorrectionCatalogue
     public static Correction Rkf5Coefficient { get; } =
         new("B14", "RKF5 fifth stage uses Fehlberg's 845/4104, not the transposed 854/4104");
 
+    /// <summary>
+    /// ISSUES.md B46: the two-zone mass-flow derivatives are zeroed when the inlet valve
+    /// closes. The original leaves gas exchange's last values on them, so the closed
+    /// cylinder's burnt-down equations behave as though gas were still leaving it.
+    /// </summary>
+    public static Correction ClosedCylinderMassFlow { get; } =
+        new("B46", "Mass-flow derivatives are zeroed through the closed period, not left stale from gas exchange");
+
     /// <summary>Every correction, in the order they landed.</summary>
-    public static IReadOnlyList<Correction> All { get; } = [Rkf5Coefficient];
+    public static IReadOnlyList<Correction> All { get; } = [Rkf5Coefficient, ClosedCylinderMassFlow];
 }
 
 /// <summary>

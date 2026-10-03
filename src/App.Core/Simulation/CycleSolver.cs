@@ -36,6 +36,9 @@ public sealed class CycleSolver
     private readonly TwoZoneGas _exhaust;
     private readonly TwoZoneGas _atmosphere;
 
+    /// <summary>B46: zero the mass-flow derivatives on entry to compression.</summary>
+    private readonly bool _zeroClosedCylinderMassFlow;
+
     /// <param name="engine">The engine to simulate.</param>
     /// <param name="manifold">Where the manifold boundary conditions come from.</param>
     /// <param name="evaluator">Evaluates the <c>.eng</c> file's expressions.</param>
@@ -59,6 +62,9 @@ public sealed class CycleSolver
         // B14: Fehlberg's coefficient in place of the original's transposed digit.
         _integrator.FehlbergCoefficient =
             physics?.IsOn(CorrectionCatalogue.Rkf5Coefficient) ?? false;
+
+        _zeroClosedCylinderMassFlow =
+            physics?.IsOn(CorrectionCatalogue.ClosedCylinderMassFlow) ?? false;
 
         _cylinder = new TwoZoneGas(engine.Cylinder);
         _plenum = new TwoZoneGas(engine.Plenum);
@@ -443,6 +449,18 @@ public sealed class CycleSolver
 
                 _cylinder.Burnt.Equilibrium!.Frozen = false;
                 ResetCycleAccumulators();
+
+                // The original's mass block has no case for the closed states, so these
+                // keep the last intake step's value and the previous cycle's last exhaust
+                // step's, and expansion uses the exhaust one as though gas were still
+                // leaving. Legacy reproduces that; B46 closes the cylinder. Exhaust and
+                // intake set their own on their first step.
+                if (_zeroClosedCylinderMassFlow)
+                {
+                    cylinder.DmInDTheta = 0;
+                    cylinder.DmOutDTheta = 0;
+                }
+
                 break;
 
             case EngineState.Combustion:
