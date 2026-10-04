@@ -225,6 +225,9 @@ public sealed class SimulationRunnerTests
         Assert.InRange(TorqueShift(CorrectionCatalogue.SecantProbe), 1e-7, 0.005);
         Assert.InRange(TorqueShift(CorrectionCatalogue.LiveInletTemperature), 0.01, 0.06);
 
+        // No area lookup on the baseline engine ever passes the end of its table (B4).
+        Assert.Equal(0, TorqueShift(CorrectionCatalogue.AreaClamp));
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });

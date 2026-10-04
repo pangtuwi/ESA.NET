@@ -165,9 +165,10 @@ work.
   flow through an exhaust valve is outward. The inlet valve is wired the obvious
   way. Straightening this out would silently change the physics.
 - `TAManf.GetValue` returns **zero** past the end of the area table, not the last
-  area — a cliff, not a clamp. `TCdValve.GetValue` passes its y arguments in the
-  reverse order to its x ones. Both are reproduced verbatim in
-  `LegacyInterpolation`; the phase 4 reference runs were produced by them.
+  area — a cliff, not a clamp. Legacy reproduces it in `LegacyInterpolation`;
+  Corrected (B4) holds the last area. `TCdValve.GetValue` names its two y points in
+  the reverse order to its x ones, which looks like a slip and is not: each y keeps its
+  own value, so it is an ordinary bilinear interpolation (`ISSUES.md` B5).
 - **`Partial_dxd` takes pressure in atmospheres, not pascals.** Its first parameter
   is named `Pres`, but `go2` passes it the local `p`, already divided by 101325
   (`Eqbm.pas:117, 137`). Passing pascals inflates every `dC/dT` by `sqrt(101325)`
