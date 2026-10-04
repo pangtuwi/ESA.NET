@@ -228,6 +228,14 @@ work.
   about 4 % more. With every correction so far torque is about 18 % higher at 4000 rpm and
   about 2 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
+- **Legacy matches the dynamometer; Corrected does not, yet.** `data/thesis/` holds the baseline
+  engine's measured torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests`
+  gates Legacy against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected
+  (13.4 %, 178.7 Nm). The cause is `ISSUES.md` B78: the burnt-volume component is never reset
+  at combustion entry, so every converged burn runs with no unburnt volume and creates about
+  15 % of the fuel energy, which the original's calibration absorbed through defects the
+  corrections removed. A correction's oracle says it is right; the thesis curve says whether
+  Corrected as a whole is. See `ISSUES.md` F6.
 
 ## Build and test
 
