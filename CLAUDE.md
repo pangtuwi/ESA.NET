@@ -210,9 +210,10 @@ work.
   fingerprint of the baseline runs; entries that move the baseline go behind a
   Legacy/Corrected switch. Read it before touching anything in section B.
 - **Corrected is no longer close to `data/baseline/`.** Since B46 it runs expansion
-  pressure up to 17 % above the reference trace, and since B38 heat loss about 15 % lower;
-  with every correction so far torque is about 12 % higher at 4000 rpm, because the
-  reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  pressure up to 17 % above the reference trace, since B38 heat loss about 15 % lower, and
+  since B65 it draws the charge at the inlet valve's own temperature, about 100 K above
+  the plenum's. With every correction so far torque is about 10 % higher at 4000 rpm and
+  about 9 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 
 ## Build and test

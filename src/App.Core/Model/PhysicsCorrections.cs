@@ -131,6 +131,20 @@ public static class CorrectionCatalogue
     public static Correction ExhaustReverseStagnationChoke { get; } =
         new("B62", "Exhaust reverse choking decided on the pipe's stagnation pressure");
 
+    /// <summary>
+    /// ISSUES.md B64: the exhaust open routine's Mach-matching secant takes its first probe
+    /// upward by 1.001, as the other three valve routines do, not downward by 0.99999.
+    /// </summary>
+    public static Correction SecantProbe { get; } =
+        new("B64", "Exhaust open secant probes upward by 1.001, as the other three valve routines do");
+
+    /// <summary>
+    /// ISSUES.md B65: the inlet temperature reported to the plenum is the one the wave solver
+    /// holds at the valve end, <c>c^2 / (gamma R)</c>, not the starting plenum temperature.
+    /// </summary>
+    public static Correction LiveInletTemperature { get; } =
+        new("B65", "Inlet temperature reported from the wave solver's state, not frozen at the start");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -138,6 +152,7 @@ public static class CorrectionCatalogue
         WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm, ManifoldGammas,
         ClosedValveWallVelocity, OpenEndDensityConvergence, SonicEntranceBracket,
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
+        SecantProbe, LiveInletTemperature,
     ];
 }
 

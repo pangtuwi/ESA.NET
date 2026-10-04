@@ -156,7 +156,10 @@ again: heat loss about 17 % lower, and with all seven corrections torque about 1
 B50 was the first correction whose effect changes sign with speed: it moves the inlet
 tuning, so torque rises at 3000 rpm and falls at 6000. B55 was the first with no effect at
 all on the baseline engine; it is kept behind the switch, and pinned to change nothing,
-rather than being moved to tier 1 after the fact.
+rather than being moved to tier 1 after the fact. B65 was the second largest after B46: the
+charge had been drawn at the starting plenum temperature, and with the valve-end gas's own
+temperature torque falls 15 % at 3000 rpm, taking the all-corrections figure there from
++8.8 % to −9.4 %.
 
 ## 4. Suggested order
 
@@ -200,7 +203,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 23 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61 and B62 **done**; B60 closed as not a defect — heat transfer complete, the wave solver under way — the fingerprint bit-identical under Legacy. Next: B64 and B65 |
+| Tier 3 | 23 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64 and B65 **done**; B60 closed as not a defect — heat transfer and the wave solver complete — the fingerprint bit-identical under Legacy. Left: B4 and B5 (lookups), B16 and B18 (gas properties), B35 and B36 (cylinder equations), then B37 last |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter
