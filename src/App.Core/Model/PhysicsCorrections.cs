@@ -168,6 +168,21 @@ public static class CorrectionCatalogue
     public static Correction ResidualMolecularWeight { get; } =
         new("B18", "Unburnt residual fraction from the residual's molecular weight, in closed form");
 
+    /// <summary>
+    /// ISSUES.md B35: the single-zone pressure equation - cycle one, and two-zone overlap
+    /// through B37 - honours <c>VariableGamma</c>: the cylinder's own gamma, or 1.35 with
+    /// it off, in place of a hard-coded 1.4.
+    /// </summary>
+    public static Correction SingleZoneGamma { get; } =
+        new("B35", "Single-zone pressure equation on the cylinder's own gamma, honouring Variable Gamma");
+
+    /// <summary>
+    /// ISSUES.md B76: the single-zone pressure equation reads the integrator's trial
+    /// pressure and the volume at its own angle, not the state the last step left behind.
+    /// </summary>
+    public static Correction SingleZoneTrialState { get; } =
+        new("B76", "Single-zone pressure equation on the trial state, not the last step's");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -176,7 +191,7 @@ public static class CorrectionCatalogue
         ClosedValveWallVelocity, OpenEndDensityConvergence, SonicEntranceBracket,
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
-        ResidualMolecularWeight,
+        ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState,
     ];
 }
 

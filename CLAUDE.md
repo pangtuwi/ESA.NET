@@ -191,6 +191,11 @@ work.
   whole-cycle comparison is 0.225 % rms with the transposed digit and 0.190 % with
   Fehlberg's, both inside the A8 bias. So "reproduced because `data/baseline/` was
   produced by it" was never established by measurement — see `ISSUES.md` B14.
+- **Between steps, the gas pairs the end-of-step solution with the start-of-step angle.**
+  `Run` updates the cylinder at `VCyl(x)` with `x` the angle the step began at, after
+  `Integrate` has moved `y` on by `dx` (`ISSUES.md` B77, open). Measure a state from
+  `Integration.Y` and the volume at `CrankAngle + CrankAngleStep`, not from `Cylinder.PGas`
+  and `Cylinder.VGas`: the mismatch biases a polytropic index by about 0.02.
 - `Manifolds.pas:2739-2742` **ignores the `IVFFn` expression at or below 1000 rpm**,
   substituting a hard-coded line. The port evaluates the operator's expression at every
   speed; no baseline run goes that slow. See `ISSUES.md` B6.
@@ -216,8 +221,8 @@ work.
 - **Corrected is no longer close to `data/baseline/`.** Since B46 it runs expansion
   pressure up to 17 % above the reference trace, since B38 heat loss about 15 % lower, and
   since B65 it draws the charge at the inlet valve's own temperature, about 100 K above
-  the plenum's. With every correction so far torque is about 10 % higher at 4000 rpm and
-  about 9 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  the plenum's. With every correction so far torque is about 9 % higher at 4000 rpm and
+  about 12 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 
 ## Build and test

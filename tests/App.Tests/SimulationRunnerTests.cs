@@ -233,6 +233,11 @@ public sealed class SimulationRunnerTests
         Assert.InRange(TorqueShift(CorrectionCatalogue.AnalyticPressureDerivative), 1e-7, 0.005);
         Assert.InRange(TorqueShift(CorrectionCatalogue.ResidualMolecularWeight), 1e-4, 0.005);
 
+        // B35 and B76 reach the run through the single-zone first cycle and through
+        // overlap, which runs the single-zone equation (B37): tenths of a per cent each.
+        Assert.InRange(TorqueShift(CorrectionCatalogue.SingleZoneGamma), 1e-3, 0.01);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.SingleZoneTrialState), 1e-4, 0.005);
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });
