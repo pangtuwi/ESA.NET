@@ -57,7 +57,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IWorkspace workspace,
         IApplicationShell shell,
         IAboutWindowService about,
-        ISweepPlotWindowService sweepPlot)
+        ISweepPlotWindowService sweepPlot,
+        SimulationSettings settings)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
@@ -71,14 +72,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _simulateOptions = simulateOptions;
         _runTimeGraphOptions = runTimeGraphOptions;
         _workspace = workspace;
-
-        // ESA.ini's [Physics] is where Mode=Corrected and the per-correction switches
-        // (B14=1 and so on) live. The run dialogs choose only the mode, so the switches
-        // reach a run from here or not at all.
-        Settings.Physics = settingsStore.Read(IniPath).Physics.Clone();
         _shell = shell;
         _about = about;
         _sweepPlot = sweepPlot;
+
+        // ESA.ini's run options, and the speed the Simulate dialog first opens on
+        // (formsimul.pas:62 fills it from iniEngineSpeed). Its [Physics] is where
+        // Mode=Corrected and the per-correction switches (B14=1 and so on) live; the run
+        // dialogs choose only the mode, so the switches reach a run from here or not at all.
+        Settings = settings;
+        _engineSpeed = settings.EngineSpeed;
     }
 
     /// <summary>
@@ -164,20 +167,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private bool _showGraphsDuringSweep = true;
 
     /// <summary>
-    /// Run options, as ESA.ini carries them. The physics comes from ESA.ini at startup; the
-    /// Single Speed and Multi-Run dialogs can change its mode for the session.
+    /// Run options, read from ESA.ini at startup. The Single Speed and Multi-Run dialogs
+    /// can change them for the session.
     /// </summary>
-    public SimulationSettings Settings { get; } = new();
-
-    /// <summary>ESA.ini, beside the executable as it was beside ESA.EXE.</summary>
-    private static string IniPath => Path.Combine(AppContext.BaseDirectory, SimulationSettingsStore.FileName);
+    public SimulationSettings Settings { get; }
 
     /// <summary>
     /// Engine speed for a single-point run, in rev/min. Set from the Single Speed
     /// Simulation dialog; the original's main form has no speed control.
     /// </summary>
     [ObservableProperty]
-    private double _engineSpeed = 4000;
+    private double _engineSpeed;
 
     /// <summary>The headline figures, shown in the top-left panel.</summary>
     public SimulationResultsViewModel Results { get; } = new();
@@ -378,7 +378,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         // ESA.ini sits beside the executable, as it did beside ESA.EXE. A missing file is
         // not an error - the store returns the same defaults Delphi's TIniFile would.
-        var settings = _settingsStore.Read(IniPath);
+        var settings = _settingsStore.Read(ServiceRegistration.SettingsPath);
 
         var name = settings.EngineFileName;
 
