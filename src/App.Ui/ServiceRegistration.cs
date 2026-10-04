@@ -53,6 +53,7 @@ public static class ServiceRegistration
         services.AddSingleton<ISimulateOptionsWindowService, SimulateOptionsWindowService>();
         services.AddSingleton<IRunTimeGraphOptionsWindowService, RunTimeGraphOptionsWindowService>();
         services.AddSingleton<IAboutWindowService, AboutWindowService>();
+        services.AddSingleton<ISweepPlotWindowService, SweepPlotWindowService>();
         services.AddSingleton<IApplicationShell, ApplicationShell>();
 
         services.AddTransient<MainWindowViewModel>();
@@ -60,6 +61,9 @@ public static class ServiceRegistration
         services.AddTransient<MultiRunViewModel>();
         services.AddTransient<SimulateOptionsViewModel>();
         services.AddTransient<RunTimeGraphOptionsViewModel>();
+        services.AddTransient<SweepPlotViewModel>();
+        services.AddSingleton<Func<SweepPlotViewModel>>(
+            provider => provider.GetRequiredService<SweepPlotViewModel>);
         services.AddSingleton<Func<EditEngineViewModel>>(
             provider => provider.GetRequiredService<EditEngineViewModel>);
         services.AddSingleton<Func<MultiRunViewModel>>(

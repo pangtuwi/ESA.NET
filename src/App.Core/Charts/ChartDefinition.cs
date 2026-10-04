@@ -9,7 +9,11 @@ namespace App.Core.Charts;
 /// in-cylinder chart needs it: pressure runs to about 70 bar while temperature runs to
 /// 4200 K, and on one axis the pressure trace would be flat against the bottom.
 /// </param>
-public sealed record ChartSeries(string Name, double[] X, double[] Y, bool UseRightAxis = false)
+/// <param name="ShowMarkers">Whether each point is marked. Off for the crank-angle traces, which are dense.</param>
+/// <param name="ShowLine">Whether the points are joined. Off draws a scatter of markers.</param>
+public sealed record ChartSeries(
+    string Name, double[] X, double[] Y, bool UseRightAxis = false,
+    bool ShowMarkers = false, bool ShowLine = true)
 {
     /// <summary>How many points the series holds.</summary>
     public int Count => X.Length;

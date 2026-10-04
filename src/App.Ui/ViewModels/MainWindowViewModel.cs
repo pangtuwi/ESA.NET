@@ -35,6 +35,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly IWorkspace _workspace;
     private readonly IApplicationShell _shell;
     private readonly IAboutWindowService _about;
+    private readonly ISweepPlotWindowService _sweepPlot;
 
     private CancellationTokenSource? _running;
 
@@ -55,7 +56,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IRunTimeGraphOptionsWindowService runTimeGraphOptions,
         IWorkspace workspace,
         IApplicationShell shell,
-        IAboutWindowService about)
+        IAboutWindowService about,
+        ISweepPlotWindowService sweepPlot)
     {
         _engineLoader = engineLoader;
         _definitions = definitions;
@@ -71,6 +73,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _workspace = workspace;
         _shell = shell;
         _about = about;
+        _sweepPlot = sweepPlot;
     }
 
     /// <summary>
@@ -201,7 +204,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(StopCommand))]
     [NotifyCanExecuteChangedFor(nameof(PauseCommand))]
     [NotifyCanExecuteChangedFor(nameof(QuickRunCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SweepResultsCommand))]
     private bool _isRunning;
+
+    /// <summary>
+    /// Every row of the last multi-run sweep, failed rows included, for Graph ▸ Multi-Run
+    /// Results. Null until a sweep has run. A sweep that was stopped keeps the rows it
+    /// finished. Held in memory only; the sweep's run folder is the lasting record.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SweepResultsCommand))]
+    private IReadOnlyList<MultiRunRowResult>? _lastSweep;
 
     /// <summary>
     /// The last completed run's captured cycle, which the charts draw from. Null until a
@@ -608,6 +621,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 .RequestedSweep(MultiRun.RunCount, Settings);
 
         var results = new List<MultiRunRowResult>();
+        LastSweep = null;
         string outcome;
 
         try
@@ -678,6 +692,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
         finally
         {
+            LastSweep = results.ToArray();
             IsRunning = false;
             ReleasePause();
             _running.Dispose();
@@ -905,6 +920,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void TorqueCurve() => _charts.Show(EngineCharts.TorqueCurve(Performance));
 
     private bool HasPerformancePoints => Performance.Points.Count > 0;
+
+    /// <summary>
+    /// Plots any variable of the last sweep against any other. Not in the original, whose
+    /// only view of a sweep was <see cref="TorqueCurveCommand"/>.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanShowSweepResults))]
+    private Task SweepResultsAsync() => _sweepPlot.ShowAsync(LastSweep!);
+
+    private bool CanShowSweepResults =>
+        !IsRunning && LastSweep is { } rows && rows.Any(r => r.Result is not null);
 
     /// <summary>
     /// The camshaft profiles. Unlike the others this needs only the engine, not a

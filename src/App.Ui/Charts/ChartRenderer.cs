@@ -37,7 +37,18 @@ public static class ChartRenderer
         {
             var line = plot.Add.ScatterLine(series.X, series.Y);
             line.LegendText = series.Name;
-            line.MarkerStyle = MarkerStyle.None;
+            if (series.ShowMarkers)
+            {
+                // Few points, each a run: mark them plainly, in the line's own colour.
+                line.MarkerShape = MarkerShape.FilledCircle;
+                line.MarkerSize = 8;
+                line.MarkerColor = line.LineColor;
+                line.LineWidth = series.ShowLine ? 2 : 0;
+            }
+            else
+            {
+                line.MarkerStyle = MarkerStyle.None;
+            }
 
             if (series.UseRightAxis && right is not null)
             {
