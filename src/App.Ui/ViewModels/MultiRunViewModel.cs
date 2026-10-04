@@ -168,7 +168,7 @@ public sealed partial class MultiRunViewModel : ObservableObject
     /// <summary>How many runs the grid describes, Delphi <c>NoRuns</c>.</summary>
     public int RunCount => Grid.RunCount;
 
-    /// <summary>What OK will do, and what it will leave out.</summary>
+    /// <summary>What Run will do, and what it will leave out.</summary>
     public string Summary
     {
         get
@@ -290,7 +290,7 @@ public sealed partial class MultiRunViewModel : ObservableObject
         }
     }
 
-    /// <summary>Delphi <c>BOkClick</c>.</summary>
+    /// <summary>Delphi <c>BOkClick</c>. Captioned Run here, where the original said OK.</summary>
     [RelayCommand]
     private void Accept()
     {
