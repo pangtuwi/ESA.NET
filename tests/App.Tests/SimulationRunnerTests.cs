@@ -228,6 +228,11 @@ public sealed class SimulationRunnerTests
         // No area lookup on the baseline engine ever passes the end of its table (B4).
         Assert.Equal(0, TorqueShift(CorrectionCatalogue.AreaClamp));
 
+        // B16 swaps a difference for the derivative it approximates, and B18 gives the
+        // charge the residual fraction it was asked for: a thousandth of torque at most.
+        Assert.InRange(TorqueShift(CorrectionCatalogue.AnalyticPressureDerivative), 1e-7, 0.005);
+        Assert.InRange(TorqueShift(CorrectionCatalogue.ResidualMolecularWeight), 1e-4, 0.005);
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });

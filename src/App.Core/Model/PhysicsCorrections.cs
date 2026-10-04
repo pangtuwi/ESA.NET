@@ -153,6 +153,21 @@ public static class CorrectionCatalogue
     public static Correction AreaClamp { get; } =
         new("B4", "Pipe area holds its last value past the end of the table, not zero");
 
+    /// <summary>
+    /// ISSUES.md B16 (with B17): the burnt <c>dudp</c> from the equilibrium solver's
+    /// pressure derivatives, in per-pascal units and with the right molecular weight, in
+    /// place of a central difference costing two more solves.
+    /// </summary>
+    public static Correction AnalyticPressureDerivative { get; } =
+        new("B16", "Burnt dudp from the solver's pressure derivatives, not a central difference");
+
+    /// <summary>
+    /// ISSUES.md B18: the unburnt charge's residual mole fraction from the residual's own
+    /// molecular weight, so it is right on the first call and every call after.
+    /// </summary>
+    public static Correction ResidualMolecularWeight { get; } =
+        new("B18", "Unburnt residual fraction from the residual's molecular weight, in closed form");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -160,7 +175,8 @@ public static class CorrectionCatalogue
         WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm, ManifoldGammas,
         ClosedValveWallVelocity, OpenEndDensityConvergence, SonicEntranceBracket,
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
-        SecantProbe, LiveInletTemperature, AreaClamp,
+        SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
+        ResidualMolecularWeight,
     ];
 }
 
