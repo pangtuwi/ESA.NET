@@ -94,6 +94,27 @@ public sealed class CylinderModel
     /// </summary>
     public bool PressureRiseTermInCombustionOnly { get; init; }
 
+    /// <summary>
+    /// ISSUES.md B35: the single-zone pressure equation honours <see cref="VariableGamma"/>,
+    /// as the original's commented-out lines meant it to - the cylinder's own gamma with
+    /// it on, 1.35 with it off. Off reproduces the original's hard-coded 1.4.
+    /// </summary>
+    public bool HonourVariableGamma { get; init; }
+
+    /// <summary>
+    /// The engine's <i>Variable Gamma</i> setting, Delphi <c>VariableGamma</c>. Read only
+    /// under <see cref="HonourVariableGamma"/>; the original never reads it (ISSUES.md C11).
+    /// </summary>
+    public bool VariableGamma { get; init; }
+
+    /// <summary>
+    /// ISSUES.md B76: the single-zone pressure equation reads the pressure from the trial
+    /// vector and the volume at the angle it was called with, as every other equation does.
+    /// Off reproduces the original, which reads the pressure and volume the gas was left
+    /// holding by the previous step, so every stage of a step sees the step's start.
+    /// </summary>
+    public bool SingleZoneTrialState { get; init; }
+
     /// <summary>The current crank-angle state, Delphi <c>State</c>.</summary>
     public EngineState State { get; set; }
 
@@ -336,13 +357,16 @@ public sealed class CylinderModel
     /// both the <c>VariableGamma</c> test and the <c>Cyl.Gamma</c> assignment present but
     /// commented out immediately above the literal, so the engine's own computed gamma is
     /// never used by this equation and the <b>Variable Gamma checkbox on the Model tab
-    /// does nothing at all</b>. See ISSUES.md C11 and B35.
+    /// does nothing at all</b>. Legacy reproduces it; <see cref="HonourVariableGamma"/>
+    /// restores the commented-out test. See ISSUES.md C11 and B35.
     /// </para>
     /// <para>
     /// This equation also does <b>not</b> call any <c>Update*</c> method, so it reads
     /// whatever pressure and volume the gas was left holding by the previous call rather
     /// than the trial vector it was handed. Only <c>dVCyldTheta</c> and the burn rate see
-    /// <paramref name="crankAngleRadians"/>.
+    /// <paramref name="crankAngleRadians"/>. Legacy reproduces it;
+    /// <see cref="SingleZoneTrialState"/> reads the trial state (ISSUES.md B76). B35 is
+    /// only an improvement with B76: the 1.4 hid most of what the stale state loses.
     /// </para>
     /// <para>
     /// In two-zone mode this is the equation the <b>overlap</b> state uses, not the gas
@@ -351,12 +375,19 @@ public sealed class CylinderModel
     /// </remarks>
     public double PressureRateSingleZone(double crankAngleRadians, ReadOnlySpan<double> y)
     {
-        const double localGamma = 1.4;
-
         var gas = Cylinder.State;
 
-        return (-localGamma * gas.PGas / gas.VGas * _geometry.VolumeRatePerRadian(crankAngleRadians))
-               + ((localGamma - 1) / gas.VGas
+        // Gamma is the cylinder's as the last update left it, like the pressure and
+        // volume read below.
+        var localGamma = !HonourVariableGamma ? 1.4
+            : VariableGamma ? gas.Gamma
+            : 1.35;
+
+        var pressure = SingleZoneTrialState ? y[1] : gas.PGas;
+        var volume = SingleZoneTrialState ? _geometry.Volume(crankAngleRadians) : gas.VGas;
+
+        return (-localGamma * pressure / volume * _geometry.VolumeRatePerRadian(crankAngleRadians))
+               + ((localGamma - 1) / volume
                   * ((gas.Fuel.M * gas.Fuel.Q * Cylinder.BurnRate(crankAngleRadians))
                      + SingleZoneHeatLossRate(crankAngleRadians)));
     }
@@ -370,10 +401,9 @@ public sealed class CylinderModel
     /// compression.
     /// </summary>
     /// <remarks>
-    /// The transfer enthalpy is chosen <b>after</b> the update here and <b>before</b> it
-    /// in <see cref="UnburntTemperatureRate"/>. The two therefore disagree about which
-    /// <c>hu</c> the cylinder branch means whenever <see cref="InletMassFlow"/> is not
-    /// positive. Reproduced. See ISSUES.md B36.
+    /// The transfer enthalpy is chosen <b>after</b> the update, so that the cylinder
+    /// branch's <c>hu</c> belongs to the same state as <c>uu</c>. The original's
+    /// <c>dTudThetaUB</c> chose it before; see ISSUES.md B36.
     /// </remarks>
     public double PressureRateUnburnt(double crankAngleRadians, ReadOnlySpan<double> y)
     {
@@ -396,18 +426,24 @@ public sealed class CylinderModel
 
     /// <summary>
     /// Unburnt temperature equation, Delphi <c>dTudThetaUB</c>. The numerator and
-    /// denominator are the same as in <see cref="PressureRateUnburnt"/>; only the order
-    /// of the enthalpy choice and the update differs.
+    /// denominator are the same as in <see cref="PressureRateUnburnt"/>.
     /// </summary>
+    /// <remarks>
+    /// The original reads the transfer enthalpy <b>before</b> its update, so whenever
+    /// <see cref="InletMassFlow"/> is not positive it takes <c>hu</c> from whatever state
+    /// the gas was last updated to. Here it is read after, as in
+    /// <see cref="PressureRateUnburnt"/>. That changes no result: the integrator always
+    /// evaluates the pressure equation at the same state immediately before this one, so
+    /// the gas was already holding this state's <c>hu</c>. See ISSUES.md B36.
+    /// </remarks>
     public double UnburntTemperatureRate(double crankAngleRadians, ReadOnlySpan<double> y)
     {
         var gas = Cylinder.State;
 
-        // Before the update, unlike dPdThetaUB. Reproduced; see ISSUES.md B36.
-        var transferEnthalpy = InletMassFlow > 0 ? Plenum.State.Hu : gas.Hu;
-
         var volume = _geometry.Volume(crankAngleRadians);
         Cylinder.UpdateUB(volume, _geometry.VolumeRatePerRadian(crankAngleRadians), volume, y[1], y[3]);
+
+        var transferEnthalpy = InletMassFlow > 0 ? Plenum.State.Hu : gas.Hu;
 
         return ((-gas.PGas * gas.DvDTheta)
                 + UnburntHeatLossRate(crankAngleRadians)

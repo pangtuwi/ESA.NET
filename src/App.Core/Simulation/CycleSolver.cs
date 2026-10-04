@@ -111,6 +111,9 @@ public sealed class CycleSolver
             ClampPressureRiseTerm = physics?.IsOn(CorrectionCatalogue.WoschniNegativeVelocity) ?? false,
             PressureRiseTermInCombustionOnly =
                 physics?.IsOn(CorrectionCatalogue.WoschniCombustionTerm) ?? false,
+            HonourVariableGamma = physics?.IsOn(CorrectionCatalogue.SingleZoneGamma) ?? false,
+            VariableGamma = engine.VariableGamma,
+            SingleZoneTrialState = physics?.IsOn(CorrectionCatalogue.SingleZoneTrialState) ?? false,
         };
     }
 
