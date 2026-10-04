@@ -183,6 +183,14 @@ public static class CorrectionCatalogue
     public static Correction SingleZoneTrialState { get; } =
         new("B76", "Single-zone pressure equation on the trial state, not the last step's");
 
+    /// <summary>
+    /// ISSUES.md B77: after each step the gas is updated at the angle the solution belongs
+    /// to, the step's end, not the angle the step started at; work and heat loss are the
+    /// trapezoid of the step's two ends; and the PVT trace files each row at that angle.
+    /// </summary>
+    public static Correction EndOfStepState { get; } =
+        new("B77", "Gas updated at the angle the step finished at; work and heat by the trapezoid; trace rows at that angle");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -191,7 +199,7 @@ public static class CorrectionCatalogue
         ClosedValveWallVelocity, OpenEndDensityConvergence, SonicEntranceBracket,
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
-        ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState,
+        ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
     ];
 }
 

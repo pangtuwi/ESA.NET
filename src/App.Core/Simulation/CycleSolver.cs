@@ -45,6 +45,15 @@ public sealed class CycleSolver
     /// <summary>B50: compute the manifold gammas, as <c>InitVars</c> does, for the wave solver.</summary>
     private readonly bool _computeManifoldGammas;
 
+    /// <summary>
+    /// B77: update the gas at the angle the step finished at, and integrate work and heat
+    /// by the trapezoid of the step's two ends.
+    /// </summary>
+    private readonly bool _endOfStepState;
+
+    /// <summary>B77: the work and heat-loss rates at the start of the current step.</summary>
+    private (double Work, double BurntHeat, double UnburntHeat) _startRates;
+
     /// <param name="engine">The engine to simulate.</param>
     /// <param name="manifold">Where the manifold boundary conditions come from.</param>
     /// <param name="evaluator">Evaluates the <c>.eng</c> file's expressions.</param>
@@ -74,6 +83,7 @@ public sealed class CycleSolver
 
         _updateIvcReference = physics?.IsOn(CorrectionCatalogue.IvcReference) ?? false;
         _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
+        _endOfStepState = physics?.IsOn(CorrectionCatalogue.EndOfStepState) ?? false;
 
         _cylinder = new TwoZoneGas(engine.Cylinder);
         _plenum = new TwoZoneGas(engine.Plenum);
@@ -406,6 +416,16 @@ public sealed class CycleSolver
             InstallCombustionEquations(cylinder.Mb == 0);
         }
 
+        if (_endOfStepState)
+        {
+            // Under B77 the gas already holds this step's starting state - the last step's
+            // end, with the pressure correction applied - so these are the start rates.
+            _startRates = (
+                Cylinder.WorkRate(state.X, state.Y),
+                Cylinder.BurntHeatLossRate(state.X),
+                Cylinder.UnburntHeatLossRate(state.X));
+        }
+
         _integrator.Step(state, _equations);
 
         RefreshGasFromIntegrator();
@@ -661,14 +681,29 @@ public sealed class CycleSolver
     }
 
     /// <summary>
+    /// The angle, in radians, that the integrator's solution belongs to once a step is
+    /// done: the step's own start in Legacy, as the original updates there although the
+    /// solution has moved on by a step (ISSUES.md B77); the step's end under B77.
+    /// </summary>
+    private double SolutionAngle => _endOfStepState
+        ? (_engine.CrankAngle + _engine.CrankAngleStep) * Math.PI / 180
+        : _engine.Integration.X;
+
+    /// <summary>
     /// Writes the integrator's result back into the gas through the update method that
     /// matches the state. Port of the <c>case state of</c> block after <c>Integrate</c>.
     /// </summary>
+    /// <remarks>
+    /// The original updates at <c>VCyl(x)</c>, the angle the step started from, with the
+    /// solution at the angle it finished at: the volume, its rate and the burnt fraction
+    /// one step behind the pressure and temperatures. Legacy reproduces it; under B77 the
+    /// update is at the solution's own angle. See ISSUES.md B77.
+    /// </remarks>
     private void RefreshGasFromIntegrator()
     {
         var engine = _engine;
         var y = engine.Integration.Y;
-        var x = engine.Integration.X;
+        var x = SolutionAngle;
         var volume = Geometry.Volume(x);
         var rate = Geometry.VolumeRatePerRadian(x);
 
@@ -699,6 +734,10 @@ public sealed class CycleSolver
     /// Forces the two zones to agree in the single-zone model: both masses become the
     /// whole charge and both temperatures come from the ideal gas law.
     /// </summary>
+    /// <remarks>
+    /// From the gas's volume, which in Legacy belongs to the angle the step started at
+    /// rather than to the pressure (ISSUES.md B77).
+    /// </remarks>
     private void CollapseToSingleZone()
     {
         var engine = _engine;
@@ -732,7 +771,9 @@ public sealed class CycleSolver
             CrankAngle: (x * 180 / Math.PI) + 360,
             CylinderPressure: cylinder.PGas,
             CylinderTemperature: gasTemperature,
-            CylinderVolume: Geometry.Volume(x),
+            // The volume the pressure belongs to under B77; the step's start in Legacy.
+            // The angle and the valve areas stay on the step grid either way.
+            CylinderVolume: Geometry.Volume(SolutionAngle),
             CylinderMass: cylinder.MGas,
             AtmosphericPressure: engine.Atmosphere.PGas,
             AtmosphericTemperature: _atmosphere.GasTemperature(),
@@ -762,7 +803,13 @@ public sealed class CycleSolver
         var x = engine.Integration.X;
         var dx = engine.Integration.Dx;
 
-        var work = dx * Cylinder.WorkRate(x, y);
+        // Legacy pairs the end-of-step pressure with the start-of-step volume rate. Under
+        // B77 each end of the step is evaluated at its own state and angle, and the step
+        // takes the trapezoid of the two. See ISSUES.md B77.
+        var end = SolutionAngle;
+        var work = _endOfStepState
+            ? 0.5 * dx * (_startRates.Work + Cylinder.WorkRate(end, y))
+            : dx * Cylinder.WorkRate(x, y);
 
         switch (engine.State)
         {
@@ -790,8 +837,17 @@ public sealed class CycleSolver
             engine.PeakTemperature = _cylinder.GasTemperature();
         }
 
-        engine.Qb = Cylinder.BurntHeatLossRate(x) * dx;
-        engine.Qu = Cylinder.UnburntHeatLossRate(x) * dx;
+        if (_endOfStepState)
+        {
+            engine.Qb = 0.5 * dx * (_startRates.BurntHeat + Cylinder.BurntHeatLossRate(end));
+            engine.Qu = 0.5 * dx * (_startRates.UnburntHeat + Cylinder.UnburntHeatLossRate(end));
+        }
+        else
+        {
+            engine.Qb = Cylinder.BurntHeatLossRate(x) * dx;
+            engine.Qu = Cylinder.UnburntHeatLossRate(x) * dx;
+        }
+
         engine.HeatLoss += engine.Qb + engine.Qu;
     }
 
@@ -960,7 +1016,10 @@ public sealed class CycleSolver
         }
 
         // Both zones are put back on the ideal gas law at the mixed temperature, and the
-        // integrator's two temperature components with them.
+        // integrator's two temperature components with them. The volume is the gas's: in
+        // Legacy the angle the step started at, a step behind the pressure, so the
+        // temperature is off by dV/V, a few per cent near top dead centre; under B77 the
+        // angle the pressure belongs to. See ISSUES.md B77.
         cylinder.Tu = cylinder.PGas * cylinder.VGas / cylinder.RGas / cylinder.MGas;
         engine.Integration.Y[2] = cylinder.Tu;
         engine.Integration.Y[3] = cylinder.Tu;
