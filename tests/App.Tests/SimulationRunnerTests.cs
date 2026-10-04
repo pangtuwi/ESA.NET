@@ -242,6 +242,9 @@ public sealed class SimulationRunnerTests
         // of the closed-period work, and the overlap temperature moves the trapped charge.
         Assert.InRange(TorqueShift(CorrectionCatalogue.EndOfStepState), 0.05, 0.12);
 
+        // B78 takes out the energy every converged burn created: about a tenth of torque.
+        Assert.InRange(TorqueShift(CorrectionCatalogue.BurntVolumeReset), 0.06, 0.14);
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });

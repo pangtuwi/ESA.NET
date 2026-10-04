@@ -51,6 +51,9 @@ public sealed class CycleSolver
     /// </summary>
     private readonly bool _endOfStepState;
 
+    /// <summary>B78: reset the burnt volume at every combustion entry.</summary>
+    private readonly bool _resetBurntVolume;
+
     /// <summary>B77: the work and heat-loss rates at the start of the current step.</summary>
     private (double Work, double BurntHeat, double UnburntHeat) _startRates;
 
@@ -84,6 +87,7 @@ public sealed class CycleSolver
         _updateIvcReference = physics?.IsOn(CorrectionCatalogue.IvcReference) ?? false;
         _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
         _endOfStepState = physics?.IsOn(CorrectionCatalogue.EndOfStepState) ?? false;
+        _resetBurntVolume = physics?.IsOn(CorrectionCatalogue.BurntVolumeReset) ?? false;
 
         _cylinder = new TwoZoneGas(engine.Cylinder);
         _plenum = new TwoZoneGas(engine.Plenum);
@@ -564,6 +568,17 @@ public sealed class CycleSolver
                 // The burnt zone starts at the adiabatic flame temperature for the
                 // unburnt state, found by isenthalpic iteration.
                 engine.Integration.Y[2] = InitialBurntTemperature(cylinder.PGas, cylinder.Tu);
+
+                // The original sets only the burnt temperature here. The burnt volume is
+                // zeroed once, in InitVars, so the first two-zone burn starts from nothing
+                // and every later one from the last burn's end-of-burn volume - larger
+                // than the cylinder at the spark - and burns with no unburnt volume at all,
+                // creating about 15 per cent of the fuel energy. Legacy reproduces it; B78
+                // starts every burn as the first one starts. See ISSUES.md B78.
+                if (_resetBurntVolume)
+                {
+                    engine.Integration.Y[0] = 0;
+                }
                 break;
 
             case EngineState.Expansion:

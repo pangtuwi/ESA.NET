@@ -225,17 +225,17 @@ work.
   pressure up to 17 % above the reference trace, since B38 heat loss about 15 % lower, and
   since B65 it draws the charge at the inlet valve's own temperature, about 100 K above
   the plenum's, and since B77 it counts work without the original's one-step phase error,
-  about 4 % more. With every correction so far torque is about 18 % higher at 4000 rpm and
-  about 2 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  about 4 % more, and since B78 its burns conserve energy where the original's created about
+  15 % of the fuel energy. With every correction so far torque is about 7 % higher at 4000 rpm
+  and about 11 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
-- **Legacy matches the dynamometer; Corrected does not, yet.** `data/thesis/` holds the baseline
-  engine's measured torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests`
-  gates Legacy against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected
-  (13.4 %, 178.7 Nm). The cause is `ISSUES.md` B78: the burnt-volume component is never reset
-  at combustion entry, so every converged burn runs with no unburnt volume and creates about
-  15 % of the fuel energy, which the original's calibration absorbed through defects the
-  corrections removed. A correction's oracle says it is right; the thesis curve says whether
-  Corrected as a whole is. See `ISSUES.md` F6.
+- **Both modes match the dynamometer.** `data/thesis/` holds the baseline engine's measured
+  torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (5.2 %, 162.2
+  Nm). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
+  energy, which its calibration absorbed through defects the earlier corrections removed. A
+  correction's oracle says it is right; the thesis curve says whether Corrected as a whole is.
+  See `ISSUES.md` B78 and F6.
 
 ## Build and test
 
