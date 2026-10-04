@@ -14,11 +14,18 @@ namespace App.Core.Manifold;
 public sealed class PipeGeometry
 {
     private readonly ManifoldAreaTable _table;
+    private readonly bool _clampPastEnd;
 
-    public PipeGeometry(ManifoldAreaTable table)
+    /// <param name="table">The pipe's <c>.maf</c> area table.</param>
+    /// <param name="clampPastEnd">
+    /// ISSUES.md B4: hold the last area past the end of the table rather than falling to
+    /// zero. False is the original's lookup.
+    /// </param>
+    public PipeGeometry(ManifoldAreaTable table, bool clampPastEnd = false)
     {
         ArgumentNullException.ThrowIfNull(table);
         _table = table;
+        _clampPastEnd = clampPastEnd;
     }
 
     /// <summary>
@@ -27,7 +34,8 @@ public sealed class PipeGeometry
     public double Length => _table.Position[_table.Count - 1] / 1000;
 
     /// <summary>Area in square metres at <paramref name="length"/> metres along the pipe.</summary>
-    public double Area(double length) => LegacyInterpolation.AreaAt(_table, length * 1000) / 1e6;
+    public double Area(double length) =>
+        LegacyInterpolation.AreaAt(_table, length * 1000, _clampPastEnd) / 1e6;
 
     /// <summary>
     /// Rate of change of area with distance, in metres. Port of <c>TPipe.dAdL</c>: a
@@ -44,14 +52,21 @@ public sealed class PipeGeometry
     {
         var millimetres = length * 1000;
 
-        double At(double position) => LegacyInterpolation.AreaAt(_table, position);
+        double At(double position) => LegacyInterpolation.AreaAt(_table, position, _clampPastEnd);
 
         if (millimetres - 2 < 0)
         {
             return (At(millimetres + 2) - At(millimetres)) / 1e6 / 0.002;
         }
 
-        if (At(millimetres + 2) == 0)
+        // The original finds the end of the pipe by the lookup falling to zero. With the
+        // clamp there is no zero to find, so the same end is found by position, which
+        // gives the same backward difference wherever the zero was the cliff's.
+        var pastTheEnd = _clampPastEnd
+            ? millimetres + 2 > _table.Position[_table.Count - 1]
+            : At(millimetres + 2) == 0;
+
+        if (pastTheEnd)
         {
             return (At(millimetres) - At(millimetres - 2)) / 1e6 / 0.002;
         }

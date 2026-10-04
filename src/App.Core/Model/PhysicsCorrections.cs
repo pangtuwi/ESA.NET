@@ -145,6 +145,14 @@ public static class CorrectionCatalogue
     public static Correction LiveInletTemperature { get; } =
         new("B65", "Inlet temperature reported from the wave solver's state, not frozen at the start");
 
+    /// <summary>
+    /// ISSUES.md B4: a pipe's area holds its last value past the end of the <c>.maf</c>
+    /// table, instead of falling to zero, and the end-of-pipe gradient finds the end by
+    /// position.
+    /// </summary>
+    public static Correction AreaClamp { get; } =
+        new("B4", "Pipe area holds its last value past the end of the table, not zero");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -152,7 +160,7 @@ public static class CorrectionCatalogue
         WoschniNegativeVelocity, IvcReference, WoschniCombustionTerm, ManifoldGammas,
         ClosedValveWallVelocity, OpenEndDensityConvergence, SonicEntranceBracket,
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
-        SecantProbe, LiveInletTemperature,
+        SecantProbe, LiveInletTemperature, AreaClamp,
     ];
 }
 

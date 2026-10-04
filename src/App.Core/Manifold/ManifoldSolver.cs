@@ -136,8 +136,10 @@ public sealed class ManifoldSolver : IManifoldSource
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
 
-        _inletPipe = new PipeGeometry(manifold.InletPipe.AreaVersusLength);
-        _exhaustPipe = new PipeGeometry(manifold.ExhaustPipe.AreaVersusLength);
+        // B4: the pipes hold their last area past the end of the table.
+        var clampArea = physics?.IsOn(CorrectionCatalogue.AreaClamp) ?? false;
+        _inletPipe = new PipeGeometry(manifold.InletPipe.AreaVersusLength, clampArea);
+        _exhaustPipe = new PipeGeometry(manifold.ExhaustPipe.AreaVersusLength, clampArea);
         _inletValve = ValveMotion.FromValve(manifold.InletValve);
         _exhaustValve = ValveMotion.FromValve(manifold.ExhaustValve);
 

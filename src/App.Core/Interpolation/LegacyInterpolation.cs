@@ -25,9 +25,10 @@ public static class LegacyInterpolation
     /// <remarks>
     /// Note the last two lines of the original: past the end of the table the result is
     /// <b>zero</b>, not the final area. That is a cliff rather than a clamp, and the
-    /// manifold solver depends on it.
+    /// manifold solver depends on it. <paramref name="clampPastEnd"/> holds the last area
+    /// instead (ISSUES.md B4).
     /// </remarks>
-    public static double AreaAt(ManifoldAreaTable table, double position)
+    public static double AreaAt(ManifoldAreaTable table, double position, bool clampPastEnd = false)
     {
         ArgumentNullException.ThrowIfNull(table);
 
@@ -56,7 +57,12 @@ public static class LegacyInterpolation
             result = Between(position, table.Position[i - 1], table.Area[i - 1], table.Position[i], table.Area[i]);
         }
 
-        return position > table.Position[i] ? 0 : result;
+        if (position > table.Position[i])
+        {
+            return clampPastEnd ? table.Area[i] : 0;
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -66,7 +72,9 @@ public static class LegacyInterpolation
     /// <remarks>
     /// The final interpolation passes its y arguments in the opposite order to the two
     /// x interpolations above it — <c>(iny, yIndex[yi], Value1, yIndex[yi-1], Value2)</c>
-    /// in the original. Reproduced verbatim.
+    /// in the original. Reproduced verbatim, and harmless: each y keeps its own row's
+    /// value, so only the order of the two points differs, and the line through them is
+    /// the same (ISSUES.md B5, closed as not a defect).
     /// </remarks>
     public static double CoefficientAt(DischargeCoefficientTable table, double x, double y)
     {
