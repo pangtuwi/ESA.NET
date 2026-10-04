@@ -1,5 +1,6 @@
 using App.Core;
 using App.Core.Expressions;
+using App.Core.Model;
 using App.Persistence;
 using App.Persistence.Tables;
 using App.Core.Simulation;
@@ -16,6 +17,10 @@ namespace App.Ui;
 /// </summary>
 public static class ServiceRegistration
 {
+    /// <summary><c>ESA.ini</c>, which sits beside the executable as it did beside ESA.EXE.</summary>
+    public static string SettingsPath { get; } =
+        Path.Combine(AppContext.BaseDirectory, SimulationSettingsStore.FileName);
+
     public static IServiceCollection CreateServices() => new ServiceCollection().AddEsa();
 
     public static IServiceCollection AddEsa(this IServiceCollection services)
@@ -25,12 +30,17 @@ public static class ServiceRegistration
         services.AddSingleton<IEngineDefinitionStore, EngineDefinitionStore>();
         services.AddSingleton<ISimulationSettingsStore, SimulationSettingsStore>();
 
-        // The data folder, resolved once from ESA.ini beside the executable - the same
-        // file and the same place LoadDefault reads. A test registers its own over the
-        // top, which is what keeps a test run out of the operator's Documents.
+        // The application defaults, read from ESA.ini beside the executable at startup as
+        // Delphi's FormCreate does with LoadIniValues (Main.pas:772). Transient because the
+        // main window changes its copy through the Simulate dialog; a test registers its
+        // own over the top.
+        services.AddTransient(provider =>
+            provider.GetRequiredService<ISimulationSettingsStore>().Read(SettingsPath));
+
+        // The data folder, resolved once from the same file. A test registers its own over
+        // the top, which is what keeps a test run out of the operator's Documents.
         services.AddSingleton<IWorkspace>(provider => Workspace.From(
-            provider.GetRequiredService<ISimulationSettingsStore>().Read(
-                Path.Combine(AppContext.BaseDirectory, SimulationSettingsStore.FileName))));
+            provider.GetRequiredService<ISimulationSettingsStore>().Read(SettingsPath)));
 
         services.AddSingleton<ICamProfileReader, CamProfileReader>();
         services.AddSingleton<ISpeedKeyedTableReader, SpeedKeyedTableReader>();
