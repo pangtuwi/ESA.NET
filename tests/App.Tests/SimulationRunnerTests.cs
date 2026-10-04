@@ -238,6 +238,10 @@ public sealed class SimulationRunnerTests
         Assert.InRange(TorqueShift(CorrectionCatalogue.SingleZoneGamma), 1e-3, 0.01);
         Assert.InRange(TorqueShift(CorrectionCatalogue.SingleZoneTrialState), 1e-4, 0.005);
 
+        // B77 is large: the work accumulator's one-step phase error alone was four per cent
+        // of the closed-period work, and the overlap temperature moves the trapped charge.
+        Assert.InRange(TorqueShift(CorrectionCatalogue.EndOfStepState), 0.05, 0.12);
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });

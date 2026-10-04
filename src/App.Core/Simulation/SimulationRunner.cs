@@ -101,7 +101,10 @@ public sealed class SimulationRunner
 
         afterInitialise?.Invoke(engine);
 
-        var recorder = new CrankAngleTraceRecorder(solver.InletValve, solver.ExhaustValve);
+        var recorder = new CrankAngleTraceRecorder(
+            solver.InletValve,
+            solver.ExhaustValve,
+            endOfStepAngle: settings.Physics.IsOn(CorrectionCatalogue.EndOfStepState));
         var requested = Math.Max(settings.CycleCount, EsaLimits.MinimumCycles);
         var cycle = 0;
 

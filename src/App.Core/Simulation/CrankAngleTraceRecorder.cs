@@ -14,11 +14,20 @@ public sealed class CrankAngleTraceRecorder
 {
     private readonly ValveMotion _inletValve;
     private readonly ValveMotion _exhaustValve;
+    private readonly bool _endOfStepAngle;
 
-    public CrankAngleTraceRecorder(ValveMotion inletValve, ValveMotion exhaustValve)
+    /// <param name="inletValve">The inlet valve, for the flow-area column.</param>
+    /// <param name="exhaustValve">The exhaust valve, for the flow-area column.</param>
+    /// <param name="endOfStepAngle">
+    /// ISSUES.md B77: file each row at the angle the recorded state belongs to, the end of
+    /// the step. Off reproduces the original, which files it under the angle the step
+    /// started at.
+    /// </param>
+    public CrankAngleTraceRecorder(ValveMotion inletValve, ValveMotion exhaustValve, bool endOfStepAngle = false)
     {
         _inletValve = inletValve;
         _exhaustValve = exhaustValve;
+        _endOfStepAngle = endOfStepAngle;
     }
 
     /// <summary>The captured cycle.</summary>
@@ -29,7 +38,21 @@ public sealed class CrankAngleTraceRecorder
     {
         ArgumentNullException.ThrowIfNull(engine);
 
-        var crankAngle = (int)Math.Round(engine.CrankAngle);
+        // The state is the end of the step. The original files it under the angle the step
+        // started at; under B77 it goes under its own, wrapping 361 round to -359.
+        var angle = engine.CrankAngle;
+
+        if (_endOfStepAngle)
+        {
+            angle += engine.CrankAngleStep;
+
+            if (angle > EsaLimits.LastCrankAngle)
+            {
+                angle -= 720;
+            }
+        }
+
+        var crankAngle = (int)Math.Round(angle);
 
         // The original shows a message and gives up rather than writing out of range.
         if (crankAngle < EsaLimits.FirstCrankAngle || crankAngle > EsaLimits.LastCrankAngle)
@@ -55,8 +78,8 @@ public sealed class CrankAngleTraceRecorder
         point[13] = engine.Qu;
         point[14] = cylinder.Gamma;
         point[15] = cylinder.Fuel.M;
-        point[16] = _inletValve.FlowArea(engine.CrankAngle);
-        point[17] = _exhaustValve.FlowArea(engine.CrankAngle);
+        point[16] = _inletValve.FlowArea(angle);
+        point[17] = _exhaustValve.FlowArea(angle);
         point[18] = engine.InletVelocity;
         point[19] = engine.ExhaustVelocity;
         point[20] = engine.InletPressure;
