@@ -259,13 +259,17 @@ public sealed class MultiRunEditorTests
         var (viewModel, _) = Build();
         var window = new MultiRunWindow { DataContext = viewModel };
 
-        foreach (var name in new[] { "LoadButton", "SaveButton", "OkButton", "CancelButton" })
+        foreach (var name in new[] { "LoadButton", "SaveButton", "RunButton", "CancelButton" })
         {
             var button = window.FindControl<Button>(name);
 
             Assert.NotNull(button);
             Assert.NotNull(button.Command);
         }
+
+        // The original's OK, renamed for what it does: it starts the sweep.
+        Assert.Equal("_Run", window.FindControl<Button>("RunButton")!.Content);
+        Assert.Same(viewModel.AcceptCommand, window.FindControl<Button>("RunButton")!.Command);
 
         var showGraphs = window.FindControl<CheckBox>("ShowGraphsBox");
 

@@ -34,13 +34,14 @@
               Command="{Binding LoadGridCommand}" />
       <Button x:Name="SaveButton" Content="_Save" Width="90"
               Command="{Binding SaveGridCommand}" />
-      <Button x:Name="OkButton" Content="OK" Width="90" IsDefault="True"
+      <!-- The original captions this OK. It starts the sweep, so it says so. -->
+      <Button x:Name="RunButton" Content="_Run" Width="90" IsDefault="True"
               Command="{Binding AcceptCommand}" />
       <Button x:Name="CancelButton" Content="Cancel" Width="90" IsCancel="True"
               Command="{Binding CancelCommand}" />
     </StackPanel>
 
-    <!-- What OK will run, and anything the original would have dropped silently. -->
+    <!-- What Run will run, and anything the original would have dropped silently. -->
     <TextBlock DockPanel.Dock="Bottom" x:Name="SummaryText" Margin="10,8,10,0"
                Text="{Binding Summary}" TextWrapping="Wrap" />
 
