@@ -59,7 +59,9 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B64", CorrectionCatalogue.SecantProbe.Entry);
         Assert.Equal("B65", CorrectionCatalogue.LiveInletTemperature.Entry);
         Assert.Equal("B4", CorrectionCatalogue.AreaClamp.Entry);
-        Assert.Equal(17, CorrectionCatalogue.All.Count);
+        Assert.Equal("B16", CorrectionCatalogue.AnalyticPressureDerivative.Entry);
+        Assert.Equal("B18", CorrectionCatalogue.ResidualMolecularWeight.Entry);
+        Assert.Equal(19, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections().Describe());
 

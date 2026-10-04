@@ -70,6 +70,35 @@ public sealed class GasPropertyModel
     public long TemperatureClamps { get; private set; }
 
     /// <summary>
+    /// ISSUES.md B16: the burnt <c>dudp</c> from the equilibrium solver's own pressure
+    /// derivatives, rather than a central difference of <c>u</c> that costs two further
+    /// solves. Off reproduces the original.
+    /// </summary>
+    /// <remarks>
+    /// The original's analytic form, computed and then overwritten, was wrong twice over:
+    /// the solver's <c>dxdp</c> are per atmosphere where the cylinder equations want per
+    /// pascal, and <c>MixdRdp</c> is handed <c>M</c>, the fuel's hydrogen count, where its
+    /// siblings take the mixture molecular weight (B17). Both are put right here.
+    /// </remarks>
+    public bool AnalyticPressureDerivative { get; set; }
+
+    /// <summary>
+    /// ISSUES.md B18: the unburnt charge's residual mole fraction from the residual's own
+    /// molecular weight, in closed form. Off reproduces the original, which takes it from
+    /// the mixture it is about to overwrite.
+    /// </summary>
+    public bool ResidualMolecularWeight { get; set; }
+
+    /// <summary>The residual mole fraction the last unburnt composition used.</summary>
+    internal double ResidualMoleFraction { get; private set; }
+
+    /// <summary>Molecular weight of the residual alone.</summary>
+    internal double ResidualOnlyMolecularWeight => MixtureMolecularWeight(_residual, 0);
+
+    /// <summary>The residual mass fraction the unburnt composition is asked for.</summary>
+    internal double RequestedResidualFraction => _residualFraction < 1e-5 ? 1e-5 : _residualFraction;
+
+    /// <summary>
     /// Establishes the fuel and the operating point. Port of <c>SetUp</c>.
     /// </summary>
     /// <param name="fuelType">
@@ -209,17 +238,30 @@ public sealed class GasPropertyModel
         properties.Cp = dhdTb;
         properties.DuDt = dhdTb - gasConstant - (dRdT * gasTemperature);
 
-        // The analytic dudp is computed and then discarded: the original replaces it
-        // with a central difference of u over a 0.05 per cent pressure band. Marked
-        // with a bare "//#" in the source, so evidently a deliberate patch. It costs
-        // two further equilibrium solves per call. See ISSUES.md B16.
-        var uLow = InternalEnergy(pressure - (0.00025 * pressure), gasTemperature);
-        var uHigh = InternalEnergy(pressure + (0.00025 * pressure), gasTemperature);
-        properties.DuDp = (uHigh - uLow) / (0.0005 * pressure);
+        if (AnalyticPressureDerivative)
+        {
+            // B16: from the solver's own dxdp, which are per atmosphere, so divided by
+            // 101325 into the per-pascal the cylinder equations use; and with the mixture
+            // molecular weight where the original's MixdRdp call passed M (B17).
+            var dMdp = WeightedByMolecularWeight(DerivativesOf(solver, Derivative.Pressure));
+            var dhdp = MixtureDhDx(DerivativesOf(solver, Derivative.Pressure), mw, gasTemperature, dMdp, h);
+            var dRdp = -gasConstant * dMdp / mw;
+            properties.DuDp = (dhdp - (dRdp * gasTemperature)) / 101325;
+        }
+        else
+        {
+            // The analytic dudp is computed and then discarded: the original replaces it
+            // with a central difference of u over a 0.05 per cent pressure band. Marked
+            // with a bare "//#" in the source, so evidently a deliberate patch. It costs
+            // two further equilibrium solves per call. See ISSUES.md B16.
+            var uLow = InternalEnergy(pressure - (0.00025 * pressure), gasTemperature);
+            var uHigh = InternalEnergy(pressure + (0.00025 * pressure), gasTemperature);
+            properties.DuDp = (uHigh - uLow) / (0.0005 * pressure);
 
-        // Re-solve at the requested state: the two difference calls above left the
-        // solver holding a neighbouring pressure.
-        solver.Solve(_equivalenceRatio, _n, _m, _l, _k, pressure, gasTemperature);
+            // Re-solve at the requested state: the two difference calls above left the
+            // solver holding a neighbouring pressure.
+            solver.Solve(_equivalenceRatio, _n, _m, _l, _k, pressure, gasTemperature);
+        }
 
         var dMdF = WeightedByMolecularWeight(DerivativesOf(solver, Derivative.EquivalenceRatio));
         var dhdF = MixtureDhDx(DerivativesOf(solver, Derivative.EquivalenceRatio), mw, gasTemperature, dMdF, h);
@@ -609,7 +651,8 @@ public sealed class GasPropertyModel
     /// this procedure is about to overwrite — rather than from the residual. On the
     /// first call that array is still zero, which makes the residual mass fraction
     /// exactly one and the charge pure residual; from the second call onward it carries
-    /// the previous result. Reproduced as found. See ISSUES.md B18.
+    /// the previous result, and settles near <c>f</c> but not on it. Reproduced as found
+    /// unless <see cref="ResidualMolecularWeight"/> is on. See ISSUES.md B18.
     /// </remarks>
     private void FuelAirResidualConcentrations()
     {
@@ -626,9 +669,15 @@ public sealed class GasPropertyModel
         FuelMoleFraction = eps * _equivalenceRatio / (1 + (eps * _equivalenceRatio));
 
         var reactantWeight = MixtureMolecularWeight(fuelAir, FuelMoleFraction);
-        var productWeight = MixtureMolecularWeight(_mixture, 0);
+
+        // B18 takes the products' molecular weight from the residual, as Ferguson's form
+        // needs; the original takes it from the mixture this is about to overwrite.
+        var productWeight = ResidualMolecularWeight
+            ? MixtureMolecularWeight(_residual, 0)
+            : MixtureMolecularWeight(_mixture, 0);
 
         var residualFraction = 1 / (1 + (productWeight / reactantWeight * ((1 / f) - 1)));
+        ResidualMoleFraction = residualFraction;
 
         for (var i = 1; i <= EsaLimits.SpeciesCount; i++)
         {

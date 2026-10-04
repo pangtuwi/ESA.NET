@@ -80,6 +80,19 @@ public sealed class CycleSolver
         _exhaust = new TwoZoneGas(engine.Exhaust);
         _atmosphere = new TwoZoneGas(engine.Atmosphere);
 
+        // B16 and B18 are properties of the gas models themselves, so every gas gets them.
+        var analyticDudp = physics?.IsOn(CorrectionCatalogue.AnalyticPressureDerivative) ?? false;
+        var residualWeight = physics?.IsOn(CorrectionCatalogue.ResidualMolecularWeight) ?? false;
+
+        foreach (var gas in new[] { _cylinder, _plenum, _exhaust, _atmosphere })
+        {
+            foreach (var model in new[] { gas.Burnt, gas.Unburnt })
+            {
+                model.AnalyticPressureDerivative = analyticDudp;
+                model.ResidualMolecularWeight = residualWeight;
+            }
+        }
+
         Geometry = CylinderGeometry.FromEngine(engine);
         InletValve = ValveMotion.FromValve(engine.Manifold.InletValve);
         ExhaustValve = ValveMotion.FromValve(engine.Manifold.ExhaustValve);
