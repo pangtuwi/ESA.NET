@@ -14,14 +14,16 @@ public sealed class MultiRunWindowService : IMultiRunWindowService
     public MultiRunWindowService(Func<MultiRunViewModel> viewModels) => _viewModels = viewModels;
 
     /// <inheritdoc />
-    public async Task<MultiRunEditResult> ShowAsync(MultiRunGrid grid, string? baseFile)
+    public async Task<MultiRunEditResult> ShowAsync(MultiRunGrid grid, string? baseFile, PhysicsCorrections physics)
     {
         ArgumentNullException.ThrowIfNull(grid);
+        ArgumentNullException.ThrowIfNull(physics);
 
         var viewModel = _viewModels();
 
         viewModel.Load(grid);
         viewModel.SetBaseFile(baseFile);
+        viewModel.SetPhysics(physics);
 
         var window = new MultiRunWindow { DataContext = viewModel };
 
@@ -48,7 +50,7 @@ public sealed class MultiRunWindowService : IMultiRunWindowService
             viewModel.CloseRequested -= Close;
         }
 
-        return new MultiRunEditResult(viewModel.Accepted, viewModel.Grid, viewModel.ShowGraphs);
+        return new MultiRunEditResult(viewModel.Accepted, viewModel.Grid, viewModel.ShowGraphs, viewModel.Physics);
     }
 
     private static Window? Owner() =>
