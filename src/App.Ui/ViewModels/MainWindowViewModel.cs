@@ -71,6 +71,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _simulateOptions = simulateOptions;
         _runTimeGraphOptions = runTimeGraphOptions;
         _workspace = workspace;
+
+        // ESA.ini's [Physics] is where Mode=Corrected and the per-correction switches
+        // (B14=1 and so on) live. The run dialogs choose only the mode, so the switches
+        // reach a run from here or not at all.
+        Settings.Physics = settingsStore.Read(IniPath).Physics.Clone();
         _shell = shell;
         _about = about;
         _sweepPlot = sweepPlot;
@@ -158,8 +163,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _showGraphsDuringSweep = true;
 
-    /// <summary>Run options, as ESA.ini carries them.</summary>
+    /// <summary>
+    /// Run options, as ESA.ini carries them. The physics comes from ESA.ini at startup; the
+    /// Single Speed and Multi-Run dialogs can change its mode for the session.
+    /// </summary>
     public SimulationSettings Settings { get; } = new();
+
+    /// <summary>ESA.ini, beside the executable as it was beside ESA.EXE.</summary>
+    private static string IniPath => Path.Combine(AppContext.BaseDirectory, SimulationSettingsStore.FileName);
 
     /// <summary>
     /// Engine speed for a single-point run, in rev/min. Set from the Single Speed
@@ -367,8 +378,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         // ESA.ini sits beside the executable, as it did beside ESA.EXE. A missing file is
         // not an error - the store returns the same defaults Delphi's TIniFile would.
-        var settings = _settingsStore.Read(
-            Path.Combine(AppContext.BaseDirectory, SimulationSettingsStore.FileName));
+        var settings = _settingsStore.Read(IniPath);
 
         var name = settings.EngineFileName;
 
@@ -579,7 +589,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanStartMultiRun))]
     private async Task MultiPointSimulationAsync()
     {
-        var edit = await _multiRunEditor.ShowAsync(MultiRun, CurrentEngineFile);
+        var edit = await _multiRunEditor.ShowAsync(MultiRun, CurrentEngineFile, Settings.Physics);
 
         MultiRun = edit.Grid;
         ShowGraphsDuringSweep = edit.ShowGraphs;
@@ -588,6 +598,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             return;
         }
+
+        // The grid window's own physics choice, kept for the session as the Single Speed
+        // dialog's is. ESA.ini's per-correction switches stay as they were.
+        Settings.Physics.Mode = edit.Physics;
 
         if (MultiRun.RunCount == 0)
         {

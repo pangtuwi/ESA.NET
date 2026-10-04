@@ -137,6 +137,60 @@ public sealed partial class MultiRunViewModel : ObservableObject
     [ObservableProperty]
     private bool _showGraphs = true;
 
+    /// <summary>
+    /// The physics the sweep runs on: the Legacy/Corrected switch of CORRECTIONS.md, which
+    /// the original did not have. Starts from the session's, and every row uses it.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LegacyPhysics), nameof(CorrectedPhysics))]
+    private PhysicsMode _physics = PhysicsMode.Legacy;
+
+    /// <summary>The Legacy radio button.</summary>
+    public bool LegacyPhysics
+    {
+        get => Physics == PhysicsMode.Legacy;
+        set
+        {
+            if (value)
+            {
+                Physics = PhysicsMode.Legacy;
+            }
+        }
+    }
+
+    /// <summary>The Corrected radio button.</summary>
+    public bool CorrectedPhysics
+    {
+        get => Physics == PhysicsMode.Corrected;
+        set
+        {
+            if (value)
+            {
+                Physics = PhysicsMode.Corrected;
+            }
+        }
+    }
+
+    /// <summary>
+    /// What else decides the physics: any correction ESA.ini switches on or off by name,
+    /// which applies whichever mode is chosen here. Empty when there is none.
+    /// </summary>
+    [ObservableProperty]
+    private string _physicsNote = string.Empty;
+
+    /// <summary>Starts the physics choice from the session's.</summary>
+    public void SetPhysics(PhysicsCorrections physics)
+    {
+        ArgumentNullException.ThrowIfNull(physics);
+
+        Physics = physics.Mode;
+        PhysicsNote = physics.Overrides.Count == 0
+            ? string.Empty
+            : "ESA.ini also sets "
+              + string.Join(", ", physics.Overrides.Select(o => $"{o.Key}={(o.Value ? 1 : 0)}"))
+              + ", whichever mode is chosen.";
+    }
+
     /// <summary>Delphi <c>StatusBar1.Panels[1]</c>: the grid file last loaded or saved.</summary>
     [ObservableProperty]
     private string _gridFile = string.Empty;

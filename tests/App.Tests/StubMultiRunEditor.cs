@@ -24,11 +24,18 @@ internal sealed class StubMultiRunEditor : IMultiRunWindowService
     /// <summary>The base file caption it was passed.</summary>
     public string? BaseFile { get; private set; }
 
-    public Task<MultiRunEditResult> ShowAsync(MultiRunGrid grid, string? baseFile)
+    /// <summary>The physics to answer with. Defaults to whatever it was shown.</summary>
+    public PhysicsMode? Physics { get; set; }
+
+    /// <summary>The physics mode it was shown.</summary>
+    public PhysicsMode ShownPhysics { get; private set; }
+
+    public Task<MultiRunEditResult> ShowAsync(MultiRunGrid grid, string? baseFile, PhysicsCorrections physics)
     {
         Opened++;
         BaseFile = baseFile;
+        ShownPhysics = physics.Mode;
 
-        return Task.FromResult(new MultiRunEditResult(Accept, Grid ?? grid, ShowGraphs));
+        return Task.FromResult(new MultiRunEditResult(Accept, Grid ?? grid, ShowGraphs, Physics ?? physics.Mode));
     }
 }
