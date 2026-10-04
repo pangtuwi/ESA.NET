@@ -27,6 +27,14 @@
 
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8"
                 Margin="10,6,10,0" HorizontalAlignment="Right">
+      <!-- Not in the original: the Legacy/Corrected switch of CORRECTIONS.md, as the
+           Single Speed dialog has it, so a sweep need not borrow it from the last run. -->
+      <TextBlock Text="Physics:" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <RadioButton x:Name="LegacyPhysicsButton" GroupName="SweepPhysics" Content="Legacy"
+                   IsChecked="{Binding LegacyPhysics, Mode=TwoWay}" VerticalAlignment="Center" />
+      <RadioButton x:Name="CorrectedPhysicsButton" GroupName="SweepPhysics" Content="Corrected"
+                   IsChecked="{Binding CorrectedPhysics, Mode=TwoWay}" VerticalAlignment="Center"
+                   Margin="0,0,16,0" />
       <CheckBox x:Name="ShowGraphsBox" Content="Show Graphs"
                 IsChecked="{Binding ShowGraphs}" VerticalAlignment="Center"
                 Margin="0,0,16,0" />
@@ -40,6 +48,10 @@
       <Button x:Name="CancelButton" Content="Cancel" Width="90" IsCancel="True"
               Command="{Binding CancelCommand}" />
     </StackPanel>
+
+    <TextBlock DockPanel.Dock="Bottom" x:Name="PhysicsNoteText" Margin="10,6,10,0"
+               Text="{Binding PhysicsNote}" TextWrapping="Wrap" FontSize="11" Opacity="0.75"
+               IsVisible="{Binding PhysicsNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
     <!-- What Run will run, and anything the original would have dropped silently. -->
     <TextBlock DockPanel.Dock="Bottom" x:Name="SummaryText" Margin="10,8,10,0"
