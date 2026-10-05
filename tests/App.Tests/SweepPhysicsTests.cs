@@ -49,12 +49,12 @@ public sealed class SweepPhysicsTests
     }
 
     [Fact]
-    public void WithNoEsaIniASessionStartsOnLegacy()
+    public void WithNoEsaIniASessionStartsOnCorrected()
     {
         // No ESA.ini sits beside the test assembly.
         var viewModel = TestServices.Resolve<MainWindowViewModel>();
 
-        Assert.Equal(PhysicsMode.Legacy, viewModel.Settings.Physics.Mode);
+        Assert.Equal(PhysicsMode.Corrected, viewModel.Settings.Physics.Mode);
         Assert.Empty(viewModel.Settings.Physics.Overrides);
     }
 
@@ -92,12 +92,12 @@ public sealed class SweepPhysicsTests
             var legacy = window.FindControl<RadioButton>("LegacyPhysicsButton")!;
             var corrected = window.FindControl<RadioButton>("CorrectedPhysicsButton")!;
 
-            Assert.True(legacy.IsChecked);
-            Assert.False(corrected.IsChecked);
+            Assert.True(corrected.IsChecked);
+            Assert.False(legacy.IsChecked);
 
-            corrected.IsChecked = true;
+            legacy.IsChecked = true;
 
-            Assert.Equal(PhysicsMode.Corrected, viewModel.Physics);
+            Assert.Equal(PhysicsMode.Legacy, viewModel.Physics);
         }
         finally
         {
@@ -150,7 +150,7 @@ public sealed class SweepPhysicsTests
     {
         BaselinePaths.Require();
 
-        var editor = new StubMultiRunEditor { Accept = false, Physics = PhysicsMode.Corrected };
+        var editor = new StubMultiRunEditor { Accept = false, Physics = PhysicsMode.Legacy };
         var viewModel = TestServices.Resolve<MainWindowViewModel>(
             services => services.AddSingleton<IMultiRunWindowService>(editor));
 
@@ -158,6 +158,6 @@ public sealed class SweepPhysicsTests
 
         await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
 
-        Assert.Equal(PhysicsMode.Legacy, viewModel.Settings.Physics.Mode);
+        Assert.Equal(PhysicsMode.Corrected, viewModel.Settings.Physics.Mode);
     }
 }

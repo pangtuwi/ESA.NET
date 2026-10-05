@@ -32,7 +32,7 @@ public sealed class CylinderEquationTests
 
     private static CycleSolver Solver(Engine engine, bool honourVariableGamma, bool trialState = false)
     {
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.SingleZoneGamma.Entry] = honourVariableGamma;
         physics.Overrides[CorrectionCatalogue.SingleZoneTrialState.Entry] = trialState;
 

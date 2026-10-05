@@ -38,7 +38,7 @@ public sealed class ValveTotalsTests
     private static (double Worst, int Steps) WorstUnaccountedFlow(int rpm, bool corrected, int cycles)
     {
         var engine = BaselineEngine(rpm);
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.OverlapValveTotals.Entry] = corrected;
 
         var solver = new CycleSolver(engine, new ManifoldSolver(engine, physics: physics), physics: physics);

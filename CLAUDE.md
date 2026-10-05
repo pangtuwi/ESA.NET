@@ -221,6 +221,12 @@ work.
   a converged result are fixed directly, gated on a bit-identical full-precision
   fingerprint of the baseline runs; entries that move the baseline go behind a
   Legacy/Corrected switch. Read it before touching anything in section B.
+- **Corrected is the default; Legacy has to be asked for.** `PhysicsCorrections` starts in
+  Corrected, so a new `SimulationSettings` runs every correction, and an `ESA.ini` with no
+  `[Physics] Mode`, or an unreadable one, reads Corrected. A test or comparison against
+  `data/baseline/` must say `new PhysicsCorrections { Mode = PhysicsMode.Legacy }`, or hand
+  its solvers no physics at all (`physics: null` is every correction off). See
+  `CORRECTIONS.md` section 5.
 - **Corrected is no longer close to `data/baseline/`.** Since B46 it runs expansion
   pressure up to 17 % above the reference trace, since B38 heat loss about 15 % lower, and
   since B65 it draws the charge at the inlet valve's own temperature, about 100 K above

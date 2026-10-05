@@ -21,8 +21,15 @@ public sealed class MultiRunnerTests
         return new MultiRunner(loader, new SimulationRunner(new CachingExpressionEvaluator()));
     }
 
+    // The baseline engine's reference settings, on the original's physics.
     private static SimulationSettings Settings() =>
-        new() { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 };
+        new()
+        {
+            CycleCount = 6,
+            OneZoneCycleCount = 1,
+            MassBalance = 1,
+            Physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy },
+        };
 
     private static MultiRunGrid SpeedSweep(params double[] speeds)
     {
