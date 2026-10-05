@@ -191,6 +191,13 @@ public static class CorrectionCatalogue
     public static Correction EndOfStepState { get; } =
         new("B77", "Gas updated at the angle the step finished at; work and heat by the trapezoid; trace rows at that angle");
 
+    /// <summary>
+    /// ISSUES.md B78: the burnt volume starts every burn from zero, as it does in the first
+    /// two-zone cycle, instead of from the previous burn's end-of-burn volume.
+    /// </summary>
+    public static Correction BurntVolumeReset { get; } =
+        new("B78", "Burnt volume reset to zero at every combustion entry, not carried over from the last burn");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -200,6 +207,7 @@ public static class CorrectionCatalogue
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
+        BurntVolumeReset,
     ];
 }
 

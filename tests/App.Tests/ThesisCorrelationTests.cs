@@ -18,9 +18,10 @@ namespace App.Tests;
 /// </summary>
 /// <remarks>
 /// Legacy is gated: it is the physics the thesis correlated, and must stay as close to the
-/// measured curve as it is. Corrected is reported and not gated. It removes defects that
-/// the original's empirical inputs were calibrated around, and ISSUES.md B78 is the largest
-/// of them, so how far it sits from the test data is a finding, not a regression.
+/// measured curve as it is. Corrected is reported and not gated: it removes defects the
+/// original's empirical inputs were calibrated around, so how far it sits from the test
+/// data is a finding to weigh, not a regression. Before B78 it was 13.4 per cent rms; with
+/// B78 it is 5.2, Legacy's figure (ISSUES.md F6).
 /// </remarks>
 public sealed class ThesisCorrelationTests
 {

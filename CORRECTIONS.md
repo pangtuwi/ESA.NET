@@ -175,7 +175,8 @@ This is how B78 ([#176](https://github.com/pangtuwi/ESA.NET/issues/176)) was fou
 with every correction passing its oracle. The cause was a defect none of them touched:
 every converged burn creates about 15 % of the fuel energy (B78), and Legacy matched the
 engine only because its plenum-referenced heat loss (B38) and phase-shifted work (B77) took
-roughly that much back out. With B78 reset, Corrected is back on the measured curve.
+roughly that much back out. With B78 fixed, Corrected is back on the measured curve: 5.2 % rms
+against Legacy's 5.3.
 
 ## 4. Suggested order
 
@@ -219,7 +220,7 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 25 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64, B65, B4, B16, B18, B35, B76 and B77 **done**, B17 resolved with B16; B36 fixed directly, bit-identical everywhere; B60 and B5 closed as not defects — heat transfer, the wave solver, the lookups and the gas properties complete — the fingerprint bit-identical under Legacy. Left: **[B78](https://github.com/pangtuwi/ESA.NET/issues/176) next**, found by the thesis correlation ([F6](https://github.com/pangtuwi/ESA.NET/issues/178)) and the largest of all, then B37, the gas-exchange equations, last |
+| Tier 3 | 25 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64, B65, B4, B16, B18, B35, B76, B77 and B78 **done**, B17 resolved with B16; B36 fixed directly, bit-identical everywhere; B60 and B5 closed as not defects — heat transfer, the wave solver, the lookups and the gas properties complete — the fingerprint bit-identical under Legacy. Corrected matches the thesis's dynamometer curve as closely as Legacy (5.2 against 5.3 % rms, [F6](https://github.com/pangtuwi/ESA.NET/issues/178)). Left: B37, the gas-exchange equations, last |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter
