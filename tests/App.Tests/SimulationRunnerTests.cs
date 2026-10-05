@@ -245,6 +245,10 @@ public sealed class SimulationRunnerTests
         // B78 takes out the energy every converged burn created: about a tenth of torque.
         Assert.InRange(TorqueShift(CorrectionCatalogue.BurntVolumeReset), 0.06, 0.14);
 
+        // B37 runs overlap as two zones; on Legacy's other physics that is about five per
+        // cent of torque, through the charge it traps.
+        Assert.InRange(TorqueShift(CorrectionCatalogue.GasExchangeZones), 0.025, 0.08);
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });

@@ -115,6 +115,14 @@ public sealed class CylinderModel
     /// </summary>
     public bool SingleZoneTrialState { get; init; }
 
+    /// <summary>
+    /// ISSUES.md B37: valve overlap runs two zones, the burnt residual and the fresh
+    /// charge, each with its own volume, temperature and properties. Under it the two
+    /// heat-loss rates share the wall between the zones by volume through overlap, where
+    /// the original gives each the whole surface. Off reproduces the original.
+    /// </summary>
+    public bool GasExchangeZones { get; init; }
+
     /// <summary>The current crank-angle state, Delphi <c>State</c>.</summary>
     public EngineState State { get; set; }
 
@@ -282,6 +290,13 @@ public sealed class CylinderModel
                    + (wallArea * (gas.Tb - averageLiner))),
         };
 
+        // Through overlap the original gives both zones the whole surface. Under B37 each
+        // has its share of it by volume, so the wall is counted once. See ISSUES.md B37.
+        if (GasExchangeZones && State == EngineState.Overlap)
+        {
+            q *= gas.Vb / gas.VGas;
+        }
+
         return -q / CrankAngularVelocity;
     }
 
@@ -309,6 +324,12 @@ public sealed class CylinderModel
                 * ((pistonArea * (gas.Tu - Piston + gas.Tu - Head))
                    + (wallArea * (gas.Tu - averageLiner))),
         };
+
+        // B37: the unburnt zone's share of the wall through overlap. See BurntHeatLossRate.
+        if (GasExchangeZones && State == EngineState.Overlap)
+        {
+            q *= gas.Vu / gas.VGas;
+        }
 
         return -q / CrankAngularVelocity;
     }
@@ -593,7 +614,7 @@ public sealed class CylinderModel
     /// The coefficients the four gas-exchange equations share, again using the
     /// original's own single-letter names.
     /// </summary>
-    private readonly record struct GasExchangeCoefficients(
+    internal readonly record struct GasExchangeCoefficients(
         double A, double D, double Q, double E, double G, double R,
         double I, double J, double K, double S, double M, double N, double P, double T);
 
@@ -628,7 +649,7 @@ public sealed class CylinderModel
             T: (gas.DmInDTheta / gas.Mu) - (gas.DvDTheta / gas.Vu));
     }
 
-    private static double GasExchangeDeterminant(GasExchangeCoefficients c) =>
+    internal static double GasExchangeDeterminant(GasExchangeCoefficients c) =>
         (c.A * c.J * c.G * c.P) - (c.E * c.N * c.D * c.K)
         + (c.I * c.N * c.D * c.G) - (c.M * c.J * c.D * c.G);
 
@@ -642,45 +663,109 @@ public sealed class CylinderModel
     /// commented out at <c>ICEngine2Z.pas:725-728</c>, the only place they were ever
     /// referenced. Ported so the behaviour exists if that block is ever restored, but
     /// nothing in the port calls it either and no reference data exercises it. The same
-    /// applies to the other three <c>*GasExchange</c> equations. See ISSUES.md B37.
+    /// applies to the other three <c>*GasExchange</c> equations. B37 solves the same
+    /// system on a real two-zone state through the <c>*GasExchangeZones</c> equations
+    /// instead. See ISSUES.md B37.
     /// </remarks>
-    public double BurntVolumeRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y)
-    {
-        var c = GasExchange(crankAngleRadians, y);
-
-        return -((-c.J * c.G * c.P * c.Q) + (c.D * c.R * c.K * c.N)
-                 - (c.N * c.D * c.G * c.S) + (c.J * c.D * c.G * c.T))
-               / GasExchangeDeterminant(c);
-    }
+    public double BurntVolumeRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        BurntVolumeRate(GasExchange(crankAngleRadians, y));
 
     /// <inheritdoc cref="BurntVolumeRateGasExchange"/>
-    public double PressureRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y)
-    {
-        var c = GasExchange(crankAngleRadians, y);
-
-        return ((c.P * c.Q * c.E * c.K) - (c.P * c.Q * c.I * c.G) - (c.R * c.A * c.K * c.P)
-                + (c.R * c.M * c.D * c.K) + (c.S * c.A * c.G * c.P) - (c.S * c.M * c.D * c.G)
-                - (c.D * c.T * c.E * c.K) + (c.D * c.T * c.I * c.G))
-               / GasExchangeDeterminant(c);
-    }
+    public double PressureRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        PressureRate(GasExchange(crankAngleRadians, y));
 
     /// <inheritdoc cref="BurntVolumeRateGasExchange"/>
-    public double BurntTemperatureRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y)
-    {
-        var c = GasExchange(crankAngleRadians, y);
-
-        return ((-c.E * c.J * c.P * c.Q) + (c.R * c.A * c.J * c.P) + (c.R * c.I * c.D * c.N)
-                - (c.R * c.M * c.D * c.J) - (c.E * c.D * c.N * c.S) + (c.E * c.D * c.J * c.T))
-               / GasExchangeDeterminant(c);
-    }
+    public double BurntTemperatureRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        BurntTemperatureRate(GasExchange(crankAngleRadians, y));
 
     /// <inheritdoc cref="BurntVolumeRateGasExchange"/>
-    public double UnburntTemperatureRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y)
-    {
-        var c = GasExchange(crankAngleRadians, y);
+    public double UnburntTemperatureRateGasExchange(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        UnburntTemperatureRate(GasExchange(crankAngleRadians, y));
 
-        return ((-c.Q * c.E * c.K * c.N) + (c.Q * c.I * c.G * c.N) - (c.Q * c.M * c.G * c.J)
-                + (c.A * c.K * c.N * c.R) - (c.A * c.G * c.N * c.S) + (c.A * c.G * c.J * c.T))
-               / GasExchangeDeterminant(c);
+    // The original's Cramer's-rule solutions of the four-equation system, shared by the
+    // original's coefficients and B37's. They are the original's expressions exactly.
+
+    internal static double BurntVolumeRate(GasExchangeCoefficients c) =>
+        -((-c.J * c.G * c.P * c.Q) + (c.D * c.R * c.K * c.N)
+          - (c.N * c.D * c.G * c.S) + (c.J * c.D * c.G * c.T))
+        / GasExchangeDeterminant(c);
+
+    internal static double PressureRate(GasExchangeCoefficients c) =>
+        ((c.P * c.Q * c.E * c.K) - (c.P * c.Q * c.I * c.G) - (c.R * c.A * c.K * c.P)
+         + (c.R * c.M * c.D * c.K) + (c.S * c.A * c.G * c.P) - (c.S * c.M * c.D * c.G)
+         - (c.D * c.T * c.E * c.K) + (c.D * c.T * c.I * c.G))
+        / GasExchangeDeterminant(c);
+
+    internal static double BurntTemperatureRate(GasExchangeCoefficients c) =>
+        ((-c.E * c.J * c.P * c.Q) + (c.R * c.A * c.J * c.P) + (c.R * c.I * c.D * c.N)
+         - (c.R * c.M * c.D * c.J) - (c.E * c.D * c.N * c.S) + (c.E * c.D * c.J * c.T))
+        / GasExchangeDeterminant(c);
+
+    internal static double UnburntTemperatureRate(GasExchangeCoefficients c) =>
+        ((-c.Q * c.E * c.K * c.N) + (c.Q * c.I * c.G * c.N) - (c.Q * c.M * c.G * c.J)
+         + (c.A * c.K * c.N * c.R) - (c.A * c.G * c.N * c.S) + (c.A * c.G * c.J * c.T))
+        / GasExchangeDeterminant(c);
+
+    // ---------------------------------------------------------------------------
+    // Equations : two-zone gas exchange (B37)
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// B37's coefficients for the original's four-equation system: two ideal-gas zones at
+    /// one pressure, the unburnt zone taking the cylinder volume the burnt one leaves, on a
+    /// real two-zone state (<see cref="TwoZoneGas.UpdateGasExchangeZones"/>).
+    /// </summary>
+    /// <remarks>
+    /// The flow terms are zero: the zones are closed while the step is integrated, and the
+    /// step's flows through both valves are applied afterwards, each at its own enthalpy,
+    /// by the solver (<c>CycleSolver.ApplyOverlapFlows</c>) - the original's own way of
+    /// putting overlap's flows into the cylinder, through its mass-transfer pressure
+    /// correction, extended to two zones. Integrating them here instead lags them a step
+    /// behind the zone masses the bookkeeping has already moved, which a zone filling from
+    /// nothing cannot absorb. See ISSUES.md B37.
+    /// </remarks>
+    internal GasExchangeCoefficients GasExchangeZoneCoefficients(double crankAngleRadians, ReadOnlySpan<double> y)
+    {
+        Cylinder.UpdateGasExchangeZones(
+            _geometry.Volume(crankAngleRadians),
+            _geometry.VolumeRatePerRadian(crankAngleRadians),
+            y[0],
+            y[1],
+            y[2],
+            y[3]);
+
+        var gas = Cylinder.State;
+
+        return new GasExchangeCoefficients(
+            A: -gas.PGas,
+            D: gas.Mu * gas.DuDtu,
+            Q: UnburntHeatLossRate(crankAngleRadians) - (gas.PGas * gas.DvDTheta),
+            E: gas.PGas,
+            G: gas.Mb * gas.DuDtb,
+            R: BurntHeatLossRate(crankAngleRadians),
+            I: 1 / gas.Vb,
+            J: 1 / gas.PGas,
+            K: -1 / gas.Tb,
+            S: 0,
+            M: -1 / gas.Vu,
+            N: 1 / gas.PGas,
+            P: -1 / gas.Tu,
+            T: -gas.DvDTheta / gas.Vu);
     }
+
+    /// <summary>B37: the burnt volume rate through two-zone overlap.</summary>
+    public double BurntVolumeRateGasExchangeZones(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        BurntVolumeRate(GasExchangeZoneCoefficients(crankAngleRadians, y));
+
+    /// <summary>B37: the pressure rate through two-zone overlap.</summary>
+    public double PressureRateGasExchangeZones(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        PressureRate(GasExchangeZoneCoefficients(crankAngleRadians, y));
+
+    /// <summary>B37: the burnt temperature rate through two-zone overlap.</summary>
+    public double BurntTemperatureRateGasExchangeZones(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        BurntTemperatureRate(GasExchangeZoneCoefficients(crankAngleRadians, y));
+
+    /// <summary>B37: the unburnt temperature rate through two-zone overlap.</summary>
+    public double UnburntTemperatureRateGasExchangeZones(double crankAngleRadians, ReadOnlySpan<double> y) =>
+        UnburntTemperatureRate(GasExchangeZoneCoefficients(crankAngleRadians, y));
 }

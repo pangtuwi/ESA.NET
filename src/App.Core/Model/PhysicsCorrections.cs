@@ -198,6 +198,15 @@ public static class CorrectionCatalogue
     public static Correction BurntVolumeReset { get; } =
         new("B78", "Burnt volume reset to zero at every combustion entry, not carried over from the last burn");
 
+    /// <summary>
+    /// ISSUES.md B37: valve overlap runs two zones, the burnt residual and the fresh charge,
+    /// through the original's gas-exchange equations, with each step's flows through both
+    /// valves put into the zones at their own enthalpies, instead of one gas on the
+    /// single-zone pressure equation.
+    /// </summary>
+    public static Correction GasExchangeZones { get; } =
+        new("B37", "Overlap as two zones, burnt residual and fresh charge, each flow at its own enthalpy");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -207,7 +216,7 @@ public static class CorrectionCatalogue
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
-        BurntVolumeReset,
+        BurntVolumeReset, GasExchangeZones,
     ];
 }
 
