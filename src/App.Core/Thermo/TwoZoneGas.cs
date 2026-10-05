@@ -257,6 +257,48 @@ public sealed class TwoZoneGas
     }
 
     /// <summary>
+    /// Valve overlap as two zones, the burnt residual and the fresh charge, each at its own
+    /// temperature with its own properties. B37's replacement for <see cref="UpdateGE"/>,
+    /// which the gas-exchange equations cannot run on: it leaves both zone volumes at zero
+    /// and takes both temperatures from the unburnt one. See ISSUES.md B37 and B29.
+    /// </summary>
+    /// <remarks>
+    /// The zone masses are the overlap bookkeeping's, as they stand; this sets the volumes,
+    /// temperatures and properties around them.
+    /// </remarks>
+    public void UpdateGasExchangeZones(
+        double volume,
+        double dVdTheta,
+        double burntVolume,
+        double pressure,
+        double burntTemperature,
+        double unburntTemperature)
+    {
+        var gas = State;
+
+        gas.PGas = pressure;
+        gas.Tb = burntTemperature;
+        gas.Tu = unburntTemperature;
+        gas.VGas = volume;
+        gas.DvDTheta = dVdTheta;
+        gas.Vb = burntVolume;
+        gas.Vu = volume - burntVolume;
+
+        RefreshUnburntProperties();
+        RefreshBurntProperties();
+
+        var burntFraction = gas.MGas > 0 ? gas.Mb / gas.MGas : 0;
+        gas.UGas = (burntFraction * gas.Ub) + ((1 - burntFraction) * gas.Uu);
+        gas.RGas = (burntFraction * gas.Rb) + ((1 - burntFraction) * gas.Ru);
+        gas.HGas = (burntFraction * gas.Hb) + ((1 - burntFraction) * gas.Hu);
+
+        var unburntGamma = Unburnt.Gamma(gas.PGas, gas.Tu);
+        var burntGamma = Burnt.Gamma(gas.PGas, gas.Tb);
+        gas.Gamma = ((1 - burntFraction) * unburntGamma) + (burntFraction * burntGamma);
+        gas.DmbDTheta = 0;
+    }
+
+    /// <summary>
     /// Fraction of the charge burnt at this crank angle. Port of the private
     /// <c>xburnt</c>: a raised cosine from the spark to the end of the burn angle.
     /// </summary>

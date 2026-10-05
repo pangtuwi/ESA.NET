@@ -21,7 +21,7 @@ namespace App.Tests;
 /// measured curve as it is. Corrected is reported and not gated: it removes defects the
 /// original's empirical inputs were calibrated around, so how far it sits from the test
 /// data is a finding to weigh, not a regression. Before B78 it was 13.4 per cent rms; with
-/// B78 it is 5.2, Legacy's figure (ISSUES.md F6).
+/// B78 it was 5.2, Legacy's figure, and with B37 it is 5.3 (ISSUES.md F6).
 /// </remarks>
 public sealed class ThesisCorrelationTests
 {

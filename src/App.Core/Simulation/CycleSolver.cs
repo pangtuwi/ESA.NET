@@ -54,6 +54,31 @@ public sealed class CycleSolver
     /// <summary>B78: reset the burnt volume at every combustion entry.</summary>
     private readonly bool _resetBurntVolume;
 
+    /// <summary>B37: run valve overlap as two zones, the burnt residual and the fresh charge.</summary>
+    private readonly bool _gasExchangeZones;
+
+    /// <summary>B37: which zones the cylinder holds, as of the current overlap step.</summary>
+    private OverlapPhase _overlapPhase;
+
+    /// <summary>
+    /// B37: the flow derivatives overlap found, put back as it ends, so that the closed
+    /// zones of overlap leave the states either side of it as they were.
+    /// </summary>
+    private (double In, double Out) _flowRatesBeforeOverlap;
+
+    /// <summary>B37: how many zones overlap is running, which sets its equations.</summary>
+    private enum OverlapPhase
+    {
+        /// <summary>Burnt gas only, until the first fresh charge arrives.</summary>
+        BurntOnly,
+
+        /// <summary>The burnt residual and the fresh charge, side by side.</summary>
+        TwoZone,
+
+        /// <summary>Fresh charge only, if every bit of burnt gas has been expelled.</summary>
+        UnburntOnly,
+    }
+
     /// <summary>B77: the work and heat-loss rates at the start of the current step.</summary>
     private (double Work, double BurntHeat, double UnburntHeat) _startRates;
 
@@ -88,6 +113,7 @@ public sealed class CycleSolver
         _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
         _endOfStepState = physics?.IsOn(CorrectionCatalogue.EndOfStepState) ?? false;
         _resetBurntVolume = physics?.IsOn(CorrectionCatalogue.BurntVolumeReset) ?? false;
+        _gasExchangeZones = physics?.IsOn(CorrectionCatalogue.GasExchangeZones) ?? false;
 
         _cylinder = new TwoZoneGas(engine.Cylinder);
         _plenum = new TwoZoneGas(engine.Plenum);
@@ -128,6 +154,7 @@ public sealed class CycleSolver
             HonourVariableGamma = physics?.IsOn(CorrectionCatalogue.SingleZoneGamma) ?? false,
             VariableGamma = engine.VariableGamma,
             SingleZoneTrialState = physics?.IsOn(CorrectionCatalogue.SingleZoneTrialState) ?? false,
+            GasExchangeZones = physics?.IsOn(CorrectionCatalogue.GasExchangeZones) ?? false,
         };
     }
 
@@ -420,6 +447,11 @@ public sealed class CycleSolver
             InstallCombustionEquations(cylinder.Mb == 0);
         }
 
+        if (engine.ZoneCount == 2 && engine.State == EngineState.Overlap && _gasExchangeZones)
+        {
+            PrepareOverlapStep();
+        }
+
         if (_endOfStepState)
         {
             // Under B77 the gas already holds this step's starting state - the last step's
@@ -454,7 +486,7 @@ public sealed class CycleSolver
 
         // The mass-transfer pressure correction is applied in the single-zone model
         // throughout, and in the two-zone model only during overlap.
-        if (engine.ZoneCount == 1 || engine.State == EngineState.Overlap)
+        if (engine.ZoneCount == 1 || (engine.State == EngineState.Overlap && !_gasExchangeZones))
         {
             cylinder.PGas += manifold.PressureCorrection;
             state.Y[1] = cylinder.PGas;
@@ -603,22 +635,50 @@ public sealed class CycleSolver
             case EngineState.Overlap:
                 _cylinder.Burnt.Equilibrium!.Frozen = true;
 
-                // The gas-exchange set belongs here and is commented out in the original,
-                // so two-zone overlap runs the single-zone constant-gamma pressure
-                // equation. See ISSUES.md B37.
-                InstallEquations(
-                    CylinderModel.Zero,
-                    Cylinder.PressureRateSingleZone,
-                    CylinderModel.Zero,
-                    CylinderModel.Zero);
+                if (_gasExchangeZones)
+                {
+                    // B37: overlap opens with the exhaust's burnt gas alone. Its zones are
+                    // integrated closed and the valves' flows applied after each step
+                    // (ApplyOverlapFlows), so the flow derivatives are zero through it and
+                    // put back as intake begins.
+                    _overlapPhase = OverlapPhase.BurntOnly;
+                    _flowRatesBeforeOverlap = (cylinder.DmInDTheta, cylinder.DmOutDTheta);
+                    cylinder.DmInDTheta = 0;
+                    cylinder.DmOutDTheta = 0;
+                }
+                else
+                {
+                    // The gas-exchange set belongs here and is commented out in the
+                    // original, so two-zone overlap runs the single-zone constant-gamma
+                    // pressure equation. See ISSUES.md B37.
+                    InstallEquations(
+                        CylinderModel.Zero,
+                        Cylinder.PressureRateSingleZone,
+                        CylinderModel.Zero,
+                        CylinderModel.Zero);
+                }
 
                 engine.BurntMassOutInlet = 0;
                 engine.UnburntMassOutExhaust = 0;
                 break;
 
             case EngineState.Intake:
-                cylinder.Tu = ((cylinder.Mb * cylinder.Tb) + (cylinder.Mu * engine.Plenum.Tu))
-                              / cylinder.MGas;
+                // The zones are mixed as the exhaust valve closes. The original weights the
+                // fresh charge at the plenum's temperature, but the unburnt equations
+                // replace that with the integrator's own temperature on their first call,
+                // so its mix in effect is the one the overlap tail made: the whole charge on
+                // the ideal gas law at the cylinder's pressure (MoveMassDuringOverlap).
+                // Under B37 overlap no longer makes it, so it is made here. See ISSUES.md B37.
+                if (_gasExchangeZones)
+                {
+                    (cylinder.DmInDTheta, cylinder.DmOutDTheta) = _flowRatesBeforeOverlap;
+                    MixZonesAtExhaustClosing();
+                }
+                else
+                {
+                    cylinder.Tu = ((cylinder.Mb * cylinder.Tb) + (cylinder.Mu * engine.Plenum.Tu)) / cylinder.MGas;
+                }
+
                 cylinder.Mu = cylinder.MGas;
                 cylinder.Vb = 0;
                 cylinder.Vu = cylinder.VGas;
@@ -633,6 +693,70 @@ public sealed class CycleSolver
                 break;
 
             default:
+                break;
+        }
+    }
+
+    /// <summary>
+    /// B37: the mix at exhaust valve closing, the one the original makes in effect - the
+    /// whole charge at the cylinder's pressure and volume, on the ideal gas law with the
+    /// unburnt gas constant, which is what intake and compression take it to be.
+    /// </summary>
+    private void MixZonesAtExhaustClosing()
+    {
+        var engine = _engine;
+        var cylinder = engine.Cylinder;
+        var y = engine.Integration.Y;
+        var volume = Geometry.Volume(engine.Integration.X);
+        var temperature = cylinder.Tu;
+
+        for (var iteration = 0; iteration < 3; iteration++)
+        {
+            temperature = y[1] * volume / (cylinder.MGas * _cylinder.Unburnt.GasConstant(y[1], temperature));
+        }
+
+        cylinder.Tu = temperature;
+        y[2] = temperature;
+        y[3] = temperature;
+    }
+
+    /// <summary>
+    /// B37: installs overlap's equations for this step from the zones the cylinder holds.
+    /// Re-tested every step, as combustion re-tests its burnt mass, because the fresh zone
+    /// appears part way through overlap and either zone can empty.
+    /// </summary>
+    /// <remarks>
+    /// Every set is closed - the flow derivatives are zero through overlap - because the
+    /// step's flows are applied after it by <see cref="ApplyOverlapFlows"/>. The two-zone
+    /// set divides by both zones' masses and volumes, so a zone on its own runs its own
+    /// single-zone set. See ISSUES.md B37.
+    /// </remarks>
+    private void PrepareOverlapStep()
+    {
+        switch (_overlapPhase)
+        {
+            case OverlapPhase.BurntOnly:
+                InstallEquations(
+                    CylinderModel.Zero,
+                    Cylinder.PressureRateBurnedDown,
+                    Cylinder.BurntTemperatureRateBurnedDown,
+                    CylinderModel.Zero);
+                break;
+
+            case OverlapPhase.UnburntOnly:
+                InstallEquations(
+                    CylinderModel.Zero,
+                    Cylinder.PressureRateUnburnt,
+                    CylinderModel.Zero,
+                    Cylinder.UnburntTemperatureRate);
+                break;
+
+            default:
+                InstallEquations(
+                    Cylinder.BurntVolumeRateGasExchangeZones,
+                    Cylinder.PressureRateGasExchangeZones,
+                    Cylinder.BurntTemperatureRateGasExchangeZones,
+                    Cylinder.UnburntTemperatureRateGasExchangeZones);
                 break;
         }
     }
@@ -734,6 +858,24 @@ public sealed class CycleSolver
 
             case EngineState.Expansion or EngineState.Exhaust:
                 _cylinder.UpdateBD(volume, rate, y[0], y[1], y[2]);
+                break;
+
+            case EngineState.Overlap when _gasExchangeZones:
+                switch (_overlapPhase)
+                {
+                    case OverlapPhase.BurntOnly:
+                        _cylinder.UpdateBD(volume, rate, y[0], y[1], y[2]);
+                        break;
+
+                    case OverlapPhase.UnburntOnly:
+                        _cylinder.UpdateUB(volume, rate, y[0], y[1], y[3]);
+                        break;
+
+                    default:
+                        _cylinder.UpdateGasExchangeZones(volume, rate, y[0], y[1], y[2], y[3]);
+                        break;
+                }
+
                 break;
 
             case EngineState.Overlap:
@@ -953,6 +1095,11 @@ public sealed class CycleSolver
         var engine = _engine;
         var cylinder = engine.Cylinder;
 
+        // B37 reads each zone's change off this bookkeeping as the flows to apply.
+        var burntBefore = cylinder.Mb;
+        var unburntBefore = cylinder.Mu;
+        var freshCharge = 0.0;
+
         // Exhaust valve.
         if (massOut > 0 && cylinder.Mb > 0)
         {
@@ -988,6 +1135,15 @@ public sealed class CycleSolver
 
         if (engine.UnburntMassOutExhaust < 0)
         {
+            // More came back through the exhaust than unburnt gas went out, and the whole
+            // return was credited to the unburnt zone above; the excess is burnt gas. The
+            // original credits it to the burnt zone as well, counting it twice. Under B37
+            // the zone masses are the zones', so it is moved rather than copied.
+            if (_gasExchangeZones)
+            {
+                cylinder.Mu += engine.UnburntMassOutExhaust;
+            }
+
             cylinder.Mb -= engine.UnburntMassOutExhaust;
             engine.UnburntMassOutExhaust = 0;
         }
@@ -997,6 +1153,7 @@ public sealed class CycleSolver
         {
             cylinder.Mu += massIn;
             engine.TotalMassInInletValve += massIn;
+            freshCharge = massIn;
         }
 
         if (massIn > 0 && engine.BurntMassOutInlet > 0)
@@ -1026,8 +1183,23 @@ public sealed class CycleSolver
 
         if (engine.BurntMassOutInlet < 0)
         {
+            // The same at the inlet: the excess over the burnt gas pushed into the port is
+            // fresh charge, credited to the burnt zone above and then to the unburnt zone as
+            // well. Under B37 it is moved, and it carries the plenum's enthalpy.
+            if (_gasExchangeZones)
+            {
+                cylinder.Mb += engine.BurntMassOutInlet;
+                freshCharge -= engine.BurntMassOutInlet;
+            }
+
             cylinder.Mu -= engine.BurntMassOutInlet;
             engine.BurntMassOutInlet = 0;
+        }
+
+        if (_gasExchangeZones)
+        {
+            ApplyOverlapFlows(burntBefore, unburntBefore, freshCharge);
+            return;
         }
 
         // Both zones are put back on the ideal gas law at the mixed temperature, and the
@@ -1038,6 +1210,146 @@ public sealed class CycleSolver
         cylinder.Tu = cylinder.PGas * cylinder.VGas / cylinder.RGas / cylinder.MGas;
         engine.Integration.Y[2] = cylinder.Tu;
         engine.Integration.Y[3] = cylinder.Tu;
+    }
+
+    /// <summary>
+    /// B37: puts the step's flows through both valves into the zones they reached, each
+    /// carrying its own enthalpy, at the volume the step finished at.
+    /// </summary>
+    /// <param name="burntBefore">The burnt zone's mass before the bookkeeping moved it.</param>
+    /// <param name="unburntBefore">The unburnt zone's mass before the bookkeeping moved it.</param>
+    /// <param name="freshCharge">The mass the step drew from the plenum, new charge.</param>
+    /// <remarks>
+    /// <para>
+    /// The cylinder is a fixed volume while the flows are applied - the piston's work was
+    /// the closed step's - so this is the original's mass-transfer pressure correction
+    /// taken to two zones. Each zone's energy changes by the enthalpy its flows carry:
+    /// fresh charge at the plenum's, and everything else - burnt gas leaving or coming back
+    /// through either valve, unburnt gas pushed out of either and returning - at the zone's
+    /// own, the state it left in. The zones then settle to a common pressure in the
+    /// cylinder's volume, the one compressing the other, and that work is counted in both,
+    /// so the total energy changes by the enthalpy flows alone. A zone that had no mass is
+    /// created this way: the first fresh charge fills a volume of its own against the burnt
+    /// gas, at the temperature the first law gives it.
+    /// </para>
+    /// <para>
+    /// The original instead resets both zones to one temperature every step (the
+    /// <see cref="MoveMassDuringOverlap"/> tail), which is how overlap keeps one zone in
+    /// effect. See ISSUES.md B37.
+    /// </para>
+    /// </remarks>
+    private void ApplyOverlapFlows(double burntBefore, double unburntBefore, double freshCharge)
+    {
+        var engine = _engine;
+        var cylinder = engine.Cylinder;
+        var y = engine.Integration.Y;
+        var burnt = _cylinder.Burnt;
+        var unburnt = _cylinder.Unburnt;
+
+        // The state the integrator finished the step at, whichever angle the gas is paired
+        // with (ISSUES.md B77).
+        var volume = Geometry.Volume((engine.CrankAngle + engine.CrankAngleStep) * Math.PI / 180);
+        var pressure = y[1];
+        var burntTemperature = burntBefore > 0 ? y[2] : cylinder.Tb;
+        var unburntTemperature = unburntBefore > 0 ? y[3] : engine.Plenum.Tu;
+        var burntVolume = burntBefore <= 0 ? 0 : unburntBefore <= 0 ? volume : y[0];
+
+        var burntEnergy = burntBefore > 0 ? burntBefore * burnt.InternalEnergy(pressure, burntTemperature) : 0;
+        burntEnergy += (cylinder.Mb - burntBefore) * burnt.Enthalpy(pressure, burntTemperature);
+
+        var unburntEnergy = unburntBefore > 0 ? unburntBefore * unburnt.InternalEnergy(pressure, unburntTemperature) : 0;
+        unburntEnergy += freshCharge * engine.Plenum.Hu;
+        unburntEnergy += (cylinder.Mu - unburntBefore - freshCharge) * unburnt.Enthalpy(pressure, unburntTemperature);
+
+        // The zones settle at a common pressure P' in the cylinder's volume, each doing
+        // work on the other at the mean pressure Pm, so for each zone
+        //     m u(T') = E - Pm (V' - V),   V' = m R T' / P'.
+        // The two works sum to zero once the volumes fill the cylinder, so the settling
+        // moves no energy. With V' put in, each zone is one equation in its own
+        // temperature, m (u + (Pm/P') R T') = E + Pm V, rising like the enthalpy - safe for
+        // Newton, where iterating the volume separately oscillates and can throw a newly
+        // created zone outside its curve fits. Only the pressure is iterated.
+        var unburntVolume = volume - burntVolume;
+        var newPressure = pressure;
+        var newBurntTemperature = burntTemperature;
+        var newUnburntTemperature = unburntTemperature;
+        var burntGas = 0.0;
+        var unburntGas = 0.0;
+
+        for (var iteration = 0; iteration < 100; iteration++)
+        {
+            var meanPressure = 0.5 * (pressure + newPressure);
+            var workFactor = meanPressure / newPressure;
+
+            if (cylinder.Mb > 0)
+            {
+                newBurntTemperature = SettledTemperature(
+                    burnt, cylinder.Mb, burntEnergy + (meanPressure * burntVolume), workFactor,
+                    newPressure, newBurntTemperature);
+                burntGas = cylinder.Mb * burnt.GasConstant(newPressure, newBurntTemperature) * newBurntTemperature;
+            }
+
+            if (cylinder.Mu > 0)
+            {
+                newUnburntTemperature = SettledTemperature(
+                    unburnt, cylinder.Mu, unburntEnergy + (meanPressure * unburntVolume), workFactor,
+                    newPressure, newUnburntTemperature);
+                unburntGas = cylinder.Mu * unburnt.GasConstant(newPressure, newUnburntTemperature) * newUnburntTemperature;
+            }
+
+            var lastPressure = newPressure;
+            newPressure = (burntGas + unburntGas) / volume;
+
+            if (Math.Abs(newPressure - lastPressure) <= 1e-13 * newPressure)
+            {
+                break;
+            }
+        }
+
+        var newBurntVolume = burntGas / newPressure;
+
+        if (!double.IsFinite(newPressure) || newPressure <= 0)
+        {
+            throw new EngineException("Overlap flows left the cylinder with no pressure.");
+        }
+
+        y[0] = newBurntVolume;
+        y[1] = newPressure;
+        y[2] = newBurntTemperature;
+        y[3] = newUnburntTemperature;
+
+        _overlapPhase = cylinder.Mu <= 0 ? OverlapPhase.BurntOnly
+            : cylinder.Mb <= 0 ? OverlapPhase.UnburntOnly
+            : OverlapPhase.TwoZone;
+
+        RefreshGasFromIntegrator();
+    }
+
+    /// <summary>
+    /// B37: the temperature at which a zone settles, solving
+    /// <c>m (u(T) + f R T) = energy</c> by Newton's method, where <c>f</c> is the ratio of
+    /// the mean pressure the zone works at to the pressure it settles to.
+    /// </summary>
+    private static double SettledTemperature(
+        GasPropertyModel model, double mass, double energy, double workFactor, double pressure, double guess)
+    {
+        var target = energy / mass;
+        var temperature = guess;
+
+        for (var iteration = 0; iteration < 50; iteration++)
+        {
+            var gasConstant = model.GasConstant(pressure, temperature);
+            var step = (model.InternalEnergy(pressure, temperature) + (workFactor * gasConstant * temperature) - target)
+                       / (model.SpecificHeatConstantVolume(pressure, temperature) + (workFactor * gasConstant));
+            temperature -= step;
+
+            if (Math.Abs(step) <= 1e-10 * temperature)
+            {
+                break;
+            }
+        }
+
+        return temperature;
     }
 
     // -----------------------------------------------------------------------

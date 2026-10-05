@@ -129,7 +129,8 @@ its own check:
 | Kind of check | Used for |
 |---|---|
 | Order of convergence on an analytic problem (already in `Rkf5IntegratorTests`) | B14 |
-| Mass conservation through the cylinder over a cycle | B37, B46 |
+| Mass conservation through the cylinder over a cycle | B46 |
+| Two zones on the ideal gas law filling the cylinder, and the open-system first law over overlap (`GasExchangeTests`) | B37 |
 | No flow terms in a closed cylinder | B46 |
 | Energy-balance closure (heat + work + exhaust + pumping + friction against fuel energy) | B35 |
 | The Woschni correlation's own terms: no combustion term at the motored pressure, the displacement in the pressure-rise term, no negative term, and the term only where Woschni published it (`CylinderHeatTransferTests`) | B31, B32, B33, B75 |
@@ -177,6 +178,12 @@ every converged burn creates about 15 % of the fuel energy (B78), and Legacy mat
 engine only because its plenum-referenced heat loss (B38) and phase-shifted work (B77) took
 roughly that much back out. With B78 fixed, Corrected is back on the measured curve: 5.2 % rms
 against Legacy's 5.3.
+
+**Tier 3 is complete with B37** ([#49](https://github.com/pangtuwi/ESA.NET/issues/49)), the
+last and most invasive entry: overlap now runs the burnt residual and the fresh charge as two
+zones. Within Corrected it moves torque by about 1 % (2 % at 2000 rpm), and Corrected is 5.3 %
+rms against the measured curve. What remains is the change of default in section 5, a single
+step of its own.
 
 ## 4. Suggested order
 

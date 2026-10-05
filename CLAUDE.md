@@ -226,12 +226,13 @@ work.
   since B65 it draws the charge at the inlet valve's own temperature, about 100 K above
   the plenum's, and since B77 it counts work without the original's one-step phase error,
   about 4 % more, and since B78 its burns conserve energy where the original's created about
-  15 % of the fuel energy. With every correction so far torque is about 7 % higher at 4000 rpm
-  and about 11 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  15 % of the fuel energy, and since B37 overlap runs as two zones, the burnt residual and the
+  fresh charge. With every correction torque is about 8 % higher at 4000 rpm and about 10 %
+  lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 - **Both modes match the dynamometer.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (5.2 %, 162.2
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (5.3 %, 163.3
   Nm). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A
   correction's oracle says it is right; the thesis curve says whether Corrected as a whole is.

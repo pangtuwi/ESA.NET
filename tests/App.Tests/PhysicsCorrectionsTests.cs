@@ -65,7 +65,8 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B76", CorrectionCatalogue.SingleZoneTrialState.Entry);
         Assert.Equal("B77", CorrectionCatalogue.EndOfStepState.Entry);
         Assert.Equal("B78", CorrectionCatalogue.BurntVolumeReset.Entry);
-        Assert.Equal(23, CorrectionCatalogue.All.Count);
+        Assert.Equal("B37", CorrectionCatalogue.GasExchangeZones.Entry);
+        Assert.Equal(24, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections().Describe());
 
