@@ -249,6 +249,11 @@ public sealed class SimulationRunnerTests
         // cent of torque, through the charge it traps.
         Assert.InRange(TorqueShift(CorrectionCatalogue.GasExchangeZones), 0.025, 0.08);
 
+        // B79 corrects the valve totals, which two-zone torque never reads: they reach it
+        // only through the convergence test, and at 4000 rpm the run stops on the same
+        // cycle either way (ISSUES.md B79).
+        Assert.Equal(0, TorqueShift(CorrectionCatalogue.OverlapValveTotals));
+
         // With every correction overridden off, Corrected is Legacy to the last bit - the
         // switch adds nothing of its own.
         var legacyRun = Run(_ => { });

@@ -207,6 +207,15 @@ public static class CorrectionCatalogue
     public static Correction GasExchangeZones { get; } =
         new("B37", "Overlap as two zones, burnt residual and fresh charge, each flow at its own enthalpy");
 
+    /// <summary>
+    /// ISSUES.md B79: overlap's valve totals count each flow once. A return larger than
+    /// what the valve's port holds, or an outflow larger than the zone it is drawn from,
+    /// is split between the two kinds of gas instead of being counted whole in one total
+    /// and again in the other's port.
+    /// </summary>
+    public static Correction OverlapValveTotals { get; } =
+        new("B79", "Overlap's valve totals count each flow once, splitting returns and outflows that cross zones");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -216,7 +225,7 @@ public static class CorrectionCatalogue
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
-        BurntVolumeReset, GasExchangeZones,
+        BurntVolumeReset, GasExchangeZones, OverlapValveTotals,
     ];
 }
 
