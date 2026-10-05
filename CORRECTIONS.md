@@ -25,7 +25,8 @@ Treating all 44 the same way would be a mistake in either direction:
 They are not alike, though. Sorted by what each fix would do to the baseline, they fall
 into three tiers - 12, 3 and 23 entries - and only the third needs any machinery at all.
 B75, found while scoping B31, joined tier 3 later and made it 24; B60 and B5, closed on
-analysis as not defects, left it again, so it is 22.
+analysis as not defects, left it again, so it is 22. B76, B77 and B78 were found while
+fixing others, and B79 by B37's oracle; all four joined tier 3.
 
 ## 2. The three tiers
 
@@ -91,7 +92,7 @@ possibly by more.
 | Lookups | [B4](https://github.com/pangtuwi/ESA.NET/issues/16) (area cliff — `AreaGradient`'s end-of-pipe branch depends on it), B5 closed as not a defect |
 | Gas properties | [B16](https://github.com/pangtuwi/ESA.NET/issues/28) (analytic `dudp` thrown away; [B17](https://github.com/pangtuwi/ESA.NET/issues/29) resolved with it), [B18](https://github.com/pangtuwi/ESA.NET/issues/30) (first-call transient) |
 | Heat transfer | [B31](https://github.com/pangtuwi/ESA.NET/issues/43) (`Pwr` zero for a negative base), [B32](https://github.com/pangtuwi/ESA.NET/issues/44) (motored volume at the wrong angle), [B33](https://github.com/pangtuwi/ESA.NET/issues/45) (swept volume), [B38](https://github.com/pangtuwi/ESA.NET/issues/50) (IVC conditions never updated), [B75](https://github.com/pangtuwi/ESA.NET/issues/157) (the pressure-rise term in every state) |
-| Cylinder equations | [B78](https://github.com/pangtuwi/ESA.NET/issues/176) (burnt volume never reset at combustion entry: every converged burn creates energy, the largest of all), [B35](https://github.com/pangtuwi/ESA.NET/issues/47) (gamma fixed at 1.4) with [B76](https://github.com/pangtuwi/ESA.NET/issues/172) (single-zone state a step stale), found on the way and only right together; [B36](https://github.com/pangtuwi/ESA.NET/issues/48) (transfer enthalpy either side of the update) changed nothing and was fixed directly; [B37](https://github.com/pangtuwi/ESA.NET/issues/49) (no gas-exchange equations), [B46](https://github.com/pangtuwi/ESA.NET/issues/58) (stale mass-flow derivatives), [B77](https://github.com/pangtuwi/ESA.NET/issues/173) (the gas updated at the step's starting angle, with work a step out of phase) |
+| Cylinder equations | [B78](https://github.com/pangtuwi/ESA.NET/issues/176) (burnt volume never reset at combustion entry: every converged burn creates energy, the largest of all), [B35](https://github.com/pangtuwi/ESA.NET/issues/47) (gamma fixed at 1.4) with [B76](https://github.com/pangtuwi/ESA.NET/issues/172) (single-zone state a step stale), found on the way and only right together; [B36](https://github.com/pangtuwi/ESA.NET/issues/48) (transfer enthalpy either side of the update) changed nothing and was fixed directly; [B37](https://github.com/pangtuwi/ESA.NET/issues/49) (no gas-exchange equations), [B46](https://github.com/pangtuwi/ESA.NET/issues/58) (stale mass-flow derivatives), [B77](https://github.com/pangtuwi/ESA.NET/issues/173) (the gas updated at the step's starting angle, with work a step out of phase), [B79](https://github.com/pangtuwi/ESA.NET/issues/182) (overlap's valve totals counting a crossing flow twice) |
 | Wave solver | [B50](https://github.com/pangtuwi/ESA.NET/issues/62), [B54](https://github.com/pangtuwi/ESA.NET/issues/66)–[B56](https://github.com/pangtuwi/ESA.NET/issues/68), [B59](https://github.com/pangtuwi/ESA.NET/issues/71), [B61](https://github.com/pangtuwi/ESA.NET/issues/73), [B62](https://github.com/pangtuwi/ESA.NET/issues/74), [B64](https://github.com/pangtuwi/ESA.NET/issues/76), [B65](https://github.com/pangtuwi/ESA.NET/issues/77) |
 
 ## 3. Tier 3: a switch, not a new baseline
@@ -131,6 +132,7 @@ its own check:
 | Order of convergence on an analytic problem (already in `Rkf5IntegratorTests`) | B14 |
 | Mass conservation through the cylinder over a cycle | B46 |
 | Two zones on the ideal gas law filling the cylinder, and the open-system first law over overlap (`GasExchangeTests`) | B37 |
+| Every flow through a valve counted once, in the valve's total or in what its port holds (`ValveTotalsTests`) | B79 |
 | No flow terms in a closed cylinder | B46 |
 | Energy-balance closure (heat + work + exhaust + pumping + friction against fuel energy) | B35 |
 | The Woschni correlation's own terms: no combustion term at the motored pressure, the displacement in the pressure-rise term, no negative term, and the term only where Woschni published it (`CylinderHeatTransferTests`) | B31, B32, B33, B75 |
@@ -182,8 +184,9 @@ against Legacy's 5.3.
 **Tier 3 is complete with B37** ([#49](https://github.com/pangtuwi/ESA.NET/issues/49)), the
 last and most invasive entry: overlap now runs the burnt residual and the fresh charge as two
 zones. Within Corrected it moves torque by about 1 % (2 % at 2000 rpm), and Corrected is 5.3 %
-rms against the measured curve. What remains is the change of default in section 5, a single
-step of its own.
+rms against the measured curve. B79, which B37's oracle found in the overlap mass
+bookkeeping, followed it behind the switch. What remains is the change of default in
+section 5, a single step of its own.
 
 ## 4. Suggested order
 

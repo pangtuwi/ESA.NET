@@ -57,6 +57,9 @@ public sealed class CycleSolver
     /// <summary>B37: run valve overlap as two zones, the burnt residual and the fresh charge.</summary>
     private readonly bool _gasExchangeZones;
 
+    /// <summary>B79: count each flow through overlap's valves once in the cycle totals.</summary>
+    private readonly bool _countValveFlowsOnce;
+
     /// <summary>B37: which zones the cylinder holds, as of the current overlap step.</summary>
     private OverlapPhase _overlapPhase;
 
@@ -113,6 +116,7 @@ public sealed class CycleSolver
         _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
         _endOfStepState = physics?.IsOn(CorrectionCatalogue.EndOfStepState) ?? false;
         _resetBurntVolume = physics?.IsOn(CorrectionCatalogue.BurntVolumeReset) ?? false;
+        _countValveFlowsOnce = physics?.IsOn(CorrectionCatalogue.OverlapValveTotals) ?? false;
         _gasExchangeZones = physics?.IsOn(CorrectionCatalogue.GasExchangeZones) ?? false;
 
         _cylinder = new TwoZoneGas(engine.Cylinder);
@@ -1100,11 +1104,16 @@ public sealed class CycleSolver
         var unburntBefore = cylinder.Mu;
         var freshCharge = 0.0;
 
-        // Exhaust valve.
+        // Exhaust valve. The totals count burnt gas out of the exhaust and fresh charge in
+        // through the inlet; the other zone's gas in each port is remembered so that it
+        // returns to its own zone. When a step's flow crosses from one kind to the other -
+        // more drawn than the zone holds, or more returned than the port holds - the
+        // original counts the whole flow in one and the crossing part again in the other.
+        // B79 counts each part once. See ISSUES.md B79.
         if (massOut > 0 && cylinder.Mb > 0)
         {
+            engine.TotalMassOutExhaustValve += _countValveFlowsOnce ? Math.Min(massOut, cylinder.Mb) : massOut;
             cylinder.Mb -= massOut;
-            engine.TotalMassOutExhaustValve += massOut;
         }
 
         if (massOut > 0 && cylinder.Mb == 0)
@@ -1122,6 +1131,12 @@ public sealed class CycleSolver
 
         if (massOut < 0 && engine.UnburntMassOutExhaust > 0)
         {
+            if (_countValveFlowsOnce)
+            {
+                // Beyond the unburnt gas the exhaust holds, what returns is burnt gas.
+                engine.TotalMassOutExhaustValve += Math.Min(0, massOut + engine.UnburntMassOutExhaust);
+            }
+
             cylinder.Mu -= massOut;
             engine.UnburntMassOutExhaust += massOut;
         }
@@ -1158,14 +1173,20 @@ public sealed class CycleSolver
 
         if (massIn > 0 && engine.BurntMassOutInlet > 0)
         {
+            if (_countValveFlowsOnce)
+            {
+                // Beyond the burnt gas the port holds, what enters is fresh charge.
+                engine.TotalMassInInletValve += Math.Max(0, massIn - engine.BurntMassOutInlet);
+            }
+
             cylinder.Mb += massIn;
             engine.BurntMassOutInlet -= massIn;
         }
 
         if (massIn < 0 && cylinder.Mu > 0)
         {
+            engine.TotalMassInInletValve += _countValveFlowsOnce ? Math.Max(massIn, -cylinder.Mu) : massIn;
             cylinder.Mu += massIn;
-            engine.TotalMassInInletValve += massIn;
         }
 
         if (massIn < 0 && cylinder.Mu == 0)
