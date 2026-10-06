@@ -7,3 +7,4 @@ obj/
 artifacts/
 .DS_Store
 .vscode/ESA.NET.code-workspace
+__pycache__/

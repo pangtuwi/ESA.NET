@@ -1,0 +1,17 @@
+series,role,x,y
+Std. Cam Tested,measured,2002.16,189.041
+Std. Cam Tested,measured,3007.14,188.605
+Std. Cam Tested,measured,4006.35,168.523
+Std. Cam Tested,measured,5001.58,137.871
+12°Adv Cam Tested,measured,2001.79,190.868
+12°Adv Cam Tested,measured,3004.61,183.600
+12°Adv Cam Tested,measured,3999.12,149.667
+12°Adv Cam Tested,measured,5001.94,108.694
+Std. Cam Modelled,thesis_model,1999.99,190.536
+Std. Cam Modelled,thesis_model,2999.92,187.712
+Std. Cam Modelled,thesis_model,3999.48,171.057
+Std. Cam Modelled,thesis_model,4999.05,139.865
+12°Adv Cam Modelled,thesis_model,2000.35,186.501
+12°Adv Cam Modelled,thesis_model,2999.80,177.502
+12°Adv Cam Modelled,thesis_model,4000.45,150.574
+12°Adv Cam Modelled,thesis_model,4999.89,108.902

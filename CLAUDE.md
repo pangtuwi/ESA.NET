@@ -79,6 +79,28 @@ Unlike the output scattered through `legacy/ESA/Data/`, this set carries its own
 provenance. Treat every file in it as read-only: regenerating it means running
 the original application on Windows.
 
+## The thesis validation suite
+
+`validation/` re-runs every dynamometer correlation of the thesis (sections 6.4 to 6.6,
+Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
+`validation/README.md` is the reference.
+
+- **`validation/cases/`** holds one folder per engine configuration: byte copies of legacy
+  files, plus a derived `.eng` where a case changes a value, which opens with a `;` comment
+  naming its source. `.msr` grids hold the run points. `validation/suite.json` maps figures to
+  cases. Both are written by `validation/tools/build_cases.py`; edit the script, not the
+  folder.
+- **`data/thesis/figures/`** holds what the thesis plotted, measured and 2002-model,
+  extracted from the PDF's vector graphics by `validation/tools/digitise_thesis.py`.
+  **`data/thesis/source/`** holds the author's original spreadsheets they were drawn from.
+- **`legacy/CAEEng/`** is the only surviving definition of the eight-valve engine of
+  section 6.5, from the 1998-99 predecessor program. It does not run in the port yet
+  (`validation/README.md`, "What does not run").
+- **A grid row's file overrides (`IManfFile` to `ECamFile`) are ignored by the port**:
+  `MultiRunner` sets the name after `EngineLoader` has read the table. The suite therefore
+  keeps one manifold per `.eng`.
+- `ThesisSuiteTests` keeps the suite loadable without running it.
+
 ## Where the data lives
 
 The application has a data folder of its own, which the Delphi original did not: it opened

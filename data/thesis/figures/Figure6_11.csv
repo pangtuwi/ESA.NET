@@ -1,0 +1,22 @@
+series,role,x,y
+Dynamometer Measured,measured,1499.98,-4.080
+Dynamometer Measured,measured,2000.61,-5.523
+Dynamometer Measured,measured,2500.03,-4.381
+Dynamometer Measured,measured,2999.46,-4.561
+Dynamometer Measured,measured,3500.08,1.328
+Dynamometer Measured,measured,4000.70,0.907
+Dynamometer Measured,measured,4500.13,4.973
+Dynamometer Measured,measured,4999.55,11.243
+Dynamometer Measured,measured,5299.45,13.146
+Dynamometer Measured,measured,5500.18,15.489
+Model Predicted,thesis_model,1499.39,-8.020
+Model Predicted,thesis_model,1999.77,-4.211
+Model Predicted,thesis_model,2500.15,-9.883
+Model Predicted,thesis_model,2799.81,-5.965
+Model Predicted,thesis_model,2999.10,-6.662
+Model Predicted,thesis_model,3499.48,3.697
+Model Predicted,thesis_model,3999.86,0.885
+Model Predicted,thesis_model,4499.17,2.483
+Model Predicted,thesis_model,4999.20,8.649
+Model Predicted,thesis_model,5299.57,9.706
+Model Predicted,thesis_model,5499.58,10.812

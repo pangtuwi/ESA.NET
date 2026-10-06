@@ -155,7 +155,13 @@ public sealed class TableReaderTests
         }
 
         Assert.True(read > 20, $"Expected to read a meaningful number of side files, read {read}.");
-        Assert.Empty(failures);
+
+        // The one malformed file, recovered as it was: its count line says 18 rows and 17
+        // follow. Nothing reads it - A4LowCost.eng gives its back pressure inline - and it
+        // is kept for provenance (legacy/CAEEng/README.md).
+        var known = Path.Combine("CAEEng", "Default.exh");
+        Assert.Single(failures, f => f.StartsWith(known, StringComparison.Ordinal));
+        Assert.DoesNotContain(failures, f => !f.StartsWith(known, StringComparison.Ordinal));
     }
 
     [Fact]

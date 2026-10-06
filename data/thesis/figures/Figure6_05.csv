@@ -1,0 +1,25 @@
+series,role,x,y
+210mm Test,measured,2002.34,189.060
+210mm Test,measured,3007.96,188.547
+210mm Test,measured,4006.92,168.502
+210mm Test,measured,5002.19,137.824
+310mm Test,measured,2011.09,193.206
+310mm Test,measured,3001.42,193.442
+310mm Test,measured,4004.09,170.088
+310mm Test,measured,5006.75,134.056
+410mm Test,measured,2006.77,196.862
+410mm Test,measured,3003.52,201.197
+410mm Test,measured,4007.66,170.643
+410mm Test,measured,5004.41,128.147
+210mm Model,thesis_model,1999.75,190.546
+210mm Model,thesis_model,2999.45,187.716
+210mm Model,thesis_model,3999.52,171.050
+210mm Model,thesis_model,4999.60,139.859
+310mm Model,thesis_model,1999.99,193.206
+310mm Model,thesis_model,3000.19,192.380
+310mm Model,thesis_model,4000.39,171.209
+310mm Model,thesis_model,5000.58,133.997
+410mm Model,thesis_model,1999.75,195.500
+410mm Model,thesis_model,2999.45,200.065
+410mm Model,thesis_model,3999.52,167.741
+410mm Model,thesis_model,4999.60,125.121
