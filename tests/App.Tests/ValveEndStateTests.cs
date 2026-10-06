@@ -102,7 +102,7 @@ public sealed class ValveEndStateTests
         BaselinePaths.Require();
 
         var engine = BaselineEngine();
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.LiveInletTemperature.Entry] = corrected;
 
         var solver = new CycleSolver(engine, new ManifoldSolver(engine, physics: physics), physics: physics);

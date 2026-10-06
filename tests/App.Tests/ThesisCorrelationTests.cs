@@ -158,7 +158,7 @@ public sealed class ThesisCorrelationTests
         var sweep = Sweep(
             () =>
             {
-                var physics = new PhysicsCorrections();
+                var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
                 physics.Overrides[CorrectionCatalogue.AreaClamp.Entry] = true;
                 return physics;
             },

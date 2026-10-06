@@ -383,8 +383,9 @@ public sealed class SimulateOptionsTests
     }
 
     [Fact]
-    public void TheDialogOpensOnLegacyByDefault()
+    public void TheDialogOpensOnCorrectedByDefault()
     {
-        Assert.True(Opened().LegacyPhysics);
+        Assert.True(Opened().CorrectedPhysics);
+        Assert.False(Opened().LegacyPhysics);
     }
 }

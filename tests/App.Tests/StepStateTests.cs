@@ -32,7 +32,7 @@ public sealed class StepStateTests
 
     private static CycleSolver Solver(Engine engine, bool endOfStep, params Correction[] alsoOn)
     {
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.EndOfStepState.Entry] = endOfStep;
 
         // B18 keeps the unburnt model free of call history, so the test's own property

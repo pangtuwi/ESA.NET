@@ -113,7 +113,7 @@ public sealed class ClosedCylinderTests
     {
         BaselinePaths.Require();
 
-        var corrected = new PhysicsCorrections();
+        var corrected = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         corrected.Overrides[CorrectionCatalogue.ClosedCylinderMassFlow.Entry] = true;
 
         var closed = Measure(corrected);
@@ -135,7 +135,7 @@ public sealed class ClosedCylinderTests
     {
         BaselinePaths.Require();
 
-        var legacy = Measure(new PhysicsCorrections());
+        var legacy = Measure(new PhysicsCorrections { Mode = PhysicsMode.Legacy });
 
         // 6.3e-5 kg/rad on the baseline engine.
         Assert.InRange(legacy.LargestFlowTerm, 1e-5, 1e-3);
@@ -156,7 +156,7 @@ public sealed class ClosedCylinderTests
         BaselinePaths.Require();
 
         var engine = BaselineEngine();
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.IvcReference.Entry] = corrected;
 
         var solver = new CycleSolver(engine, new ManifoldSolver(engine), physics: physics);

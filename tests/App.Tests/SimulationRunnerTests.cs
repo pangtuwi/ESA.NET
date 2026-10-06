@@ -25,8 +25,15 @@ public sealed class SimulationRunnerTests
         return engine;
     }
 
+    // The baseline engine's reference settings, on the original's physics.
     private static SimulationSettings Settings() =>
-        new() { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 };
+        new()
+        {
+            CycleCount = 6,
+            OneZoneCycleCount = 1,
+            MassBalance = 1,
+            Physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy },
+        };
 
     [Fact]
     public void OneCallReproducesTheAcceptanceResult()
