@@ -100,6 +100,13 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   `MultiRunner` sets the name after `EngineLoader` has read the table. The suite therefore
   keeps one manifold per `.eng`.
 - `ThesisSuiteTests` keeps the suite loadable without running it.
+- **Run it** with `dotnet run --project tools/App.Validation -c Release`. It runs in
+  Corrected by default, takes about half a minute, and writes `report.html`,
+  `results.csv`, `failures.csv` and `run.json` into a git-ignored folder under
+  `validation-reports/`. Pass `--previous <that folder>` to see what a change moved. The
+  tool draws its own SVG charts rather than using ScottPlot, so the report is a single
+  file with hover tooltips, light and dark themes, and no dual axes: torque and power are
+  separate charts.
 
 ## Where the data lives
 

@@ -20,6 +20,44 @@ Python 3, `pypdf` and poppler's `pdftotext`, and only when a source changes.
 loads with every side file resolved, that every grid reads, and that every series in
 `suite.json` names data that exists.
 
+## Running the suite
+
+```bash
+dotnet run --project tools/App.Validation -c Release -- [options]
+```
+
+| Option | Effect |
+|---|---|
+| `--mode corrected` / `--mode legacy` | Physics mode. Corrected is the default; Legacy is for diagnosis |
+| `--set B4=1` | Override one correction, as in `ESA.ini` (repeatable) |
+| `--figure 6.12` | Run only one figure (repeatable) |
+| `--previous <dir>` | Compare with an earlier report folder: dotted curves on every chart, plus a change-in-rms column |
+| `--out <dir>` | Output folder. The default is `validation-reports/<date>_<time>_<mode>`, which git ignores |
+
+A full run takes about half a minute. Grid rows run in parallel, and a row that fails is
+reported rather than aborting the run. The folder holds:
+
+- **`report.html`**: one self-contained page. It opens with the commit, its dirty flag,
+  the mode and the corrections. A summary table follows, then one section per figure with
+  the chart drawn after the thesis figure, the comparison, the runs that did not finish, a
+  data table, and the assumptions that figure rests on.
+- **`results.csv`**: every simulated point, as `figure,series,x,y`.
+- **`failures.csv`**: every run that did not finish, with its message.
+- **`run.json`**: what was run and when. `--previous` reads it along with `results.csv`.
+
+The charts mark where each curve came from. Dots are the dynamometer, a dashed line with
+open squares is the thesis's 2002 model, a solid line is ESA.NET now, and a dotted line
+is the previous run. Colour marks the series. Each comparison is the rms and the bias of
+one curve against another, taken at the reference curve's own points, in percent of the
+reference (bar for Figure 6.8, Nm for Figure 6.11). A simulated curve is interpolated
+only across gaps under 1.6 times its median point spacing, so a failed row leaves a gap
+instead of a line drawn through it. Figures 6.10 and 6.12 are compared from 2500 rpm up,
+as the thesis does.
+
+Reproducing `ThesisCorrelationTests` is a check that the runner is wired the same way as
+that test: `--figure 6.12 --mode legacy --set B4=1` gives 5.3 % rms, a bias of -3.3 Nm and
+151.8 Nm at 4000 rpm.
+
 ## Cases
 
 Every file in a case is a byte copy of a legacy file, except the `.eng` of a case that
@@ -81,7 +119,7 @@ measured curve. Each figure in `suite.json` lists the entries it depends on.
 | N2 | The legend's 210/310/410 mm are tract lengths; the cases' `NissanInlet_290/390/490.maf` are total flow lengths including the 80 mm port | Section 6.4.2 and Table 6.1 |
 | N3 | The 2002 model ran at the engine file's own settings, including `Lambda=1.05` | The spreadsheet's Lambda column reads 1.05 throughout |
 | N4 | The timing loop is at 2000 rpm, 290 mm inlet, cam advanced 12° | The measured loop in `ModellingPerformance_Final.xls` (sheet TestPerf2: 2000 rpm, spark 15.5/19.7/24.0°) is Test 7 |
-| N5 | Point A is the inlet pipe's grid point at the valve, and the thesis's 0-720° axis is ESA's -360 to 360° shifted by 360° | "As close as possible to the cylinder head". Neither the transducer's distance nor the trace's angle origin is recorded, so the report compares the waveform's shape as well as its phase |
+| N5 | Point A is the inlet pipe's grid point at the valve. The thesis's 0-720° axis counts from firing top dead centre, so the report shifts ESA.NET's trace, which counts from intake top dead centre, by 360° | "As close as possible to the cylinder head". The thesis's measured and model traces have their ram peak just before 580°, which is inlet valve closing (40° ABDC) counted from firing TDC. ESA's recorder puts inlet valve closing at IVC + 360 = 220° (`ManifoldCaptureWindow`), and that is where its own peak falls. The recorder keeps only the original's capture window, so ESA.NET has no trace from 580° to 720° |
 | V1 | The eight-valve engine is `legacy/CAEEng/A4LowCost.eng`, including its fixed 15° spark, λ 0.92, and constant 20 kPa, 400 °C back pressure. The derived file restates the three values the port misreads in the older schema: plenum pressure in pascals, grid point counts under `[Inlet]`/`[Exhaust]`, and wall temperatures in kelvin | It is the only eight-valve definition that survives, named after the project and dated within it. Its cam profile 050 109 113 B is the "050 B" of the Kick-Up spreadsheet. The translations follow the predecessor's own `Edit.pas` and `GridSizes.pas` (CAEEng backup), not a guess |
 | V2 | The long production manifold `06A133205G long.maf` (658 mm) stands in for both the final prototype manifold of Figure 6.10 and the 630 mm aluminium manifold of the cam study | Neither manifold file survives |
 | V3 | Figure 6.10 is compared as shape, not level | The case is the pre-development engine; the measured curve is the final one |
