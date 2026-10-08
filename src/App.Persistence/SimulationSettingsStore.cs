@@ -99,16 +99,17 @@ public sealed class SimulationSettingsStore : ISimulationSettingsStore
 
     /// <summary>
     /// <c>[Physics]</c>: <c>Mode=Legacy</c> or <c>Mode=Corrected</c>, and any per-correction
-    /// overrides as <c>B14=1</c> or <c>B14=0</c>. An unreadable mode is Legacy, the
-    /// validated behaviour; an unreadable override is ignored rather than guessed at.
+    /// overrides as <c>B14=1</c> or <c>B14=0</c>. Legacy has to be asked for by name; a
+    /// missing or unreadable mode is the default, Corrected. An unreadable override is
+    /// ignored rather than guessed at.
     /// </summary>
     private static void ReadPhysics(IniDocument document, PhysicsCorrections physics)
     {
         var mode = document.GetValue(Physics, PhysicsModeKey);
 
-        physics.Mode = string.Equals(mode?.Trim(), nameof(PhysicsMode.Corrected), StringComparison.OrdinalIgnoreCase)
-            ? PhysicsMode.Corrected
-            : PhysicsMode.Legacy;
+        physics.Mode = string.Equals(mode?.Trim(), nameof(PhysicsMode.Legacy), StringComparison.OrdinalIgnoreCase)
+            ? PhysicsMode.Legacy
+            : PhysicsCorrections.DefaultMode;
 
         foreach (var key in document.KeysIn(Physics))
         {
@@ -131,14 +132,14 @@ public sealed class SimulationSettingsStore : ISimulationSettingsStore
 
     /// <summary>
     /// Written only once it says something - a section already there, a mode other than
-    /// Legacy, or an override - so every <c>ESA.ini</c> that predates the switch keeps its
-    /// bytes, as the data folder does.
+    /// the default, or an override - so every <c>ESA.ini</c> that predates the switch keeps
+    /// its bytes, as the data folder does.
     /// </summary>
     private static void WritePhysics(IniDocument document, PhysicsCorrections physics)
     {
         var present = document.KeysIn(Physics).Count > 0;
 
-        if (!present && physics.Mode == PhysicsMode.Legacy && physics.Overrides.Count == 0)
+        if (!present && physics.Mode == PhysicsCorrections.DefaultMode && physics.Overrides.Count == 0)
         {
             return;
         }

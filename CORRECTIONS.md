@@ -115,10 +115,10 @@ all **off** by default.
 - **One choice for the operator.** The Single Speed Simulation dialog offers *Legacy* or
   *Corrected*, and nothing finer. Per-flag control stays in `ESA.ini` for whoever is working
   on the physics.
-- **Legacy stays the default while tier 3 is in progress.** A half-corrected engine is
-  neither the original nor the intended physics. Once every tier 3 correction has landed and
-  been measured, the default becomes *Corrected*, and *Legacy* stays available for
-  reproducing the original's numbers. See section 5.
+- **Legacy stayed the default while tier 3 was in progress.** A half-corrected engine is
+  neither the original nor the intended physics. With every tier 3 correction landed and
+  measured, the default is now *Corrected*, and *Legacy* stays available for reproducing
+  the original's numbers. See section 5.
 
 ### Why not re-baseline
 
@@ -213,7 +213,7 @@ Agreed on 2026-10-02.
 | Question | Decision |
 |---|---|
 | A switch, or a new baseline? | **A switch.** `data/baseline/` stays the reference for Legacy, and each correction is validated by its own physical check and measured against the baseline when it lands. |
-| What becomes the default once tier 3 is complete? | **Corrected, with Legacy opt-in.** Legacy stays the default until then, and the change of default is a single step taken when the last tier 3 correction is in, not one flag at a time. |
+| What becomes the default once tier 3 is complete? | **Corrected, with Legacy opt-in.** Legacy stays the default until then, and the change of default is a single step taken when the last tier 3 correction is in, not one flag at a time. **Done** once B37 and B79 were in: `PhysicsCorrections.DefaultMode` is Corrected. |
 | How much control does the operator get? | **Legacy / Corrected only**, in the Single Speed Simulation dialog. Individual flags are set in `ESA.ini` and are not shown in the UI. |
 
 ## 6. Register housekeeping found while writing this
@@ -230,7 +230,8 @@ Both items were done with the first tier 1 change:
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | 25 entries | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64, B65, B4, B16, B18, B35, B76, B77 and B78 **done**, B17 resolved with B16; B36 fixed directly, bit-identical everywhere; B60 and B5 closed as not defects — heat transfer, the wave solver, the lookups and the gas properties complete — the fingerprint bit-identical under Legacy. Corrected matches the thesis's dynamometer curve as closely as Legacy (5.2 against 5.3 % rms, [F6](https://github.com/pangtuwi/ESA.NET/issues/178)). Left: B37, the gas-exchange equations, last |
+| Tier 3 | Every entry | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64, B65, B4, B16, B18, B35, B76, B77, B78, B37 and B79 **done**, B17 resolved with B16; B36 fixed directly, bit-identical everywhere; B60 and B5 closed as not defects — the fingerprint bit-identical under Legacy throughout. Corrected matches the thesis's dynamometer curve as closely as Legacy (5.3 against 5.3 % rms, [F6](https://github.com/pangtuwi/ESA.NET/issues/178)) |
+| The default | — | **Corrected**, with Legacy opt-in (section 5); the fingerprint bit-identical with Legacy named |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver
 to **report** what it used to throw, hang or pop a dialog over. That meant a per-run counter
@@ -249,16 +250,21 @@ Errors 2, 3 and 5 stay fatal, decided on 2026-10-02 (B22).
 
 - **Model:** `PhysicsMode` (Legacy, Corrected) and `PhysicsCorrections` on
   `SimulationSettings.Physics`, in `App.Core/Model/PhysicsCorrections.cs`. That file also
-  holds the `CorrectionCatalogue` of corrections, which is **empty** until the first tier 3
-  correction lands. Until then Corrected computes exactly what Legacy does, and says so.
+  holds the `CorrectionCatalogue` of corrections, which was **empty** until the first tier 3
+  correction landed; until then Corrected computed exactly what Legacy does, and said so.
+  `PhysicsCorrections.DefaultMode` is the default, Corrected since tier 3 was completed: a
+  new `PhysicsCorrections`, and so a new `SimulationSettings`, is Corrected. A solver handed
+  no physics at all (`physics: null`) still runs with every correction off.
 - **Resolving a flag:** `IsOn(correction)` returns the correction's override if it has one,
   and otherwise the mode. Overrides are keyed by `ISSUES.md` entry and matched
   case-insensitively. An unknown entry is kept, so an `ESA.ini` written by a later version
   survives being read by this one.
 - **`ESA.ini`:** a `[Physics]` section with `Mode=Legacy|Corrected` and overrides such as
   `B14=1` or `B14=0`. It is written only once it says something, and only where its meaning
-  changed, so an existing file keeps its bytes. An unreadable mode reads as Legacy, and an
-  override that is neither 0 nor 1 is ignored.
+  changed, so an existing file keeps its bytes. Legacy has to be named: a missing or
+  unreadable mode reads as the default, Corrected, so an `ESA.ini` written before the switch
+  runs Corrected and keeps its bytes until the operator chooses Legacy, which writes
+  `Mode=Legacy`. An override that is neither 0 nor 1 is ignored.
 - **The operator:** the Single Speed Simulation dialog has a *Physics* group, *Legacy (as
   the original)* or *Corrected*, opening on the settings' mode. A note under it says when
   no corrections exist yet. A multi-point sweep runs on the mode last chosen, or the one
@@ -273,4 +279,6 @@ Errors 2, 3 and 5 stay fatal, decided on 2026-10-02 (B22).
 3. Give it a physical-oracle test.
 4. Record its measured effect on the baseline engine in its B entry.
 
-The baseline suite runs on Legacy throughout, and must not change.
+The baseline suite runs on Legacy throughout, and must not change. Since the default became
+Corrected, a test about Legacy says so - `new PhysicsCorrections { Mode = PhysicsMode.Legacy }`
+on its settings - or hands its solvers no physics at all.

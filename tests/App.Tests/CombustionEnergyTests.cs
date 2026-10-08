@@ -52,7 +52,7 @@ public sealed class CombustionEnergyTests
     private static Burn MeasureBurn(bool corrected, int measuredCycle)
     {
         var engine = BaselineEngine();
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.BurntVolumeReset.Entry] = corrected;
         physics.Overrides[CorrectionCatalogue.ClosedCylinderMassFlow.Entry] = true;
         physics.Overrides[CorrectionCatalogue.EndOfStepState.Entry] = true;

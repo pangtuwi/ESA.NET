@@ -192,9 +192,10 @@ public sealed class RunFolderWiringTests
     {
         BaselinePaths.Require();
 
-        // 2500 rev/min fails on this engine with a non-finite state - MultiRunnerTests
-        // pins that - so the middle row fails and the two either side of it do not.
-        var editor = new StubMultiRunEditor { Grid = Grid(3000, 2500, 4000) };
+        // 2500 rev/min fails on this engine with a non-finite state under Legacy -
+        // MultiRunnerTests pins that - so the middle row fails and the two either side of
+        // it do not.
+        var editor = new StubMultiRunEditor { Grid = Grid(3000, 2500, 4000), Physics = PhysicsMode.Legacy };
         var (viewModel, workspace) = Loaded(editor);
 
         await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);

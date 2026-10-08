@@ -34,7 +34,7 @@ public sealed class ManifoldGammaTests
     private static (CycleSolver Solver, ManifoldSolver Manifold) OneStep(bool corrected)
     {
         var engine = BaselineEngine();
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.ManifoldGammas.Entry] = corrected;
 
         var manifold = new ManifoldSolver(engine, physics: physics);

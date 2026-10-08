@@ -42,6 +42,10 @@ The ones that change results, roughly in order of how much:
 Fixing the rest of these will move the numbers away from `data/baseline/`. How that is
 handled - a Legacy/Corrected switch, one flag per entry - is agreed in `CORRECTIONS.md`.
 
+**Corrected is the default** since tier 3 was completed with B37 and B79: every run applies
+every correction above unless `ESA.ini` or the run dialogs choose Legacy, which reproduces
+the original and `data/baseline/`.
+
 ---
 
 ## A. Defects in this port

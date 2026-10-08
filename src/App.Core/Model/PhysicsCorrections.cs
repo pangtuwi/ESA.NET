@@ -236,9 +236,9 @@ public static class CorrectionCatalogue
 /// <para>
 /// Agreed in <c>CORRECTIONS.md</c> section 5. The operator chooses Legacy or Corrected in
 /// the Single Speed Simulation dialog; individual corrections can be overridden only in
-/// <c>ESA.ini</c>, under <c>[Physics]</c>, for whoever is working on the physics. Legacy
-/// is the default while tier 3 is in progress, and becomes Corrected in one step once the
-/// last correction has landed.
+/// <c>ESA.ini</c>, under <c>[Physics]</c>, for whoever is working on the physics.
+/// Corrected is the default, since the last tier 3 correction landed; Legacy, the
+/// original's physics as <c>data/baseline/</c> validates it, has to be asked for.
 /// </para>
 /// <para>
 /// Never stored in the <c>.eng</c>: corrections describe the simulator, not the engine.
@@ -246,8 +246,14 @@ public static class CorrectionCatalogue
 /// </remarks>
 public sealed class PhysicsCorrections
 {
+    /// <summary>
+    /// The mode a run uses unless something says otherwise: Corrected, with Legacy opt-in
+    /// (<c>CORRECTIONS.md</c> section 5).
+    /// </summary>
+    public const PhysicsMode DefaultMode = PhysicsMode.Corrected;
+
     /// <summary>The mode every correction follows unless overridden.</summary>
-    public PhysicsMode Mode { get; set; } = PhysicsMode.Legacy;
+    public PhysicsMode Mode { get; set; } = DefaultMode;
 
     /// <summary>
     /// Per-correction overrides of <see cref="Mode"/>, keyed by <c>ISSUES.md</c> entry and
