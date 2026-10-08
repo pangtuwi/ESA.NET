@@ -8,7 +8,7 @@ namespace App.Tests;
 /// <summary>
 /// The older <c>[InManifold]</c> / <c>[ExManifold]</c> schema writes plenum pressure in
 /// kilopascals, wall temperatures in Celsius and grid sizes as fixed counts under
-/// <c>[Calculation]</c>, as the predecessor's <c>Edit.pas</c> read them. ISSUES.md A31-A33.
+/// <c>[Calculation]</c>, as the predecessor's <c>Edit.pas</c> read them. ISSUES.md A31-A34.
 /// </summary>
 public sealed class OlderSchemaUnitsTests
 {
@@ -113,18 +113,61 @@ public sealed class OlderSchemaUnitsTests
         Assert.NotEqual("(inline)", engine.Manifold.ExhaustBack.FileName);
     }
 
-    [Fact]
-    public void AnOlderFileWithNoGridSizesKeepsTheDefault()
+    [Theory]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AnOlderFileWithNoGridSizesReadsThePredecessorsGridFiles(int number)
     {
         RequireLegacy();
 
-        // Nissan5.eng has neither [Inlet]/[Exhaust] nor [Calculation]; Edit.pas's own
-        // default is 50 for both, which is what it gets.
-        var result = CreateLoader().Load(Nissan(5));
+        // Nissan4.eng and Nissan5.eng have neither [Inlet]/[Exhaust] nor [Calculation], so
+        // the default of 50 failed the 38-point exhaust limit. Inlet.grd and Exhaust.grd
+        // beside them begin "1", "35", which TGridSize.Load reads as 35 (ISSUES.md A34).
+        var result = CreateLoader().Load(Nissan(number));
+        var manifold = result.Engine.Manifold;
 
-        Assert.Equal("97000", result.Engine.Manifold.PlenumPressureFunction.Expression);
-        Assert.Equal("50", result.Engine.Manifold.InletGrid.Expression);
+        Assert.Equal("Inlet.grd", result.Definition.OlderInletGridFile);
+        Assert.Equal("Exhaust.grd", result.Definition.OlderExhaustGridFile);
+        Assert.Equal("35", manifold.InletGrid.Expression);
+        Assert.Equal("35", manifold.ExhaustGrid.Expression);
+        Assert.Contains(result.SideFiles, side => side.Kind == "inlet grid size");
+        Assert.Contains(result.SideFiles, side => side.Kind == "exhaust grid size");
+
+        var grids = new GridSizeCalculator(new CachingExpressionEvaluator());
+        Assert.Equal(35, grids.ExhaustGridSize(manifold.ExhaustGrid.Expression, 0.9, 5000));
+
+        // The editor still shows, and would write, only the .eng's own value.
+        Assert.Equal("50", result.Definition.EffectiveExhaustGridFunction);
+    }
+
+    [Fact]
+    public void AMissingGridFileIsReportedAndTheDefaultStands()
+    {
+        RequireLegacy();
+
+        // legacy/samples/Nissan5.eng is a copy with no .grd beside it.
+        var result = CreateLoader().Load(Path.Combine(TestPaths.Legacy!, "samples", "Nissan5.eng"));
+
         Assert.Equal("50", result.Engine.Manifold.ExhaustGrid.Expression);
+        Assert.Contains(result.Problems, p => p.Contains("Exhaust.grd", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AFileThatGivesItsOwnGridSizeReadsNoGridFile()
+    {
+        RequireLegacy();
+
+        // A4LowCost: [Calculation] counts with VarInletGrid=0. Nissan1: [Inlet] expressions.
+        foreach (var path in (string[])[A4LowCost, Nissan(1)])
+        {
+            var definition = CreateLoader().Load(path).Definition;
+
+            Assert.Null(definition.OlderInletGridFile);
+            Assert.Null(definition.OlderExhaustGridFile);
+        }
+
+        // Nor does a file on the current schema, which has a default of its own.
+        Assert.Null(Definition("[Inlet]\nAreaFile=x.maf\n").OlderInletGridFile);
     }
 
     [Fact]
@@ -136,6 +179,49 @@ public sealed class OlderSchemaUnitsTests
 
         Assert.Equal("50", definition.EffectiveInletGridFunction);
         Assert.Equal("14", definition.EffectiveExhaustGridFunction);
+
+        // It reads Inlet.grd, as IGrid.Load('Inlet.grd') did; the exhaust keeps its count.
+        Assert.Equal("Inlet.grd", definition.OlderInletGridFile);
+        Assert.Null(definition.OlderExhaustGridFile);
+    }
+
+    [Theory]
+    [InlineData("1\n35\nN*6/(-0.006532*N+726)*L\n", "35")]
+    [InlineData("2\nignored\n 22 \n", "22")]
+    public void AGridFileGivesTheLineItsCountPointsTo(string text, string expected)
+    {
+        var path = Path.GetTempFileName();
+
+        try
+        {
+            File.WriteAllText(path, text);
+            Assert.Equal(expected, GridSizeFile.Read(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("x\n35\n")]
+    [InlineData("2\n35\n")]
+    [InlineData("1\nN*6/(-0.006532*N+726)*L\n")]
+    [InlineData("1\n0\n")]
+    public void AGridFileThatIsNotACountIsRejected(string text)
+    {
+        var path = Path.GetTempFileName();
+
+        try
+        {
+            File.WriteAllText(path, text);
+            Assert.Throws<LegacyDataException>(() => GridSizeFile.Read(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

@@ -571,6 +571,15 @@ public sealed partial class EditEngineViewModel : ObservableValidator
                 $"exhaust back pressure {definition.InlineExhaustBackPressure} kPa, temperature {definition.InlineExhaustTemperature} °C"));
         }
 
+        // The editor shows the default of 50 for these; the run reads the .grd (ISSUES.md A34).
+        foreach (var grid in (string?[])[definition.OlderInletGridFile, definition.OlderExhaustGridFile])
+        {
+            if (grid is not null)
+            {
+                parts.Add($"grid size from {grid} where it is found beside the engine");
+            }
+        }
+
         return parts.Count == 0
             ? "This engine also carries the older [InManifold] / [ExManifold] schema, which is written back unchanged."
             : "This engine uses the older [InManifold] / [ExManifold] schema: "
