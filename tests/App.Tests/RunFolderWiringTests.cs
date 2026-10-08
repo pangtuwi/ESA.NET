@@ -66,6 +66,11 @@ public sealed class RunFolderWiringTests
 
         var (viewModel, workspace) = Loaded();
 
+        // Legacy, because the run must be clean for the status line to stay quiet. Under
+        // Corrected one pipe point at 4000 rev/min reaches the wave solver's outer cap
+        // (ISSUES.md B52), which is the diagnostics working, not the wiring failing.
+        viewModel.Settings.Physics.Mode = PhysicsMode.Legacy;
+
         await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
 
         var folder = OnlyRunFolder(workspace);
