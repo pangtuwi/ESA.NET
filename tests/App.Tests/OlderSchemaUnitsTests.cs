@@ -8,7 +8,7 @@ namespace App.Tests;
 /// <summary>
 /// The older <c>[InManifold]</c> / <c>[ExManifold]</c> schema writes plenum pressure in
 /// kilopascals, wall temperatures in Celsius and grid sizes as fixed counts under
-/// <c>[Calculation]</c>, as the predecessor's <c>Edit.pas</c> read them. ISSUES.md A30-A32.
+/// <c>[Calculation]</c>, as the predecessor's <c>Edit.pas</c> read them. ISSUES.md A31-A33.
 /// </summary>
 public sealed class OlderSchemaUnitsTests
 {

@@ -145,7 +145,7 @@ public sealed class EngineLoader : IEngineLoader
         var manifold = engine.Manifold;
 
         // Pascals and expressions under either schema: the older one's kilopascals and
-        // fixed grid counts are translated by the accessors (ISSUES.md A30, A32).
+        // fixed grid counts are translated by the accessors (ISSUES.md A31, A33).
         manifold.PlenumPressureFunction.Expression = definition.EffectivePlenumPressure;
         manifold.InletGrid.Expression = definition.EffectiveInletGridFunction;
         manifold.ExhaustGrid.Expression = definition.EffectiveExhaustGridFunction;
@@ -174,7 +174,7 @@ public sealed class EngineLoader : IEngineLoader
 
         // The older files list four wall temperatures directly instead of naming a .cwt.
         // They are Celsius and a .cwt is kelvin; the predecessor's Edit.pas added 273.15
-        // to each, as this does (ISSUES.md A31).
+        // to each, as this does (ISSUES.md A32).
         if (definition.UsesInlineWallTemperatures)
         {
             var table = new WallTemperatureTable { FileName = "(inline)" };

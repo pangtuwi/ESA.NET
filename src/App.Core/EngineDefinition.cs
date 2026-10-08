@@ -438,7 +438,7 @@ public abstract class EngineDefinition
     //
     // The schema is the predecessor's, CAEEng (1999), whose Edit.pas read it. Its
     // units are not the current schema's: walls in Celsius, plenum pressure in kPa,
-    // grid sizes as fixed point counts under [Calculation] (ISSUES.md A30-A32).
+    // grid sizes as fixed point counts under [Calculation] (ISSUES.md A31-A33).
     // Nissan1-3 carry both schemas; there the current keys win, as they did for
     // ESA 3.0, which never read the older ones.
     // ---------------------------------------------------------------------------
@@ -457,14 +457,14 @@ public abstract class EngineDefinition
     /// <summary>
     /// True when the inline wall temperatures are the ones to use: the file lists them and
     /// names no <c>[HeatTransfer] TempFile</c>. Nissan1-3 do both, and ESA 3.0 read only
-    /// the <c>.cwt</c> (<c>Edit.pas:258</c>), so the <c>.cwt</c> wins (ISSUES.md A31).
+    /// the <c>.cwt</c> (<c>Edit.pas:258</c>), so the <c>.cwt</c> wins (ISSUES.md A32).
     /// </summary>
     public bool UsesInlineWallTemperatures =>
         HasInlineWallTemperatures && GetValue("HeatTransfer", "TempFile") is null;
 
     // The four inline wall temperatures are as the file writes them, in degrees Celsius.
     // The predecessor's Edit.pas added 273.15 to each (THead := StrToFloatf(ETHead.Text)
-    // + 273.15); a .cwt holds kelvin, so the loader converts (ISSUES.md A31).
+    // + 273.15); a .cwt holds kelvin, so the loader converts (ISSUES.md A32).
 
     public double InlineHeadTemperature => GetDouble("Cylinders", "THead", 0);
 
@@ -480,7 +480,7 @@ public abstract class EngineDefinition
     /// <summary>
     /// True when the inline back pressure is the one to use: the file gives it and names
     /// no <c>[Exhaust] ExhBackFile</c>. Nissan1-3 do both; ESA 3.0 read only the
-    /// <c>.exh</c> (<c>Edit.pas:269</c>), so the <c>.exh</c> wins (ISSUES.md A31).
+    /// <c>.exh</c> (<c>Edit.pas:269</c>), so the <c>.exh</c> wins (ISSUES.md A32).
     /// </summary>
     public bool UsesInlineExhaustBackPressure =>
         HasInlineExhaustBackPressure && GetValue("Exhaust", "ExhBackFile") is null;
@@ -516,7 +516,7 @@ public abstract class EngineDefinition
     /// <c>PlenumP=99</c>, a plain number in kilopascals, which the predecessor's
     /// <c>Edit.pas</c> scaled with <c>PlenumP6000 := StrToFloatF(EPPlenum.Text)*1e3</c>.
     /// The older value is scaled the same way here, so <c>ManifoldSolver</c> always gets
-    /// pascals (ISSUES.md A30). When a file carries both, <c>FPlenumP</c> wins.
+    /// pascals (ISSUES.md A31). When a file carries both, <c>FPlenumP</c> wins.
     /// </remarks>
     public string EffectivePlenumPressure
     {
@@ -544,7 +544,7 @@ public abstract class EngineDefinition
     /// <c>L</c>. The older one writes <c>[Calculation] InletGrid=13</c>, a fixed point
     /// count, used as it stands unless <c>VarInletGrid=1</c> (the predecessor's
     /// <c>IGrid.UserDefined := StrToInt(EInletGrid.Text)</c>). Without the fallback such
-    /// a file ran on the default of 50 (ISSUES.md A32).
+    /// a file ran on the default of 50 (ISSUES.md A33).
     /// </remarks>
     public string EffectiveInletGridFunction =>
         GetValue("Inlet", "InletGrid") ?? OlderFixedGridSize("InletGrid", "VarInletGrid") ?? "50";
@@ -553,7 +553,7 @@ public abstract class EngineDefinition
     /// <remarks>
     /// As <see cref="EffectiveInletGridFunction"/>, from <c>[Calculation] ExhaustGrid</c>
     /// and <c>VarExhGrid</c>. The default of 50 is over the 38-point exhaust limit, so
-    /// without the fallback every such file failed its run (ISSUES.md A32).
+    /// without the fallback every such file failed its run (ISSUES.md A33).
     /// </remarks>
     public string EffectiveExhaustGridFunction =>
         GetValue("Exhaust", "ExhaustGrid") ?? OlderFixedGridSize("ExhaustGrid", "VarExhGrid") ?? "50";

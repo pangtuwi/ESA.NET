@@ -57,7 +57,7 @@ CASES = {
     # 6.5: the VW eight-valve engine, from the 1999 CAEEng folder, unchanged.
     # The 1999 file is in the older schema, whose plenum pressure (kPa), wall
     # temperatures (Celsius) and fixed grid point counts ([Calculation]) the loader
-    # translates as the predecessor's Edit.pas did (ISSUES.md A30-A32).
+    # translates as the predecessor's Edit.pas did (ISSUES.md A31-A33).
     'VW8V_A4LowCost': dict(source=f'{CAEENG}/A4LowCost.eng',
         grids={
         'torque': rpm_rows(range(1500, 6001, 500)),

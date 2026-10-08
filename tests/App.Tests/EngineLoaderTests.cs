@@ -125,7 +125,7 @@ public sealed class EngineLoaderTests
         Assert.Equal(4, engine.CylinderCount);
 
         // Wall temperatures are inline rather than in a .cwt file, in Celsius, so they
-        // reach the engine in kelvin (ISSUES.md A31).
+        // reach the engine in kelvin (ISSUES.md A32).
         Assert.True(result.Definition.UsesInlineWallTemperatures);
         Assert.Equal(453.15, engine.WallTemperature.HeadTemperature[0], 10);
         Assert.Equal(533.15, engine.WallTemperature.PistonTemperature[0], 10);

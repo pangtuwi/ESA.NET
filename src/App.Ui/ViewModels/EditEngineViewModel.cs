@@ -555,7 +555,7 @@ public sealed partial class EditEngineViewModel : ObservableValidator
         var parts = new List<string>();
 
         // Only the inline values the run uses: in a file that also names a .cwt or .exh,
-        // as Nissan1-3 do, the side file wins (ISSUES.md A31).
+        // as Nissan1-3 do, the side file wins (ISSUES.md A32).
         if (definition.UsesInlineWallTemperatures)
         {
             parts.Add(string.Create(
