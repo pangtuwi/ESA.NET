@@ -144,9 +144,11 @@ public sealed class EngineLoader : IEngineLoader
     {
         var manifold = engine.Manifold;
 
+        // Pascals and expressions under either schema: the older one's kilopascals and
+        // fixed grid counts are translated by the accessors (ISSUES.md A31, A33).
         manifold.PlenumPressureFunction.Expression = definition.EffectivePlenumPressure;
-        manifold.InletGrid.Expression = definition.InletGridFunction;
-        manifold.ExhaustGrid.Expression = definition.ExhaustGridFunction;
+        manifold.InletGrid.Expression = definition.EffectiveInletGridFunction;
+        manifold.ExhaustGrid.Expression = definition.EffectiveExhaustGridFunction;
 
         manifold.InletValveReverse.Expression = definition.InletValveReverseFunction;
         manifold.InletValveForward.Expression = definition.InletValveForwardFunction;
@@ -159,7 +161,7 @@ public sealed class EngineLoader : IEngineLoader
 
     /// <summary>
     /// Values that only the older <c>[InManifold]</c> / <c>[ExManifold]</c> schema
-    /// carries, used by the five Example1 Nissan engines.
+    /// carries, used by the five Example1 Nissan engines and <c>A4LowCost.eng</c>.
     /// </summary>
     private static void ApplyOlderSchemaValues(Engine engine, EngineDefinition definition)
     {
@@ -171,19 +173,22 @@ public sealed class EngineLoader : IEngineLoader
         manifold.ExhaustPipe.InsertAt = definition.ExhaustInsertAt;
 
         // The older files list four wall temperatures directly instead of naming a .cwt.
-        if (definition.HasInlineWallTemperatures)
+        // They are Celsius and a .cwt is kelvin; the predecessor's Edit.pas added 273.15
+        // to each, as this does (ISSUES.md A32).
+        if (definition.UsesInlineWallTemperatures)
         {
             var table = new WallTemperatureTable { FileName = "(inline)" };
             table.Rpm.Add(0);
-            table.HeadTemperature.Add(definition.InlineHeadTemperature);
-            table.PistonTemperature.Add(definition.InlinePistonTemperature);
-            table.UpperLinerTemperature.Add(definition.InlineUpperLinerTemperature);
-            table.LowerLinerTemperature.Add(definition.InlineLowerLinerTemperature);
+            table.HeadTemperature.Add(definition.InlineHeadTemperature + 273.15);
+            table.PistonTemperature.Add(definition.InlinePistonTemperature + 273.15);
+            table.UpperLinerTemperature.Add(definition.InlineUpperLinerTemperature + 273.15);
+            table.LowerLinerTemperature.Add(definition.InlineLowerLinerTemperature + 273.15);
             engine.WallTemperature = table;
         }
 
-        // Likewise a single exhaust back pressure and temperature instead of an .exh.
-        if (definition.HasInlineExhaustBackPressure)
+        // Likewise a single exhaust back pressure and temperature instead of an .exh, in
+        // the .exh's own units, kPa gauge and Celsius.
+        if (definition.UsesInlineExhaustBackPressure)
         {
             var table = new ExhaustBackPressureTable { FileName = "(inline)" };
             table.Rpm.Add(0);
@@ -227,13 +232,13 @@ public sealed class EngineLoader : IEngineLoader
             definition.EffectiveExhaustAreaFile, "exhaust manifold area", ReadArea,
             manifold.ExhaustPipe.AreaVersusLength);
 
-        if (!definition.HasInlineWallTemperatures)
+        if (!definition.UsesInlineWallTemperatures)
         {
             engine.WallTemperature = Read(
                 definition.WallTemperatureFile, "wall temperatures", _wallTemperatures.Read, engine.WallTemperature);
         }
 
-        if (!definition.HasInlineExhaustBackPressure)
+        if (!definition.UsesInlineExhaustBackPressure)
         {
             manifold.ExhaustBack = Read(
                 definition.ExhaustBackPressureFile, "exhaust back pressure", _exhaustBackPressures.Read,

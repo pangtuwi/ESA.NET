@@ -160,8 +160,13 @@ work.
 - `.eng` keys must be matched **case-insensitively**. `Edit.pas` reads `CdIvIn`
   while every shipped file writes `CdIVIn`; Delphi's `TIniFile` did not care and
   neither can we.
-- Five `Example1` engines use an older, undocumented `.eng` schema with
-  `[InManifold]` and `[ExManifold]` sections. The reader must not drop them.
+- Five `Example1` engines and `legacy/CAEEng/A4LowCost.eng` use an older, undocumented
+  `.eng` schema with `[InManifold]` and `[ExManifold]` sections. The reader must not drop
+  them. **Its units are not the current schema's**: `PlenumP` is kPa, `THead` and the other
+  wall temperatures are Celsius, and grid sizes are fixed counts under `[Calculation]`. The
+  `Effective*` and `UsesInline*` accessors on `EngineDefinition` translate them as the
+  predecessor's `Edit.pas` did, without writing anything; where a file carries both schemas
+  (`Nissan1-3`) the current keys win (`ISSUES.md` A31-A33).
 - The original menu assigned `Ctrl+Q` to both Exit and QuickRun. Exit keeps it (and
   `Cmd+Q`); QuickRun is `Ctrl+Shift+R` (C8). In Avalonia `MenuItem.InputGesture` is
   display-only, so every caption needs a matching `KeyBinding`; `MenuStructureTests`

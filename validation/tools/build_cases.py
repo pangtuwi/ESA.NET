@@ -54,17 +54,11 @@ CASES = {
     'Nissan_290_Adv12': dict(source=f'{NISSAN}/Nissan7.eng', grids={
         'torque': rpm_rows([2000, 3000, 4000, 5000]),
         'timing2000': [dict(speed=2000, spark=a) for a in range(10, 31, 2)]}),
-    # 6.5: the VW eight-valve engine, from the 1999 CAEEng folder.
-    # The 1999 file is in the older schema, and the port reads three of its values
-    # wrongly or not at all, so the derived file restates them: the plenum pressure
-    # (PlenumP=99, kPa, as FPlenumP in Pa), the fixed grid point counts ([Calculation]
-    # InletGrid=13 and ExhaustGrid=14, which the predecessor's TGridSize.GridSize returned
-    # as QI and QE with VarInletGrid=0), and the four wall temperatures, which the
-    # predecessor's Edit.pas read in Celsius and the port takes as kelvin.
-    'VW8V_A4LowCost': dict(source=f'{CAEENG}/A4LowCost.eng', derive={
-        ('Cylinders', 'THead'): '403.15', ('Cylinders', 'TPiston'): '473.15',
-        ('Cylinders', 'TULiner'): '433.15', ('Cylinders', 'TLLiner'): '403.15'}, add={
-        ('Inlet', 'FPlenumP'): '(99000)', ('Inlet', 'InletGrid'): '13', ('Exhaust', 'ExhaustGrid'): '14'},
+    # 6.5: the VW eight-valve engine, from the 1999 CAEEng folder, unchanged.
+    # The 1999 file is in the older schema, whose plenum pressure (kPa), wall
+    # temperatures (Celsius) and fixed grid point counts ([Calculation]) the loader
+    # translates as the predecessor's Edit.pas did (ISSUES.md A31-A33).
+    'VW8V_A4LowCost': dict(source=f'{CAEENG}/A4LowCost.eng',
         grids={
         'torque': rpm_rows(range(1500, 6001, 500)),
         'camA': rpm_rows(CAM_SPEEDS, **CAM_A),

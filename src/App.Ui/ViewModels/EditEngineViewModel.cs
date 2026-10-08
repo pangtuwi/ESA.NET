@@ -377,14 +377,14 @@ public sealed partial class EditEngineViewModel : ObservableValidator
 
         InletAreaFile = definition.EffectiveInletAreaFile;
         PlenumPressureFunction = definition.EffectivePlenumPressure;
-        InletGridFunction = definition.InletGridFunction;
+        InletGridFunction = definition.EffectiveInletGridFunction;
         InletValveReverseFunction = definition.InletValveReverseFunction;
         InletValveForwardFunction = definition.InletValveForwardFunction;
         InletValveForwardReverseFunction = definition.InletValveForwardReverseFunction;
 
         ExhaustAreaFile = definition.EffectiveExhaustAreaFile;
         ExhaustBackPressureFile = definition.ExhaustBackPressureFile;
-        ExhaustGridFunction = definition.ExhaustGridFunction;
+        ExhaustGridFunction = definition.EffectiveExhaustGridFunction;
         ExhaustValveReverseFunction = definition.ExhaustValveReverseFunction;
         ExhaustValveForwardFunction = definition.ExhaustValveForwardFunction;
         ExhaustValveForwardReverseFunction = definition.ExhaustValveForwardReverseFunction;
@@ -467,7 +467,9 @@ public sealed partial class EditEngineViewModel : ObservableValidator
         SetIfChanged(d.BurnAngle, BurnAngle, v => d.BurnAngle = v);
         SetIfChanged(d.SparkAngleFile, SparkAngleFile, v => d.SparkAngleFile = v);
 
-        SetIfChanged(d.InletGridFunction, InletGridFunction, v => d.InletGridFunction = v);
+        // Compared with what was shown, which on the older schema is [Calculation]'s fixed
+        // count; only an edit writes, and then to [Inlet], which wins from then on.
+        SetIfChanged(d.EffectiveInletGridFunction, InletGridFunction, v => d.InletGridFunction = v);
         SetIfChanged(d.InletValveReverseFunction, InletValveReverseFunction,
             v => d.InletValveReverseFunction = v);
         SetIfChanged(d.InletValveForwardFunction, InletValveForwardFunction,
@@ -476,7 +478,7 @@ public sealed partial class EditEngineViewModel : ObservableValidator
             v => d.InletValveForwardReverseFunction = v);
 
         SetIfChanged(d.ExhaustBackPressureFile, ExhaustBackPressureFile, v => d.ExhaustBackPressureFile = v);
-        SetIfChanged(d.ExhaustGridFunction, ExhaustGridFunction, v => d.ExhaustGridFunction = v);
+        SetIfChanged(d.EffectiveExhaustGridFunction, ExhaustGridFunction, v => d.ExhaustGridFunction = v);
         SetIfChanged(d.ExhaustValveReverseFunction, ExhaustValveReverseFunction,
             v => d.ExhaustValveReverseFunction = v);
         SetIfChanged(d.ExhaustValveForwardFunction, ExhaustValveForwardFunction,
@@ -552,24 +554,28 @@ public sealed partial class EditEngineViewModel : ObservableValidator
 
         var parts = new List<string>();
 
-        if (definition.HasInlineWallTemperatures)
+        // Only the inline values the run uses: in a file that also names a .cwt or .exh,
+        // as Nissan1-3 do, the side file wins (ISSUES.md A32).
+        if (definition.UsesInlineWallTemperatures)
         {
             parts.Add(string.Create(
                 CultureInfo.InvariantCulture,
                 $"wall temperatures head {definition.InlineHeadTemperature}, piston {definition.InlinePistonTemperature}, "
-                + $"upper liner {definition.InlineUpperLinerTemperature}, lower liner {definition.InlineLowerLinerTemperature}"));
+                + $"upper liner {definition.InlineUpperLinerTemperature}, lower liner {definition.InlineLowerLinerTemperature} °C"));
         }
 
-        if (definition.HasInlineExhaustBackPressure)
+        if (definition.UsesInlineExhaustBackPressure)
         {
             parts.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"exhaust back pressure {definition.InlineExhaustBackPressure}, temperature {definition.InlineExhaustTemperature}"));
+                $"exhaust back pressure {definition.InlineExhaustBackPressure} kPa, temperature {definition.InlineExhaustTemperature} °C"));
         }
 
-        return "This engine uses the older [InManifold] / [ExManifold] schema: "
-               + string.Join("; ", parts)
-               + ". These values are shown read-only and are written back unchanged.";
+        return parts.Count == 0
+            ? "This engine also carries the older [InManifold] / [ExManifold] schema, which is written back unchanged."
+            : "This engine uses the older [InManifold] / [ExManifold] schema: "
+              + string.Join("; ", parts)
+              + ". These values are shown read-only and are written back unchanged.";
     }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
