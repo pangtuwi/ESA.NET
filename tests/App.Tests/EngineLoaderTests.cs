@@ -124,13 +124,14 @@ public sealed class EngineLoaderTests
         Assert.Equal("Nissan2.4L Engine # Z24 Block,NA20 Head # Custom Inlet # NA20 Exh.", engine.Name);
         Assert.Equal(4, engine.CylinderCount);
 
-        // Wall temperatures are inline rather than in a .cwt file.
-        Assert.True(result.Definition.HasInlineWallTemperatures);
-        Assert.Equal(180, engine.WallTemperature.HeadTemperature[0]);
-        Assert.Equal(260, engine.WallTemperature.PistonTemperature[0]);
+        // Wall temperatures are inline rather than in a .cwt file, in Celsius, so they
+        // reach the engine in kelvin (ISSUES.md A31).
+        Assert.True(result.Definition.UsesInlineWallTemperatures);
+        Assert.Equal(453.15, engine.WallTemperature.HeadTemperature[0], 10);
+        Assert.Equal(533.15, engine.WallTemperature.PistonTemperature[0], 10);
 
         // As is the exhaust back pressure.
-        Assert.True(result.Definition.HasInlineExhaustBackPressure);
+        Assert.True(result.Definition.UsesInlineExhaustBackPressure);
         Assert.Equal(35.0, engine.Manifold.ExhaustBack.Pressure[0]);
         Assert.Equal(400, engine.Manifold.ExhaustBack.Temperature[0]);
     }

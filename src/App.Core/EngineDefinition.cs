@@ -429,12 +429,18 @@ public abstract class EngineDefinition
     // ---------------------------------------------------------------------------
     // The older, undocumented schema.
     //
-    // Five Example1 engines (Nissan1-5.eng) predate the [Inlet]/[Exhaust] sections
-    // and instead use [InManifold] and [ExManifold], with wall temperatures and
-    // exhaust back pressure written inline rather than in .cwt and .exh files.
-    // SPEC.md section 3 does not mention any of it. These accessors give the loader
-    // and the Edit form a way to see those values; nothing writes them, so the files
-    // keep round-tripping unchanged.
+    // Five Example1 engines (Nissan1-5.eng) and legacy/CAEEng/A4LowCost.eng predate
+    // the [Inlet]/[Exhaust] sections and instead use [InManifold] and [ExManifold],
+    // with wall temperatures and exhaust back pressure written inline rather than in
+    // .cwt and .exh files. SPEC.md section 3 does not mention any of it. These
+    // accessors give the loader and the Edit form a way to see those values; nothing
+    // writes them, so the files keep round-tripping unchanged.
+    //
+    // The schema is the predecessor's, CAEEng (1999), whose Edit.pas read it. Its
+    // units are not the current schema's: walls in Celsius, plenum pressure in kPa,
+    // grid sizes as fixed point counts under [Calculation] (ISSUES.md A30-A32).
+    // Nissan1-3 carry both schemas; there the current keys win, as they did for
+    // ESA 3.0, which never read the older ones.
     // ---------------------------------------------------------------------------
 
     public double InletInsertLength => GetDouble("InManifold", "InsertL", 0);
@@ -445,8 +451,20 @@ public abstract class EngineDefinition
 
     public double ExhaustInsertAt => GetDouble("ExManifold", "InsertAt", 0);
 
-    /// <summary>True when the file lists wall temperatures inline instead of naming a <c>.cwt</c>.</summary>
+    /// <summary>True when the file lists wall temperatures inline.</summary>
     public bool HasInlineWallTemperatures => GetValue("Cylinders", "THead") is not null;
+
+    /// <summary>
+    /// True when the inline wall temperatures are the ones to use: the file lists them and
+    /// names no <c>[HeatTransfer] TempFile</c>. Nissan1-3 do both, and ESA 3.0 read only
+    /// the <c>.cwt</c> (<c>Edit.pas:258</c>), so the <c>.cwt</c> wins (ISSUES.md A31).
+    /// </summary>
+    public bool UsesInlineWallTemperatures =>
+        HasInlineWallTemperatures && GetValue("HeatTransfer", "TempFile") is null;
+
+    // The four inline wall temperatures are as the file writes them, in degrees Celsius.
+    // The predecessor's Edit.pas added 273.15 to each (THead := StrToFloatf(ETHead.Text)
+    // + 273.15); a .cwt holds kelvin, so the loader converts (ISSUES.md A31).
 
     public double InlineHeadTemperature => GetDouble("Cylinders", "THead", 0);
 
@@ -456,8 +474,16 @@ public abstract class EngineDefinition
 
     public double InlineLowerLinerTemperature => GetDouble("Cylinders", "TLLiner", 0);
 
-    /// <summary>True when the file gives one exhaust back pressure instead of naming an <c>.exh</c>.</summary>
+    /// <summary>True when the file gives one exhaust back pressure inline.</summary>
     public bool HasInlineExhaustBackPressure => GetValue("ExManifold", "ExhBackP") is not null;
+
+    /// <summary>
+    /// True when the inline back pressure is the one to use: the file gives it and names
+    /// no <c>[Exhaust] ExhBackFile</c>. Nissan1-3 do both; ESA 3.0 read only the
+    /// <c>.exh</c> (<c>Edit.pas:269</c>), so the <c>.exh</c> wins (ISSUES.md A31).
+    /// </summary>
+    public bool UsesInlineExhaustBackPressure =>
+        HasInlineExhaustBackPressure && GetValue("Exhaust", "ExhBackFile") is null;
 
     public double InlineExhaustBackPressure => GetDouble("ExManifold", "ExhBackP", 0);
 
@@ -482,14 +508,60 @@ public abstract class EngineDefinition
         GetValue("Exhaust", "AreaFile") ?? GetValue("ExManifold", "AreaFile") ?? "Default.maf";
 
     /// <summary>
-    /// The plenum pressure entry under whichever schema the file uses.
+    /// The plenum pressure expression in pascals, under whichever schema the file uses.
     /// </summary>
     /// <remarks>
     /// The two schemas disagree about units as well as location: the current one writes
-    /// <c>FPlenumP=(99000)</c> in pascals, the older one <c>PlenumP=97.0</c> in
-    /// kilopascals. Callers must not assume a single unit until phase 4 establishes what
-    /// the solver expects.
+    /// <c>FPlenumP=(99000)</c> in pascals, an expression in <c>N</c>; the older one
+    /// <c>PlenumP=99</c>, a plain number in kilopascals, which the predecessor's
+    /// <c>Edit.pas</c> scaled with <c>PlenumP6000 := StrToFloatF(EPPlenum.Text)*1e3</c>.
+    /// The older value is scaled the same way here, so <c>ManifoldSolver</c> always gets
+    /// pascals (ISSUES.md A30). When a file carries both, <c>FPlenumP</c> wins.
     /// </remarks>
-    public string EffectivePlenumPressure =>
-        GetValue("Inlet", "FPlenumP") ?? GetValue("InManifold", "PlenumP") ?? "99.0";
+    public string EffectivePlenumPressure
+    {
+        get
+        {
+            if (GetValue("Inlet", "FPlenumP") is { } current)
+            {
+                return current;
+            }
+
+            if (GetValue("InManifold", "PlenumP") is not { } older)
+            {
+                return "99.0";
+            }
+
+            return double.TryParse(older, NumberStyles.Float, CultureInfo.InvariantCulture, out var kilopascals)
+                ? (kilopascals * 1e3).ToString("R", CultureInfo.InvariantCulture)
+                : $"({older.Trim()})*1000";
+        }
+    }
+
+    /// <summary>The inlet grid size expression under whichever schema the file uses.</summary>
+    /// <remarks>
+    /// The current schema writes <c>[Inlet] InletGrid</c>, an expression in <c>N</c> and
+    /// <c>L</c>. The older one writes <c>[Calculation] InletGrid=13</c>, a fixed point
+    /// count, used as it stands unless <c>VarInletGrid=1</c> (the predecessor's
+    /// <c>IGrid.UserDefined := StrToInt(EInletGrid.Text)</c>). Without the fallback such
+    /// a file ran on the default of 50 (ISSUES.md A32).
+    /// </remarks>
+    public string EffectiveInletGridFunction =>
+        GetValue("Inlet", "InletGrid") ?? OlderFixedGridSize("InletGrid", "VarInletGrid") ?? "50";
+
+    /// <summary>The exhaust grid size expression under whichever schema the file uses.</summary>
+    /// <remarks>
+    /// As <see cref="EffectiveInletGridFunction"/>, from <c>[Calculation] ExhaustGrid</c>
+    /// and <c>VarExhGrid</c>. The default of 50 is over the 38-point exhaust limit, so
+    /// without the fallback every such file failed its run (ISSUES.md A32).
+    /// </remarks>
+    public string EffectiveExhaustGridFunction =>
+        GetValue("Exhaust", "ExhaustGrid") ?? OlderFixedGridSize("ExhaustGrid", "VarExhGrid") ?? "50";
+
+    // VarInletGrid=1 made the predecessor load its function from Inlet.grd instead,
+    // a file this port does not read (ISSUES.md section E), so it gives no fixed count.
+    private string? OlderFixedGridSize(string key, string variableKey) =>
+        UsesOlderManifoldSchema && GetValue("Calculation", variableKey)?.Trim() != "1"
+            ? GetValue("Calculation", key)
+            : null;
 }
