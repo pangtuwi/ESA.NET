@@ -386,7 +386,8 @@ public sealed class EquilibriumSolver
     /// <remarks>
     /// Three more solves against the same Jacobian, one per independent variable. Note
     /// that <c>C5</c> and <c>C7</c> carry no pressure dependence, so their terms are
-    /// absent from the pressure derivatives.
+    /// absent from the pressure derivatives. The equivalence-ratio derivatives depart
+    /// from the original, which made them x13 times too small (ISSUES.md B80).
     /// </remarks>
     private void PartialDerivatives(
         double pressure,
@@ -451,6 +452,18 @@ public sealed class EquilibriumSolver
         bF[3] = -(_x[6] + _x[10]) * 0.0444 * d5 / n;
 
         RequireResolution(DelphiNumerics.GaussReduce(_matrix, bF));
+
+        // The right-hand side above carries x13 twice: d5 already holds it, and
+        // (x[6] + x[10]) / n is x13 again. Differentiating the element balances in
+        // EquilibriumCalc gives 2 * d5, 7.4548 * d5 and -0.0444 * d5, so the solution is
+        // x13 times too small, and every dxdF with it (about fifty times). Divided out
+        // here rather than in the right-hand side so that GaussReduce, whose resolution is
+        // an absolute residual, sees the original's numbers and fails exactly where it
+        // did. The 0.0444 * d5 in dxdF[12] is already right. See ISSUES.md B80.
+        for (var i = 0; i < DelphiNumerics.ArraySize; i++)
+        {
+            bF[i] /= _x13;
+        }
 
         var rootX4 = Math.Sqrt(_x[4]);
         var rootX8 = Math.Sqrt(_x[8]);
