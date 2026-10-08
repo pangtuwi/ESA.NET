@@ -7,6 +7,14 @@ legacy/samples/** -text -diff
 # Windows, so it must never be rewritten by git.
 data/baseline/** -text -diff
 
+# The 1998-99 CAEEng engine files (legacy/CAEEng/README.md), the thesis's source
+# spreadsheets, and the validation suite's case inputs, which are byte copies of
+# legacy files and CRLF like them: none of it may be renormalised.
+legacy/CAEEng/** -text -diff
+data/thesis/source/** -text -diff
+validation/cases/** -text -diff
+*.xls binary
+
 # Delphi build outputs and resources are binary.
 *.dcu binary
 *.dfm binary

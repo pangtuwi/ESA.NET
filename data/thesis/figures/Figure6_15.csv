@@ -1,0 +1,85 @@
+series,role,x,y
+Dynamometer Measured Torque,measured,1502.34,104.569
+Dynamometer Measured Torque,measured,1750.00,109.027
+Dynamometer Measured Torque,measured,2002.34,125.042
+Dynamometer Measured Torque,measured,2250.00,126.417
+Dynamometer Measured Torque,measured,2497.66,128.124
+Dynamometer Measured Torque,measured,2747.66,125.042
+Dynamometer Measured Torque,measured,3002.34,133.297
+Dynamometer Measured Torque,measured,3246.50,132.691
+Dynamometer Measured Torque,measured,3497.66,136.709
+Dynamometer Measured Torque,measured,3747.66,141.607
+Dynamometer Measured Torque,measured,4002.34,145.899
+Dynamometer Measured Torque,measured,4252.34,149.862
+Dynamometer Measured Torque,measured,4503.50,146.119
+Dynamometer Measured Torque,measured,4754.67,141.772
+Dynamometer Measured Torque,measured,5004.67,134.617
+Dynamometer Measured Torque,measured,5259.35,129.664
+Dynamometer Measured Torque,measured,5512.85,129.775
+Dynamometer Measured Torque,measured,5762.85,128.289
+Dynamometer Measured Torque,measured,6010.51,126.197
+Dynamometer Measured Torque,measured,6258.18,120.914
+Dynamometer Measured Torque,measured,6508.18,111.393
+Dynamometer Measured Power,measured,1502.34,16.497
+Dynamometer Measured Power,measured,1750.00,20.019
+Dynamometer Measured Power,measured,2002.34,26.210
+Dynamometer Measured Power,measured,2250.00,29.788
+Dynamometer Measured Power,measured,2497.66,33.502
+Dynamometer Measured Power,measured,2747.66,35.979
+Dynamometer Measured Power,measured,3002.34,41.895
+Dynamometer Measured Power,measured,3246.50,45.087
+Dynamometer Measured Power,measured,3497.66,49.985
+Dynamometer Measured Power,measured,3747.66,55.598
+Dynamometer Measured Power,measured,4002.34,61.101
+Dynamometer Measured Power,measured,4252.34,66.687
+Dynamometer Measured Power,measured,4503.50,68.916
+Dynamometer Measured Power,measured,4754.67,70.595
+Dynamometer Measured Power,measured,5004.67,70.512
+Dynamometer Measured Power,measured,5259.35,71.420
+Dynamometer Measured Power,measured,5512.85,74.887
+Dynamometer Measured Power,measured,5762.85,77.501
+Dynamometer Measured Power,measured,6010.51,79.510
+Dynamometer Measured Power,measured,6258.18,79.290
+Dynamometer Measured Power,measured,6508.18,75.878
+Modeled Torque,thesis_model,1500.00,108.312
+Modeled Torque,thesis_model,1750.00,119.483
+Modeled Torque,thesis_model,2000.00,113.815
+Modeled Torque,thesis_model,2250.00,110.843
+Modeled Torque,thesis_model,2500.00,109.742
+Modeled Torque,thesis_model,2750.00,121.244
+Modeled Torque,thesis_model,3000.00,127.793
+Modeled Torque,thesis_model,3261.68,135.443
+Modeled Torque,thesis_model,3500.00,138.800
+Modeled Torque,thesis_model,3750.00,136.654
+Modeled Torque,thesis_model,4000.00,142.597
+Modeled Torque,thesis_model,4250.00,151.237
+Modeled Torque,thesis_model,4500.00,143.038
+Modeled Torque,thesis_model,4751.17,135.388
+Modeled Torque,thesis_model,5000.00,129.334
+Modeled Torque,thesis_model,5251.17,125.922
+Modeled Torque,thesis_model,5500.00,128.068
+Modeled Torque,thesis_model,5751.17,125.922
+Modeled Torque,thesis_model,6000.00,122.510
+Modeled Torque,thesis_model,6251.17,116.016
+Modeled Torque,thesis_model,6500.00,106.110
+Modeled Power,thesis_model,1500.00,17.020
+Modeled Power,thesis_model,1750.00,21.890
+Modeled Power,thesis_model,2000.00,23.816
+Modeled Power,thesis_model,2250.00,26.100
+Modeled Power,thesis_model,2500.00,28.714
+Modeled Power,thesis_model,2750.00,34.906
+Modeled Power,thesis_model,3000.00,40.161
+Modeled Power,thesis_model,3261.68,46.270
+Modeled Power,thesis_model,3500.00,50.893
+Modeled Power,thesis_model,3750.00,53.644
+Modeled Power,thesis_model,4000.00,59.726
+Modeled Power,thesis_model,4250.00,67.293
+Modeled Power,thesis_model,4500.00,67.403
+Modeled Power,thesis_model,4751.17,67.348
+Modeled Power,thesis_model,5000.00,67.705
+Modeled Power,thesis_model,5251.17,69.219
+Modeled Power,thesis_model,5500.00,73.732
+Modeled Power,thesis_model,5751.17,75.795
+Modeled Power,thesis_model,6000.00,76.979
+Modeled Power,thesis_model,6251.17,75.905
+Modeled Power,thesis_model,6500.00,72.218

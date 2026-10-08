@@ -1,0 +1,415 @@
+{
+  "description": "The dynamometer correlations of thesis sections 6.4 to 6.6. See validation/README.md.",
+  "cycles": 8,
+  "figures": [
+    {
+      "id": "6.5",
+      "section": "6.4",
+      "page": 109,
+      "title": "Modelled vs tested performance for various intake lengths",
+      "data": "data/thesis/figures/Figure6_05.csv",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1500,
+        "max": 5500
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 120,
+        "max": 220
+      },
+      "assumptions": [
+        "N1",
+        "N2",
+        "N3"
+      ],
+      "series": [
+        {
+          "name": "210mm",
+          "case": "Nissan_290",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "210mm Test",
+          "thesisModel": "210mm Model"
+        },
+        {
+          "name": "310mm",
+          "case": "Nissan_390",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "310mm Test",
+          "thesisModel": "310mm Model"
+        },
+        {
+          "name": "410mm",
+          "case": "Nissan_490",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "410mm Test",
+          "thesisModel": "410mm Model"
+        }
+      ]
+    },
+    {
+      "id": "6.6",
+      "section": "6.4",
+      "page": 109,
+      "title": "Measured and modelled torque with a change in camshaft timing",
+      "data": "data/thesis/figures/Figure6_06.csv",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1500,
+        "max": 5500
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 100,
+        "max": 220
+      },
+      "assumptions": [
+        "N1",
+        "N2",
+        "N3"
+      ],
+      "series": [
+        {
+          "name": "Std. Cam",
+          "case": "Nissan_290",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "Std. Cam Tested",
+          "thesisModel": "Std. Cam Modelled"
+        },
+        {
+          "name": "12° Adv Cam",
+          "case": "Nissan_290_Adv12",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "12°Adv Cam Tested",
+          "thesisModel": "12°Adv Cam Modelled"
+        }
+      ]
+    },
+    {
+      "id": "6.7",
+      "section": "6.4",
+      "page": 110,
+      "title": "Measured and modelled torque with variation in ignition timing",
+      "data": "data/thesis/figures/Figure6_07.csv",
+      "x": {
+        "variable": "spark",
+        "label": "Spark advance [°BTDC]",
+        "min": 10,
+        "max": 30
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 150,
+        "max": 195
+      },
+      "assumptions": [
+        "N1",
+        "N4"
+      ],
+      "series": [
+        {
+          "name": "Timing loop, 2000 rpm",
+          "case": "Nissan_290_Adv12",
+          "grid": "timing2000",
+          "output": "torque",
+          "axis": "y",
+          "measured": "Measured",
+          "thesisModel": "Modelled"
+        }
+      ]
+    },
+    {
+      "id": "6.8",
+      "section": "6.4",
+      "page": 111,
+      "title": "Inlet pressure at point A, 5000 rpm, 310 mm inlet",
+      "data": "data/thesis/figures/Figure6_08.csv",
+      "x": {
+        "variable": "crank",
+        "label": "Crankshaft angle [deg]",
+        "min": 0,
+        "max": 720
+      },
+      "y": {
+        "label": "Pressure [bar]",
+        "min": 0.4,
+        "max": 1.6
+      },
+      "assumptions": [
+        "N1",
+        "N5"
+      ],
+      "series": [
+        {
+          "name": "Inlet pressure, point A",
+          "case": "Nissan_390",
+          "grid": "pulse5000",
+          "output": "inlet_pressure",
+          "axis": "y",
+          "measured": "Test",
+          "thesisModel": "Model",
+          "station": "valve"
+        }
+      ]
+    },
+    {
+      "id": "6.10",
+      "section": "6.5",
+      "page": 114,
+      "title": "Measured and predicted torque and power, development engine 1",
+      "data": "data/thesis/figures/Figure6_10.csv",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1000,
+        "max": 6500
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 0,
+        "max": 160
+      },
+      "y2": {
+        "label": "Power [kW]",
+        "min": 0,
+        "max": 80
+      },
+      "correlateFrom": 2500,
+      "assumptions": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "series": [
+        {
+          "name": "Torque",
+          "case": "VW8V_A4LowCost",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "Measured Torque",
+          "thesisModel": "Modelled Torque"
+        },
+        {
+          "name": "Power",
+          "case": "VW8V_A4LowCost",
+          "grid": "torque",
+          "output": "power",
+          "axis": "y2",
+          "measured": "Measured Power",
+          "thesisModel": "Modelled Power"
+        }
+      ]
+    },
+    {
+      "id": "6.11",
+      "section": "6.5",
+      "page": 115,
+      "title": "Measured and predicted torque change, cam A to cam B",
+      "data": "data/thesis/figures/Figure6_11.csv",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1500,
+        "max": 5500
+      },
+      "y": {
+        "label": "Torque change [Nm]",
+        "min": -15,
+        "max": 20
+      },
+      "assumptions": [
+        "V1",
+        "V2",
+        "V4"
+      ],
+      "series": [
+        {
+          "name": "Cam B - Cam A",
+          "case": "VW8V_A4LowCost",
+          "grid": "camB",
+          "output": "torque_delta",
+          "axis": "y",
+          "measured": "Dynamometer Measured",
+          "thesisModel": "Model Predicted",
+          "baseline": "camA"
+        }
+      ]
+    },
+    {
+      "id": "6.12",
+      "section": "6.6",
+      "page": 118,
+      "title": "Simulated and measured baseline engine performance",
+      "data": "data/thesis/figures/Figure6_12.csv",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1000,
+        "max": 7000
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 80,
+        "max": 160
+      },
+      "correlateFrom": 2500,
+      "assumptions": [
+        "C1"
+      ],
+      "series": [
+        {
+          "name": "Baseline",
+          "case": "A2China_Baseline",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "Test Results",
+          "thesisModel": "Simulated Performance"
+        }
+      ]
+    },
+    {
+      "id": "6.13",
+      "section": "6.6",
+      "page": 119,
+      "title": "Simulated and measured timing loops",
+      "data": "data/thesis/figures/Figure6_13.csv",
+      "x": {
+        "variable": "spark",
+        "label": "Spark advance [°BTDC]",
+        "min": 8,
+        "max": 24
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 142,
+        "max": 154
+      },
+      "assumptions": [
+        "C2",
+        "C3"
+      ],
+      "series": [
+        {
+          "name": "CR 9.3",
+          "case": "ChinaBora_CR93",
+          "grid": "timing4000",
+          "output": "torque",
+          "axis": "y",
+          "measured": "9.3 Measured",
+          "thesisModel": "9.3 Simulated"
+        },
+        {
+          "name": "CR 10.3",
+          "case": "ChinaBora_CR103",
+          "grid": "timing4000",
+          "output": "torque",
+          "axis": "y",
+          "measured": "10.3 Measured (103RON)",
+          "thesisModel": "10.3 Simulated"
+        }
+      ]
+    },
+    {
+      "id": "6.14",
+      "section": "6.6",
+      "page": 120,
+      "title": "Simulated and measured performance with varying inlet diameter",
+      "data": "data/thesis/figures/Figure6_14.csv",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1000,
+        "max": 7000
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 60,
+        "max": 150
+      },
+      "assumptions": [
+        "C4"
+      ],
+      "series": [
+        {
+          "name": "35.5 mm",
+          "case": "ChinaBora98_Dia355",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "Dynamometer Measured: 35.5mm",
+          "thesisModel": "ESA Modeled: 35.5mm"
+        },
+        {
+          "name": "41 mm",
+          "case": "ChinaBora98_Dia41",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "Dynamometer Measured: 41mm",
+          "thesisModel": "ESA Modeled: 41mm"
+        }
+      ]
+    },
+    {
+      "id": "6.15",
+      "section": "6.6",
+      "page": 120,
+      "title": "Simulated and measured final engine performance",
+      "data": "data/thesis/figures/Figure6_15.csv",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1000,
+        "max": 7000
+      },
+      "y": {
+        "label": "Torque [Nm]",
+        "min": 0,
+        "max": 160
+      },
+      "y2": {
+        "label": "Power [kW]",
+        "min": 10,
+        "max": 90
+      },
+      "assumptions": [
+        "C4",
+        "C5"
+      ],
+      "series": [
+        {
+          "name": "Torque",
+          "case": "ChinaBora98_Final",
+          "grid": "torque",
+          "output": "torque",
+          "axis": "y",
+          "measured": "Dynamometer Measured Torque",
+          "thesisModel": "Modeled Torque"
+        },
+        {
+          "name": "Power",
+          "case": "ChinaBora98_Final",
+          "grid": "torque",
+          "output": "power",
+          "axis": "y2",
+          "measured": "Dynamometer Measured Power",
+          "thesisModel": "Modeled Power"
+        }
+      ]
+    }
+  ]
+}
