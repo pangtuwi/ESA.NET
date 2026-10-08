@@ -122,7 +122,13 @@ public sealed class RunManifest
     }
 
     /// <summary>One row of a sweep, in the order the rows ran.</summary>
-    public RunManifest Row(int row, double speed, string folder, MultiRunRowResult result)
+    /// <param name="inputs">
+    /// What <see cref="RunArchive.CopyInputs(IReadOnlyList{App.Core.ResolvedSideFile})"/> copied
+    /// into the row's own <c>inputs</c> - the files its grid named in place of the engine's.
+    /// Listed under the row, since the sweep's own list is the engine's (ISSUES.md A30).
+    /// </param>
+    public RunManifest Row(
+        int row, double speed, string folder, MultiRunRowResult result, IReadOnlyList<string>? inputs = null)
     {
         ArgumentNullException.ThrowIfNull(result);
 
@@ -143,6 +149,11 @@ public sealed class RunManifest
         }
 
         Line($"{folder}", $"{Number(speed, 0)} rev/min, {outcome}");
+
+        foreach (var file in inputs ?? [])
+        {
+            Line(string.Empty, $"  {RunArchive.InputsFolderName}/{file}");
+        }
 
         return this;
     }
