@@ -258,6 +258,76 @@ public sealed class MultiRunnerTests
     }
 
     [Fact]
+    public void ARowNamingAnotherManifoldRunsOnThatManifold()
+    {
+        BaselinePaths.Require();
+
+        // The baseline engine and its side files in a folder of their own, beside a copy
+        // of its inlet manifold with every area cut by a fifth. The grid names the copy
+        // bare, as VarInlet3443_4000.msr names its .maf files, so it resolves against the
+        // engine file. The port once assigned the name onto an engine whose tables were
+        // already read, and every row ran on the base manifold (ISSUES.md A30).
+        var directory = Directory.CreateTempSubdirectory("esa-multirun");
+
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(Path.GetDirectoryName(BaselinePaths.File("A2China.eng"))!))
+            {
+                if (Path.GetExtension(file).ToLowerInvariant() is ".eng" or ".cam" or ".vcd" or ".cwt"
+                    or ".exh" or ".maf" or ".spk")
+                {
+                    File.Copy(file, Path.Combine(directory.FullName, Path.GetFileName(file)));
+                }
+            }
+
+            var narrowed = File.ReadAllLines(Path.Combine(directory.FullName, "A2ChinaInlet_M758.maf"))
+                .Where(line => line.Length > 0)
+                .Select(line =>
+                {
+                    var fields = line.Split(',');
+
+                    // Unused rows are written "-", and stay that way.
+                    if (fields[2] == "-")
+                    {
+                        return line;
+                    }
+
+                    var area = double.Parse(fields[2], System.Globalization.CultureInfo.InvariantCulture);
+                    return $"{fields[0]},{fields[1]},{(area * 0.8).ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                });
+            File.WriteAllLines(Path.Combine(directory.FullName, "Narrow.maf"), narrowed);
+
+            var grid = SpeedSweep(4000, 4000, 4000);
+            grid[1, 2] = "Narrow.maf";
+            grid[2, 2] = "NoSuchManifold.maf";
+
+            var results = Runner().Run(
+                Path.Combine(directory.FullName, "A2China.eng"), grid, Settings(),
+                cancellation: TestContext.Current.CancellationToken);
+
+            var own = results[0].Result!.Engine.Manifold.InletPipe.AreaVersusLength;
+            var row = results[1].Result!.Engine.Manifold.InletPipe.AreaVersusLength;
+
+            Assert.Equal(own.Count, row.Count);
+            for (var point = 0; point < own.Count; point++)
+            {
+                Assert.Equal(own.Area[point] * 0.8, row.Area[point], 1e-12);
+            }
+
+            Assert.NotEqual(results[0].Result!.Engine.Torque, results[1].Result!.Engine.Torque);
+
+            // A file the grid names but cannot be found fails its row, rather than running
+            // silently on the engine's own manifold.
+            Assert.Null(results[2].Result);
+            Assert.Contains("NoSuchManifold.maf", results[2].Failure, StringComparison.Ordinal);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public void TheInletLiftOverrideLeavesTheExhaustLiftAlone()
     {
         BaselinePaths.Require();
