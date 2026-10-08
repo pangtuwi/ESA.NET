@@ -55,6 +55,13 @@ public sealed class EquilibriumDiagnostics
     /// <summary>The original's error 3, insufficient resolution from the matrix solver. Still fatal (B22).</summary>
     public long ResolutionErrors { get; internal set; }
 
+    /// <summary>
+    /// Matrix solves that double precision could not resolve and that were redone in
+    /// double-double, standing in for the original's 80-bit <c>Extended</c>. Each one
+    /// would otherwise have been a resolution error (ISSUES.md A30).
+    /// </summary>
+    public long ExtendedPrecisionReductions { get; internal set; }
+
     /// <summary>The original's error 5, negative mole fractions after iterating. Still fatal (B22).</summary>
     public long NegativeFractionErrors { get; internal set; }
 
@@ -74,6 +81,7 @@ public sealed class EquilibriumDiagnostics
         TemperatureClamps = 0;
         LowOxygenErrors = 0;
         ResolutionErrors = 0;
+        ExtendedPrecisionReductions = 0;
         NegativeFractionErrors = 0;
     }
 

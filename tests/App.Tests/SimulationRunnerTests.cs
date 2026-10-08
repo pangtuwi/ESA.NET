@@ -164,6 +164,8 @@ public sealed class SimulationRunnerTests
             EquilibriumTemperatureClamps: 3,
             EquilibriumCapHits: 0,
             EquilibriumEstimateCapHits: 0,
+            // Not a warning, and not named: it stands in for the original's precision (A30).
+            EquilibriumExtendedPrecisionReductions: 5,
             GasPropertyTemperatureClamps: 0,
             Manifold: manifold);
 
