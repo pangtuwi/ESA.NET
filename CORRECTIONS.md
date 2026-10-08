@@ -228,6 +228,7 @@ Both items were done with the first tier 1 change:
 |---|---|---|
 | Tier 1a: no new plumbing | B24, B27, B41 fixed; B26, B48, B57, B67 closed as already right | **Done**, with the fingerprint bit-identical |
 | Tier 1b: a diagnostics channel | B21, B22, B51, B52, B53 fixed; A18 found and fixed on the way | **Done**, with the fingerprint bit-identical |
+| Tier 1, later | [B80](https://github.com/pangtuwi/ESA.NET/issues/192), found after tier 3: the equivalence-ratio derivatives, which nothing reads | **Done**, with the fingerprint bit-identical under Legacy and Corrected |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
 | Tier 3 | Every entry | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64, B65, B4, B16, B18, B35, B76, B77, B78, B37 and B79 **done**, B17 resolved with B16; B36 fixed directly, bit-identical everywhere; B60 and B5 closed as not defects — the fingerprint bit-identical under Legacy throughout. Corrected matches the thesis's dynamometer curve as closely as Legacy (5.3 against 5.3 % rms, [F6](https://github.com/pangtuwi/ESA.NET/issues/178)) |
