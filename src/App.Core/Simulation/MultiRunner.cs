@@ -9,7 +9,16 @@ namespace App.Core.Simulation;
 /// <param name="Result">What the run produced, or null if the row failed.</param>
 /// <param name="Failure">Why the row failed, or null if it succeeded.</param>
 public sealed record MultiRunRowResult(
-    int Row, double Speed, SimulationResult? Result, string? Failure);
+    int Row, double Speed, SimulationResult? Result, string? Failure)
+{
+    /// <summary>
+    /// The side files this row read in place of the engine's own, because grid columns 2
+    /// to 5 named them - empty for a row that names none. The sweep's run folder copies
+    /// the engine's inputs once; these are what only this row read, so they go into the
+    /// row's own folder (ISSUES.md A30). A row that failed lists whatever it did read.
+    /// </summary>
+    public IReadOnlyList<ResolvedSideFile> GridSideFiles { get; init; } = [];
+}
 
 /// <summary>Progress across a multi-run.</summary>
 public readonly record struct MultiRunProgress(
@@ -99,14 +108,18 @@ public sealed class MultiRunner
 
         var rows = grid.RunCount;
         var speed = grid.Speed(row) ?? 0;
+        IReadOnlyList<ResolvedSideFile> gridSideFiles = [];
 
         try
         {
-            var loaded = LoadRowEngine(enginePath, grid, row, out var sideFileFailure);
+            var loaded = LoadRowEngine(enginePath, grid, row, out gridSideFiles, out var sideFileFailure);
 
             if (sideFileFailure is not null)
             {
-                return new MultiRunRowResult(row, speed, null, sideFileFailure);
+                return new MultiRunRowResult(row, speed, null, sideFileFailure)
+                {
+                    GridSideFiles = gridSideFiles,
+                };
             }
 
             var engine = loaded.Engine;
@@ -126,7 +139,10 @@ public sealed class MultiRunner
                     // does; the engine's own flag no longer gates them.
                     recordManifoldData: manifoldRecorder is not null,
                     pause: pause),
-                null);
+                null)
+            {
+                GridSideFiles = gridSideFiles,
+            };
         }
         catch (OperationCanceledException)
         {
@@ -138,7 +154,10 @@ public sealed class MultiRunner
         {
             // The original writes "Error in Multirun Command Line n" and carries on to
             // the next row rather than abandoning the sweep.
-            return new MultiRunRowResult(row, speed, null, error.Message);
+            return new MultiRunRowResult(row, speed, null, error.Message)
+            {
+                GridSideFiles = gridSideFiles,
+            };
         }
     }
 
@@ -167,9 +186,12 @@ public sealed class MultiRunner
     /// cannot be found or read fails, rather than run silently on whatever the engine had.
     /// </para>
     /// </remarks>
+    /// <param name="gridSideFiles">The side files the grid named that the load read.</param>
     private EngineLoadResult LoadRowEngine(
-        string enginePath, MultiRunGrid grid, int row, out string? failure)
+        string enginePath, MultiRunGrid grid, int row,
+        out IReadOnlyList<ResolvedSideFile> gridSideFiles, out string? failure)
     {
+        gridSideFiles = [];
         failure = null;
 
         var loaded = _loader.Load(enginePath);
@@ -211,22 +233,30 @@ public sealed class MultiRunner
 
         loaded = _loader.Rebuild(definition, enginePath);
 
+        var read = new List<ResolvedSideFile>();
+
         foreach (var (kind, stored) in overrides)
         {
-            var read = loaded.SideFiles.Any(file =>
+            var file = loaded.SideFiles.FirstOrDefault(file =>
                 file.Kind == kind && string.Equals(file.Stored, stored.Trim(), StringComparison.Ordinal));
 
-            if (!read)
+            if (file is not null)
+            {
+                read.Add(file);
+                continue;
+            }
+
+            if (failure is null)
             {
                 var reason = loaded.Problems.FirstOrDefault(
                     problem => problem.Contains($"the {kind} file", StringComparison.Ordinal));
 
                 failure = $"Row {row + 1} names the {kind} file '{stored}', which could not be loaded."
                           + (reason is null ? string.Empty : $" {reason}");
-
-                return loaded;
             }
         }
+
+        gridSideFiles = read;
 
         return loaded;
     }
