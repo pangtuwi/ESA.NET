@@ -73,6 +73,7 @@ public sealed class ManifoldSolver : IManifoldSource
 
     /// <summary>B64: the exhaust open routine probes its secant upward, as the other three do.</summary>
     private readonly bool _exhaustUpwardProbe;
+    private readonly bool _exhaustReleaseLatch;
 
     /// <summary>B65: report the inlet valve end's temperature from the speed of sound it holds.</summary>
     private readonly bool _liveInletTemperature;
@@ -131,6 +132,7 @@ public sealed class ManifoldSolver : IManifoldSource
         _exhaustReverseStagnationChoke =
             physics?.IsOn(CorrectionCatalogue.ExhaustReverseStagnationChoke) ?? false;
         _exhaustUpwardProbe = physics?.IsOn(CorrectionCatalogue.SecantProbe) ?? false;
+        _exhaustReleaseLatch = physics?.IsOn(CorrectionCatalogue.ExhaustValveLatch) ?? false;
         _liveInletTemperature = physics?.IsOn(CorrectionCatalogue.LiveInletTemperature) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
@@ -366,7 +368,8 @@ public sealed class ManifoldSolver : IManifoldSource
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
                 _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket,
-                _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke, _exhaustUpwardProbe);
+                _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke, _exhaustUpwardProbe,
+                _exhaustReleaseLatch, Diagnostics);
         }
         else
         {

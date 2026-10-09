@@ -22,6 +22,14 @@ namespace App.Core.Manifold;
 /// is right against the pipe's stagnation pressure and wrong against its static one,
 /// which is the pressure the original tests. See ISSUES.md B60 and B62.
 /// </para>
+/// <para>
+/// Its stagnation guard latches as the open routine's throat guard does, the other way
+/// round. While the pipe end flows in faster than <c>EVR</c>, a stagnation pressure that
+/// has fallen to the cylinder's is pinned to <c>1.000001*Pcyl</c>, and that pin alone
+/// drives an inflow of around a metre per second; past <c>EVR</c> it sustains itself, and
+/// outward flow never resumes however far the cylinder rises above the pipe. See ISSUES.md
+/// B81.
+/// </para>
 /// </remarks>
 public static class ExhaustValveReverseBoundary
 {
@@ -47,7 +55,9 @@ public static class ExhaustValveReverseBoundary
         (double Forward, double Reverse) tuning,
         double gamma = CharacteristicSolver.ExhaustGamma,
         bool singleRelaxation = false,
-        bool stagnationChoke = false)
+        bool stagnationChoke = false,
+        bool releaseLatch = false,
+        ManifoldDiagnostics? diagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(pipe);
@@ -88,6 +98,7 @@ public static class ExhaustValveReverseBoundary
         var iteration = 0;
         bool converged;
         var substituted = false;
+        var releasing = false;
 
         do
         {
@@ -186,7 +197,9 @@ public static class ExhaustValveReverseBoundary
             double staticTemperature;
             double stagnationTemperature;
 
-            if (stagnationTest <= cylinderPressure || u4 > tuning.Forward)
+            var pinned = false;
+
+            if (stagnationTest <= cylinderPressure || u4 > tuning.Forward || releasing)
             {
                 stagnationPressure = cylinderPressure;
                 staticTemperature = c4 * c4 / 287 / gamma;
@@ -203,6 +216,7 @@ public static class ExhaustValveReverseBoundary
                 if (stagnationTest <= cylinderPressure && u4 < 0)
                 {
                     stagnationPressure = 1.000001 * cylinderPressure;
+                    pinned = true;
                 }
 
                 staticTemperature = c4 * c4 / 287 / gamma;
@@ -343,6 +357,26 @@ public static class ExhaustValveReverseBoundary
                             && Math.Abs(u4 - previousU) < VelocityTolerance
                             && Math.Abs(r4 - previousR) < DensityTolerance
                             && Math.Abs(p4 - previousP) < PressureTolerance);
+
+            // Settled with the stagnation pinned: the inflow is the pin's own, not the
+            // pipe's, which sits at or below the cylinder. B81 substitutes outward flow.
+            if (converged && pinned)
+            {
+                if (releaseLatch)
+                {
+                    releasing = true;
+                    converged = false;
+
+                    if (diagnostics is not null)
+                    {
+                        diagnostics.ExhaustValveLatchReleases++;
+                    }
+                }
+                else if (diagnostics is not null)
+                {
+                    diagnostics.ExhaustValveLatches++;
+                }
+            }
 
             previousU = u4;
             previousP = p4;

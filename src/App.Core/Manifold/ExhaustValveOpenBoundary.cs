@@ -21,6 +21,16 @@ namespace App.Core.Manifold;
 /// publishes the working state into the current arrays first and reads it back
 /// afterwards, exactly as the inlet pair does. See ISSUES.md B58.
 /// </para>
+/// <para>
+/// The throat guard can latch the boundary on outflow for good. While the pipe end flows
+/// out faster than <c>EVF</c>, a throat pressure that has reached the cylinder's is pinned
+/// to <c>0.999999*Pcyl</c> rather than handed over. But that pin alone implies an outflow,
+/// a pressure ratio of 1.000001, of a few tenths of a metre per second at the pipe end,
+/// scaling with the cylinder's speed of sound. When that floor exceeds <c>EVF</c> the
+/// guard sustains itself and reverse flow can never start, however far the pipe pressure
+/// rises above the cylinder's. <see cref="ExhaustValveReverseBoundary"/> has the mirror
+/// image. See ISSUES.md B81.
+/// </para>
 /// </remarks>
 public static class ExhaustValveOpenBoundary
 {
@@ -48,7 +58,9 @@ public static class ExhaustValveOpenBoundary
         bool wholeSubsonicBracket = false,
         bool singleRelaxation = false,
         bool stagnationChoke = false,
-        bool upwardProbe = false)
+        bool upwardProbe = false,
+        bool releaseLatch = false,
+        ManifoldDiagnostics? diagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -82,6 +94,7 @@ public static class ExhaustValveOpenBoundary
 
         var iteration = 0;
         var handedToReverse = false;
+        var releasing = false;
         bool converged;
 
         do
@@ -133,17 +146,21 @@ public static class ExhaustValveOpenBoundary
             // then writes the same condition again unconditionally, followed by two
             // literal "Pt := Pt" statements. The unconditional form subsumes the nested
             // one, so only it survives here. See ISSUES.md B63.
-            if (throatPressure >= cylinderPressure && u4 > tuning.Forward)
+            var pinned = throatPressure >= cylinderPressure && u4 > tuning.Forward;
+
+            if (pinned)
             {
                 throatPressure = 0.999999 * cylinderPressure;
             }
 
             var cylinderSpeedOfSound = Math.Sqrt(gamma * 287 * cylinderTemperature);
 
-            if (throatPressure >= cylinderPressure || u4 < tuning.ForwardReverse)
+            if (throatPressure >= cylinderPressure || u4 < tuning.ForwardReverse || releasing)
             {
                 // ---- Hand over to the reverse routine ----
-                current.Velocity[boundary] = u4;
+                // A released latch hands over a still pipe end: its outflow was the pin's
+                // own, and the reverse routine would read it as outflow and substitute.
+                current.Velocity[boundary] = releasing ? 0 : u4;
                 current.Pressure[boundary] = p4;
                 current.Density[boundary] = r4;
                 current.SpeedOfSound[boundary] = Math.Sqrt(gamma * p4 / r4);
@@ -157,7 +174,9 @@ public static class ExhaustValveOpenBoundary
                     (tuning.Forward, tuning.Reverse),
                     gamma,
                     singleRelaxation,
-                    stagnationChoke);
+                    stagnationChoke,
+                    releaseLatch,
+                    diagnostics);
 
                 throatMach = reverseResult.MachNumber;
                 throatVelocity = reverseResult.Velocity;
@@ -295,6 +314,26 @@ public static class ExhaustValveOpenBoundary
                         || (iteration != 0
                             && Math.Abs(u4 - previousU) < VelocityTolerance
                             && Math.Abs(p4 - previousP) < PressureTolerance);
+
+            // Settled with the throat pinned: the outflow is the pin's own, not the pipe's,
+            // which wants the throat at or above the cylinder. B81 hands over instead.
+            if (converged && pinned && !handedToReverse)
+            {
+                if (releaseLatch)
+                {
+                    releasing = true;
+                    converged = false;
+
+                    if (diagnostics is not null)
+                    {
+                        diagnostics.ExhaustValveLatchReleases++;
+                    }
+                }
+                else if (diagnostics is not null)
+                {
+                    diagnostics.ExhaustValveLatches++;
+                }
+            }
 
             previousU = u4;
             previousP = p4;
