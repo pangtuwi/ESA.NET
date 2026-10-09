@@ -260,6 +260,18 @@ public sealed class CycleSolver
                 engine.Exhaust.PGas, engine.Exhaust.Tb + 273.15);
         }
 
+        // InitVars calls no update on the cylinder, so its gamma is the field's zero until
+        // the first step has finished. The original never reads it, because B35's line is
+        // commented out; restored, the first step at inlet valve closing would integrate
+        // the pressure on a gamma of zero. So under B35, and only when the equation will
+        // read it, the cylinder is given the gamma UpdateUB would: the unburnt charge's at
+        // its starting pressure and temperature. Not computed otherwise, so that Legacy's
+        // property-model call history is untouched (ISSUES.md B35).
+        if (Cylinder.HonourVariableGamma && Cylinder.VariableGamma)
+        {
+            engine.Cylinder.Gamma = _cylinder.Unburnt.Gamma(engine.Cylinder.PGas, engine.Cylinder.Tu);
+        }
+
         engine.PressureAtIvc = engine.Plenum.PGas;
         engine.TemperatureAtIvc = _plenum.GasTemperature();
         engine.VolumeAtIvc = Geometry.Volume(States.InletClose * Math.PI / 180);

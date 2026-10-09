@@ -399,7 +399,8 @@ public sealed class CylinderModel
         var gas = Cylinder.State;
 
         // Gamma is the cylinder's as the last update left it, like the pressure and
-        // volume read below.
+        // volume read below. Before the first step no update has run, and under B35
+        // CycleSolver.Initialise sets it, since the original's field would be zero.
         var localGamma = !HonourVariableGamma ? 1.4
             : VariableGamma ? gas.Gamma
             : 1.35;

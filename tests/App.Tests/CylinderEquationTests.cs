@@ -213,6 +213,43 @@ public sealed class CylinderEquationTests
     }
 
     /// <summary>
+    /// B35 at the very first evaluation of a run. Nothing in <c>InitVars</c> updates the
+    /// cylinder, so until the first step has finished its gamma was the field's zero, and
+    /// the first step at inlet valve closing integrated <c>dP = 0 * P dV/V</c>: a pressure
+    /// that did not respond to the piston. With heat transfer off and nothing burning, the
+    /// equation is <c>-gamma P/V dV/dtheta</c>, so the gamma it used can be read back from
+    /// the rate it returns.
+    /// </summary>
+    [Theory]
+    [InlineData(PhysicsMode.Corrected, 1.2, 1.45)]
+    [InlineData(PhysicsMode.Legacy, 1.4, 1.4)]
+    public void TheFirstSingleZoneEvaluationOfARunUsesASaneGamma(PhysicsMode mode, double lowest, double highest)
+    {
+        BaselinePaths.Require();
+
+        var engine = BaselineEngine();
+        Assert.True(engine.VariableGamma);
+
+        var physics = new PhysicsCorrections { Mode = mode };
+        var solver = new CycleSolver(engine, new ManifoldSolver(engine, physics: physics), physics: physics);
+        Assert.True(solver.Initialise());
+
+        var model = solver.Cylinder;
+        model.WoschniCoefficient = 0;
+
+        // Where RunOneCycle takes its first step, before anything has updated the gas.
+        var angle = solver.States.InletClose * Math.PI / 180;
+        var y = engine.Integration.Y;
+        var pressure = mode == PhysicsMode.Corrected ? y[1] : engine.Cylinder.PGas;
+        var volume = mode == PhysicsMode.Corrected ? model.Geometry.Volume(angle) : engine.Cylinder.VGas;
+
+        var rate = model.PressureRateSingleZone(angle, y);
+        var gamma = -rate * volume / (pressure * model.Geometry.VolumeRatePerRadian(angle));
+
+        Assert.InRange(gamma, lowest - 1e-12, highest + 1e-12);
+    }
+
+    /// <summary>
     /// B36's oracle. <c>dPdThetaUB</c> computes <c>dTu/dtheta</c> on the way to the
     /// pressure rate, and <c>dTudThetaUB</c> computes the same quantity; for one state the
     /// two must agree, whatever was evaluated before. With gas flowing out of the
