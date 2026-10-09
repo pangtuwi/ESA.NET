@@ -43,6 +43,17 @@ public sealed class ManifoldDiagnostics
     /// </summary>
     public long NegativeFootStates { get; internal set; }
 
+    /// <summary>
+    /// Exhaust-valve solves that settled on a flow only a guard's pin sustained: outflow held
+    /// by the throat pinned just under the cylinder, or inflow held by the stagnation pinned
+    /// just over it. Either keeps the flow from ever reversing (ISSUES.md B81). Counted when
+    /// the latch is kept.
+    /// </summary>
+    public long ExhaustValveLatches { get; internal set; }
+
+    /// <summary>The same latches, released by B81. Not a warning.</summary>
+    public long ExhaustValveLatchReleases { get; internal set; }
+
     /// <summary>Whether anything was counted that an operator should hear about.</summary>
     public bool HasWarnings =>
         FootLoopCapHits > 0 || OuterIterationCapHits > 0 || NegativeFootStates > 0;

@@ -216,6 +216,14 @@ public static class CorrectionCatalogue
     public static Correction OverlapValveTotals { get; } =
         new("B79", "Overlap's valve totals count each flow once, splitting returns and outflows that cross zones");
 
+    /// <summary>
+    /// ISSUES.md B81: an exhaust-valve flow that settles only because a guard pinned the
+    /// throat or stagnation pressure a hair either side of the cylinder's is released to the
+    /// other direction, instead of latching there.
+    /// </summary>
+    public static Correction ExhaustValveLatch { get; } =
+        new("B81", "Exhaust-valve flow held only by a guard's pin is released, not latched");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -225,7 +233,7 @@ public static class CorrectionCatalogue
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
-        BurntVolumeReset, GasExchangeZones, OverlapValveTotals,
+        BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch,
     ];
 }
 
