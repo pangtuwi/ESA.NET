@@ -224,6 +224,14 @@ public static class CorrectionCatalogue
     public static Correction ExhaustValveLatch { get; } =
         new("B81", "Exhaust-valve flow held only by a guard's pin is released, not latched");
 
+    /// <summary>
+    /// ISSUES.md B82: an inlet-valve inflow that settles only because the forward guard
+    /// pinned the pipe end a hair above the cylinder is released to the reverse routine,
+    /// instead of latching there - the inlet's counterpart of B81.
+    /// </summary>
+    public static Correction InletValveLatch { get; } =
+        new("B82", "Inlet-valve inflow held only by the forward guard's pin is released, not latched");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -233,7 +241,7 @@ public static class CorrectionCatalogue
         InletReverseStall, ExhaustReverseSingleRelaxation, ExhaustReverseStagnationChoke,
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
-        BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch,
+        BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
     ];
 }
 

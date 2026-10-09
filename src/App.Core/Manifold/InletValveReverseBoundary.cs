@@ -96,6 +96,11 @@ public static class InletValveReverseBoundary
         var footP = grid.Pressure[interior];
         var footR = grid.Density[interior];
 
+        // B59 judges the stall against the pipe end's own pressure (see below).
+        var pipeEndPressure = grid.Pressure[q];
+        var pipeEndDensity = grid.Density[q];
+        var stalled = stallBelowThroat && cylinderPressure <= pipeEndPressure;
+
         var throatPressure = throat.Pressure;
         var throatMach = throat.MachNumber;
         var throatVelocity = throat.Velocity;
@@ -156,7 +161,7 @@ public static class InletValveReverseBoundary
             // The reverse tuning constant only ever appears here, nudging the throat
             // pressure down when the cylinder has fallen below it and the pipe end is
             // still running backwards faster than the constant allows.
-            if (!stallBelowThroat
+            if (!stalled
                 && iteration > 0 && cylinderPressure <= throatPressure && u4 < reverseTuning)
             {
                 throatPressure = 0.999999 * cylinderPressure;
@@ -174,7 +179,13 @@ public static class InletValveReverseBoundary
                 // subsonic branch runs at a ratio pinned just above 1 (ISSUES.md B59).
                 // stallBelowThroat skips both nudges, so a cylinder at or below the throat
                 // pressure stalls, as the branch was written to.
-                if (!stallBelowThroat && cylinderPressure <= throatPressure)
+                // Under B59 the stall is judged against the pipe end, whose pressure is the
+                // pipe's own, rather than the throat, which the forward routine pins to the
+                // cylinder before every hand-over: judged against the throat, a cylinder
+                // that has risen above the pipe still stalls whenever that pin has just
+                // been applied (ISSUES.md B59). A cylinder above the pipe end keeps the
+                // original's nudges and flows out.
+                if (!stalled && cylinderPressure <= throatPressure)
                 {
                     throatPressure = 0.999999 * cylinderPressure;
                 }
@@ -182,7 +193,28 @@ public static class InletValveReverseBoundary
 
             var cylinderSpeedOfSound = Math.Sqrt(gamma * 287 * cylinderTemperature);
 
-            if (cylinderPressure <= throatPressure)
+            if (stalled)
+            {
+                // ---- B59: stalled, solved as a closed end ----
+                // Nothing passes the valve, so the pipe end is a wall: no velocity, its
+                // pressure the arriving C+ characteristic's, and its density carried
+                // isentropically from the end's own state. The original's stall below
+                // sets the velocity to zero and averages the pressures without the
+                // characteristic, which leaves the end inconsistent with the pipe behind it.
+                throatPressure = cylinderPressure;
+                throatMach = 0;
+                throatSpeedOfSound = cylinderSpeedOfSound;
+                throatVelocity = 0;
+                throatDensity = gamma * throatPressure / (throatSpeedOfSound * throatSpeedOfSound);
+
+                u4 = 0;
+                p4 = tPlus;
+                r4 = pipeEndDensity * ManifoldNumerics.Power(p4 / pipeEndPressure, 1 / gamma);
+                c4 = Math.Sqrt(gamma * p4 / r4);
+
+                converged = iteration != 0 && Math.Abs(p4 - previousP) < PressureTolerance;
+            }
+            else if (cylinderPressure <= throatPressure)
             {
                 // ---- Stalled: the cylinder cannot push anything out ----
                 throatPressure = (0.5 * throatPressure) + (0.5 * cylinderPressure);

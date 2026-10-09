@@ -21,7 +21,8 @@ namespace App.Tests;
 /// measured curve as it is. Corrected is reported and not gated: it removes defects the
 /// original's empirical inputs were calibrated around, so how far it sits from the test
 /// data is a finding to weigh, not a regression. Before B78 it was 13.4 per cent rms; with
-/// B78 it was 5.2, Legacy's figure, and with B37 it is 5.3 (ISSUES.md F6).
+/// B78 it was 5.2, Legacy's figure, and with B37 5.3; since A29's fix it runs every speed,
+/// 7.2 over all sixteen from 2500 rpm and 5.4 over the fourteen it ran before (ISSUES.md F6).
 /// </remarks>
 public sealed class ThesisCorrelationTests
 {
@@ -205,8 +206,9 @@ public sealed class ThesisCorrelationTests
         TestContext.Current.TestOutputHelper?.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"rms from {CorrelatedFrom} rpm {RmsError(correlated, sweep):F2}%, bias {Bias(correlated, sweep):+0.00;-0.00}%, 4000 rpm {sweep[4000].Torque:F2} Nm"));
 
-        // Only that the comparison was made at the peak.
-        Assert.Null(sweep[4000].Failure);
+        // Every speed runs: A29's stops at 2500 and 2750 rpm were the inlet valve's B59 stall
+        // and B82 latch.
+        Assert.All(points, p => Assert.Null(sweep[p.Rpm].Failure));
     }
 
 }

@@ -54,6 +54,16 @@ public sealed class ManifoldDiagnostics
     /// <summary>The same latches, released by B81. Not a warning.</summary>
     public long ExhaustValveLatchReleases { get; internal set; }
 
+    /// <summary>
+    /// Inlet-valve forward solves that settled on an inflow only the forward guard's pin
+    /// sustained: the pipe end pinned just above a cylinder that has risen above the pipe
+    /// (ISSUES.md B82). Counted when the latch is kept.
+    /// </summary>
+    public long InletValveLatches { get; internal set; }
+
+    /// <summary>The same latches, released by B82. Not a warning.</summary>
+    public long InletValveLatchReleases { get; internal set; }
+
     /// <summary>Whether anything was counted that an operator should hear about.</summary>
     public bool HasWarnings =>
         FootLoopCapHits > 0 || OuterIterationCapHits > 0 || NegativeFootStates > 0;
