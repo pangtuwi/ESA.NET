@@ -92,14 +92,30 @@ it per-monitor DPI awareness.
 
 Set `App.Ui` as the startup project and <kbd>F5</kbd> works.
 
-### 5. Publish a standalone executable
+### 5. Make ESA.exe to share
 
 ```powershell
-dotnet publish src\App.Ui\App.Ui.csproj -c Release -r win-x64 --self-contained
+packaging\windows\make-exe.ps1                     # for this PC's own chip
+packaging\windows\make-exe.ps1 -Runtime win-arm64  # for an Arm PC
+packaging\windows\make-exe.ps1 -Version 1.2        # the version Properties shows; default 1.0
 ```
 
-The result lands in `src\App.Ui\bin\Release\net10.0\win-x64\publish\App.Ui.exe`.
-Drop `--self-contained` if the target machine already has the .NET 10 runtime.
+If Windows says running scripts is disabled, start it with
+`powershell -ExecutionPolicy Bypass -File packaging\windows\make-exe.ps1`.
+
+The script publishes a single-file, self-contained build and leaves, under
+`artifacts\windows\<runtime>\`:
+
+- `ESA\ESA.exe` — about 50 MB, with the .NET runtime inside it, so it needs nothing
+  installed and runs from any folder.
+- `ESA\Help\User_Manual.pdf` — Help ▸ User Manual opens it from beside the
+  executable, so keep the two together.
+- `ESA-<version>-<runtime>.zip` — that folder, zipped, to hand to someone.
+
+No installer is needed. The executable is not code-signed, so a downloaded copy gets
+SmartScreen's *Windows protected your PC* warning; **More info ▸ Run anyway** lets
+it through. Under PowerShell 7 (`pwsh`) the same script builds the Windows
+executable on macOS or Linux too.
 
 ### A note on line endings
 
@@ -542,6 +558,7 @@ BASELINE.md           What the reference run contains and how to validate agains
 ISSUES.md             Known issues: port defects, reproduced legacy defects, SPEC errors.
 CLAUDE.md             Layering rules, naming conventions, port caveats, phase plan.
 packaging/macos/      make-app.sh, which builds ESA.app, and its icon.
+packaging/windows/    make-exe.ps1, which builds ESA.exe and a zip of it.
 packaging/icon/       make-icons.py, which draws every icon from the original ESA one.
 archive/              Working notes that produced SPEC.md.
 ```
