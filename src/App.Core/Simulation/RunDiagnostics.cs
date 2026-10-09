@@ -18,7 +18,7 @@ namespace App.Core.Simulation;
 /// <param name="EquilibriumEstimateCapHits">Initial estimates that reached their cap.</param>
 /// <param name="EquilibriumExtendedPrecisionReductions">
 /// Equilibrium matrix solves redone wider than double because double could not resolve
-/// them (A30). Not a warning: it stands in for the original's 80-bit arithmetic.
+/// them (A34). Not a warning: it stands in for the original's 80-bit arithmetic.
 /// </param>
 /// <param name="GasPropertyTemperatureClamps">
 /// Species curve-fit evaluations outside 260-5000 K, answered at the nearer end of the fit,

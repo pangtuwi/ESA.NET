@@ -113,7 +113,7 @@ public static class DelphiNumerics
     /// at 1000 K, where <c>x[8]</c> is near 4e-20, it reaches 1e19 against entries of
     /// order ten elsewhere. The unpivoted elimination then loses everything 53 bits
     /// carry; the solution is wrong by orders of magnitude and its residual fails the
-    /// solver's resolution test, which 64 bits pass. See ISSUES.md A30.
+    /// solver's resolution test, which 64 bits pass. See ISSUES.md A34.
     /// </para>
     /// <para>
     /// The elimination order is <see cref="GaussReduce"/>'s exactly. Only the arithmetic

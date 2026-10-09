@@ -158,7 +158,7 @@ work.
   This affects the equilibrium model and is the first thing to suspect if phase 4
   numbers drift from the legacy reference runs. It has bitten once outright: rich burnt gas
   near 1000 K leaves the equilibrium Jacobian too ill-conditioned for double, and every
-  run below lambda 0.98 stopped on "Insufficient Resolution" (`ISSUES.md` A30, #194). The
+  run below lambda 0.98 stopped on "Insufficient Resolution" (`ISSUES.md` A34, #194). The
   solver now retries any matrix double cannot resolve in double-double
   (`DelphiNumerics.GaussReduceExtended`). A matrix double does resolve is untouched,
   which keeps the baseline bit-identical.
