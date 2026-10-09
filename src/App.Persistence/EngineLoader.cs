@@ -1,6 +1,7 @@
 using System.Globalization;
 using App.Core;
 using App.Core.Model;
+using App.Persistence.Tables;
 
 namespace App.Persistence;
 
@@ -243,6 +244,20 @@ public sealed class EngineLoader : IEngineLoader
             manifold.ExhaustBack = Read(
                 definition.ExhaustBackPressureFile, "exhaust back pressure", _exhaustBackPressures.Read,
                 manifold.ExhaustBack);
+        }
+
+        // An older-schema file with no grid size of its own takes it from the predecessor's
+        // Inlet.grd and Exhaust.grd beside it (ISSUES.md A35).
+        if (definition.OlderInletGridFile is { } inletGrid)
+        {
+            manifold.InletGrid.Expression = Read(
+                inletGrid, "inlet grid size", GridSizeFile.Read, manifold.InletGrid.Expression);
+        }
+
+        if (definition.OlderExhaustGridFile is { } exhaustGrid)
+        {
+            manifold.ExhaustGrid.Expression = Read(
+                exhaustGrid, "exhaust grid size", GridSizeFile.Read, manifold.ExhaustGrid.Expression);
         }
 
         LoadSparkAngle(engine, definition, context);
