@@ -94,11 +94,13 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   extracted from the PDF's vector graphics by `validation/tools/digitise_thesis.py`.
   **`data/thesis/source/`** holds the author's original spreadsheets they were drawn from.
 - **`legacy/CAEEng/`** is the only surviving definition of the eight-valve engine of
-  section 6.5, from the 1998-99 predecessor program. It does not run in the port yet
-  (`validation/README.md`, "What does not run").
-- **A grid row's file overrides (`IManfFile` to `ECamFile`) are ignored by the port**:
-  `MultiRunner` sets the name after `EngineLoader` has read the table. The suite therefore
-  keeps one manifold per `.eng`.
+  section 6.5, from the 1998-99 predecessor program. It does not run in the port yet: its
+  stepped exhaust area profile drives the wave solver to a negative state (`ISSUES.md`
+  A36, `validation/README.md`, "What does not run").
+- **A grid row's file overrides (`IManfFile` to `ECamFile`) reach the run** since A30:
+  `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
+  `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each
+  case's inputs are a single folder.
 - `ThesisSuiteTests` keeps the suite loadable without running it.
 - **Run it** with `dotnet run --project tools/App.Validation -c Release`. It runs in
   Corrected by default, takes about half a minute, and writes `report.html`,
@@ -280,8 +282,8 @@ work.
   checked against its physical oracle.
 - **Both modes match the dynamometer.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (5.3 %, 163.3
-  Nm). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (5.4 %, 163.3
+  Nm, stopping at 2500 and 2750 rpm: `ISSUES.md` A29). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A
   correction's oracle says it is right; the thesis curve says whether Corrected as a whole is.
   See `ISSUES.md` B78 and F6.

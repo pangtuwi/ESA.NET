@@ -83,28 +83,33 @@ Every grid row runs 8 cycles. Spark advance comes from the engine's `.spk` map u
 grid sets it (column 13, timing loops); cam timing and lift come from the `.eng` unless
 the grid sets them (columns 7 to 12, Figure 6.11).
 
-**Manifold variants are separate cases, not grid rows.** In the port a grid row's file
-override (columns 3 to 6, `IManfFile` to `ECamFile`) changes only the file name, after
-`EngineLoader` has read the tables, so the row runs on the base engine's manifold. The
-original reloaded them in `InitVars` (`ICEngine2Z.pas:994-1009`). Until that is fixed,
-the suite keeps one manifold per `.eng`.
+**Manifold variants are separate cases, not grid rows.** A grid row's file overrides
+(columns 3 to 6, `IManfFile` to `ECamFile`) do reach the run - since `ISSUES.md` A30 the
+row's engine is rebuilt on the files its grid names, as the original's `InitVars` reloaded
+them (`ICEngine2Z.pas:994-1009`) - but the suite keeps one manifold per `.eng` by choice,
+so that every input of a case sits in its own folder.
 
 ## What does not run
 
-**`VW8V_A4LowCost` fails in its first cycle at every speed**, so Figures 6.10 and 6.11
-show only the measured and 2002-model curves, with the failure. Two causes were isolated,
-by moving its inputs onto the working `A2China_Baseline` one group at a time:
+**`VW8V_A4LowCost` does not run**, so Figures 6.10 and 6.11 show only the measured and
+2002-model curves, with the failure. Two causes were isolated, by moving its inputs onto
+the working `A2China_Baseline` one group at a time:
 
-- **λ below about 0.97.** `A2China_Baseline` with only `Lambda` changed runs at 0.98 and
-  fails at 0.95 and 0.92 with "Matrixsolver Returned Insufficient Resolution", in Legacy
-  and Corrected alike. The engine file says 0.92, and the dynamometer ran at 0.88 to 0.93.
-- **The 1999 exhaust area profile.** `A4LowCostEx.maf` (611 to 1452 mm² in steps) stops
-  the wave solver ("Pressure negative in cThermo") even on `A2China_Baseline`, while a
-  uniform pipe of the same length runs at any of those areas.
+- **λ below about 0.97** - **fixed** (`ISSUES.md` A34). The burnt-gas equilibrium matrix
+  was too ill-conditioned for double; it is now retried in double-double, and the case
+  runs at its own `Lambda=0.92`.
+- **The 1999 exhaust area profile** - **open** (`ISSUES.md` A36). `A4LowCostEx.maf` steps
+  its area from 611 to 1452 mm² over a millimetre at a time, and drives an interior point
+  of the exhaust pipe to a negative pressure through blowdown, in Legacy and Corrected
+  alike, even on `A2China_Baseline`; a uniform pipe of the same length runs at any of
+  those areas.
 
-At λ 1.0, with its own exhaust, it still stops at 1500-4500 and 6000 rpm and makes an
-implausible 209 Nm at 5000. Nothing in the suite substitutes inputs to make it run,
-because that would be fitting. Both causes are open defects to raise against the solver.
+As of A34, at 8 cycles: in both modes 1500 to 3500 rpm stop in the first cycle with
+"Pressure negative in cThermo" in the exhaust pipe at 150 to 195 degrees, and 4500 rpm up
+on "fx1*fx2 > 0" in the exhaust reverse-flow sonic solve. At 4000 rpm Corrected stops as the
+lower speeds do and Legacy on "a >= 1e20 in Power" in the inlet pipe. Corrected completes
+5000 rpm, at an implausible 212 Nm. Nothing in the suite substitutes inputs to make it run,
+because that would be fitting.
 
 ## Assumptions
 
