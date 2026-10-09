@@ -247,7 +247,7 @@ public sealed class EngineLoader : IEngineLoader
         }
 
         // An older-schema file with no grid size of its own takes it from the predecessor's
-        // Inlet.grd and Exhaust.grd beside it (ISSUES.md A34).
+        // Inlet.grd and Exhaust.grd beside it (ISSUES.md A35).
         if (definition.OlderInletGridFile is { } inletGrid)
         {
             manifold.InletGrid.Expression = Read(

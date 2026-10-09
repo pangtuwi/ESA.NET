@@ -8,7 +8,7 @@ namespace App.Tests;
 /// <summary>
 /// The older <c>[InManifold]</c> / <c>[ExManifold]</c> schema writes plenum pressure in
 /// kilopascals, wall temperatures in Celsius and grid sizes as fixed counts under
-/// <c>[Calculation]</c>, as the predecessor's <c>Edit.pas</c> read them. ISSUES.md A31-A34.
+/// <c>[Calculation]</c>, as the predecessor's <c>Edit.pas</c> read them. ISSUES.md A31-A35.
 /// </summary>
 public sealed class OlderSchemaUnitsTests
 {
@@ -122,7 +122,7 @@ public sealed class OlderSchemaUnitsTests
 
         // Nissan4.eng and Nissan5.eng have neither [Inlet]/[Exhaust] nor [Calculation], so
         // the default of 50 failed the 38-point exhaust limit. Inlet.grd and Exhaust.grd
-        // beside them begin "1", "35", which TGridSize.Load reads as 35 (ISSUES.md A34).
+        // beside them begin "1", "35", which TGridSize.Load reads as 35 (ISSUES.md A35).
         var result = CreateLoader().Load(Nissan(number));
         var manifold = result.Engine.Manifold;
 

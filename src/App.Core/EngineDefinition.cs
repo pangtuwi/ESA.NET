@@ -438,7 +438,7 @@ public abstract class EngineDefinition
     //
     // The schema is the predecessor's, CAEEng (1999), whose Edit.pas read it. Its
     // units are not the current schema's: walls in Celsius, plenum pressure in kPa,
-    // grid sizes as fixed point counts under [Calculation] (ISSUES.md A31-A34).
+    // grid sizes as fixed point counts under [Calculation] (ISSUES.md A31-A35).
     // Nissan1-3 carry both schemas; there the current keys win, as they did for
     // ESA 3.0, which never read the older ones.
     // ---------------------------------------------------------------------------
@@ -573,7 +573,7 @@ public abstract class EngineDefinition
     /// <c>Inlet.grd</c>, by that bare name, as the predecessor's <c>IGrid.Load('Inlet.grd')</c>
     /// opened it, for an older-schema file with no <c>[Inlet] InletGrid</c> that either sets
     /// <c>VarInletGrid=1</c>, the predecessor's own route to it, or gives no grid size at
-    /// all, as <c>Nissan4.eng</c> and <c>Nissan5.eng</c> do (ISSUES.md A34). The loader reads
+    /// all, as <c>Nissan4.eng</c> and <c>Nissan5.eng</c> do (ISSUES.md A35). The loader reads
     /// it beside the <c>.eng</c>; where it is missing <see cref="EffectiveInletGridFunction"/>
     /// stands.
     /// </remarks>

@@ -255,7 +255,7 @@ public sealed class EquilibriumSolver
             b[3] = 1 - (d4 * (_x[6] + _x[10]))
                      - (_x[1] + _x[2] + _x[3] + _x[4] + _x[5] + _x[6] + _x[7] + _x[8] + _x[9] + _x[10] + _x[11]);
 
-            resolution = DelphiNumerics.GaussReduce(_matrix, b);
+            resolution = Reduce(b);
 
             _x[4] += b[0];
             _x[6] += b[1];
@@ -386,7 +386,8 @@ public sealed class EquilibriumSolver
     /// <remarks>
     /// Three more solves against the same Jacobian, one per independent variable. Note
     /// that <c>C5</c> and <c>C7</c> carry no pressure dependence, so their terms are
-    /// absent from the pressure derivatives.
+    /// absent from the pressure derivatives. The equivalence-ratio derivatives depart
+    /// from the original, which made them x13 times too small (ISSUES.md B80).
     /// </remarks>
     private void PartialDerivatives(
         double pressure,
@@ -426,7 +427,7 @@ public sealed class EquilibriumSolver
                   + (dc5dT * _x[5] / _c5) + (dc7dT * _x[7] / _c7) + (dc9dT * _x[9] / _c9)
                   + ((1 + d4) * dc10dT * _x[10] / _c10));
 
-        RequireResolution(DelphiNumerics.GaussReduce(_matrix, bT));
+        RequireResolution(Reduce(bT));
 
         var dc1dp = -0.5 * _c1 / p;
         var dc2dp = -0.5 * _c2 / p;
@@ -441,7 +442,7 @@ public sealed class EquilibriumSolver
         bP[3] = -((dc1dp * _x[1] / _c1) + (dc2dp * _x[2] / _c2) + (dc3dp * _x[3] / _c3)
                   + (dc9dp * _x[9] / _c9) + ((1 + d4) * dc10dp * _x[10] / _c10));
 
-        RequireResolution(DelphiNumerics.GaussReduce(_matrix, bP));
+        RequireResolution(Reduce(bP));
 
         var d5 = -ro * _x13 / equivalenceRatio;
         var bF = new double[DelphiNumerics.ArraySize];
@@ -450,7 +451,19 @@ public sealed class EquilibriumSolver
         bF[2] = (_x[6] + _x[10]) * 7.4548 * d5 / n;
         bF[3] = -(_x[6] + _x[10]) * 0.0444 * d5 / n;
 
-        RequireResolution(DelphiNumerics.GaussReduce(_matrix, bF));
+        RequireResolution(Reduce(bF));
+
+        // The right-hand side above carries x13 twice: d5 already holds it, and
+        // (x[6] + x[10]) / n is x13 again. Differentiating the element balances in
+        // EquilibriumCalc gives 2 * d5, 7.4548 * d5 and -0.0444 * d5, so the solution is
+        // x13 times too small, and every dxdF with it (about fifty times). Divided out
+        // here rather than in the right-hand side so that GaussReduce, whose resolution is
+        // an absolute residual, sees the original's numbers and fails exactly where it
+        // did. The 0.0444 * d5 in dxdF[12] is already right. See ISSUES.md B80.
+        for (var i = 0; i < DelphiNumerics.ArraySize; i++)
+        {
+            bF[i] /= _x13;
+        }
 
         var rootX4 = Math.Sqrt(_x[4]);
         var rootX8 = Math.Sqrt(_x[8]);
@@ -496,6 +509,34 @@ public sealed class EquilibriumSolver
         _dxdF[10] = _c10 * ((rootX8 * bF[1]) + (0.5 * _x[6] * bF[2] / rootX8));
         _dxdF[11] = bF[3];
         _dxdF[12] = (d4 * (_dxdF[6] + _dxdF[10])) + (0.0444 * d5);
+    }
+
+    /// <summary>
+    /// Solves the Jacobian system against <paramref name="rhs"/> in place, falling back to
+    /// <see cref="DelphiNumerics.GaussReduceExtended"/> when double precision cannot reach
+    /// the resolution of 5 every caller here demands.
+    /// </summary>
+    /// <remarks>
+    /// The original ran this in 80-bit <c>Extended</c>. A system that resolves in double is
+    /// answered exactly as before, so no run that completed is changed by a bit; only a
+    /// system that would otherwise end the run with "Insufficient Resolution" is redone
+    /// wider, and counted in <see cref="EquilibriumDiagnostics.ExtendedPrecisionReductions"/>.
+    /// Rich burnt gas near 1000 K is the case that needs it. See ISSUES.md A30.
+    /// </remarks>
+    private int Reduce(double[] rhs)
+    {
+        var original = (double[])rhs.Clone();
+        var resolution = DelphiNumerics.GaussReduce(_matrix, rhs);
+
+        if (resolution >= 5)
+        {
+            return resolution;
+        }
+
+        Diagnostics.ExtendedPrecisionReductions++;
+        Array.Copy(original, rhs, rhs.Length);
+
+        return DelphiNumerics.GaussReduceExtended(_matrix, rhs);
     }
 
     private void RequireResolution(int resolution)

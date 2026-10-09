@@ -17,7 +17,7 @@ namespace App.Persistence.Tables;
 /// </para>
 /// <para>
 /// ESA 3.0 never read a <c>.grd</c>. The port reads one only for an older-schema engine
-/// that gives no grid size of its own (ISSUES.md A34).
+/// that gives no grid size of its own (ISSUES.md A35).
 /// </para>
 /// </remarks>
 public static class GridSizeFile

@@ -571,7 +571,7 @@ public sealed partial class EditEngineViewModel : ObservableValidator
                 $"exhaust back pressure {definition.InlineExhaustBackPressure} kPa, temperature {definition.InlineExhaustTemperature} °C"));
         }
 
-        // The editor shows the default of 50 for these; the run reads the .grd (ISSUES.md A34).
+        // The editor shows the default of 50 for these; the run reads the .grd (ISSUES.md A35).
         foreach (var grid in (string?[])[definition.OlderInletGridFile, definition.OlderExhaustGridFile])
         {
             if (grid is not null)

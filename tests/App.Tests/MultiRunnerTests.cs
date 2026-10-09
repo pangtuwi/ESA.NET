@@ -323,6 +323,14 @@ public sealed class MultiRunnerTests
 
             Assert.NotEqual(results[0].Result!.Engine.Torque, results[1].Result!.Engine.Torque);
 
+            // The row says what it read in place of the engine's own, so its run folder can
+            // keep a copy; a row that names nothing read nothing extra.
+            Assert.Empty(results[0].GridSideFiles);
+
+            var named = Assert.Single(results[1].GridSideFiles);
+            Assert.Equal("inlet manifold area", named.Kind);
+            Assert.Equal(Path.Combine(directory.FullName, "Narrow.maf"), named.Path);
+
             // A file the grid names but cannot be found fails its row, rather than running
             // silently on the engine's own manifold.
             Assert.Null(results[2].Result);

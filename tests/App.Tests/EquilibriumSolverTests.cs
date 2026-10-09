@@ -230,6 +230,46 @@ public sealed class EquilibriumSolverTests
             $"{species}: analytic {analytic:E6}, finite difference {numeric:E6} per atmosphere.");
     }
 
+    /// <summary>
+    /// Every species' derivative with respect to equivalence ratio, against a central
+    /// difference, lean, stoichiometric and rich.
+    /// </summary>
+    /// <remarks>
+    /// The original's came out <c>x13</c> times too small - 48 to 81 times over these
+    /// states, the ratio tracking <c>1 / x13</c> to four figures - because
+    /// <c>Partial_dxd</c>'s right-hand side multiplies <c>d5</c>, which already holds
+    /// <c>x13</c>, by <c>(x[6] + x[10]) / n</c>, which is <c>x13</c> again. Argon was
+    /// wrong differently, only part of its expression carrying the extra factor.
+    /// Nothing reads the result (ISSUES.md B80), so the fix cannot move a run.
+    /// Stoichiometric is checked at 2800 K, where the difference is clean: at 2000 K the
+    /// Newton tolerance of 1e-4 shows through a step of 0.002.
+    /// </remarks>
+    [Theory]
+    [InlineData(0.7, 1500, 1_000_000)]
+    [InlineData(0.8, 2000, 3_000_000)]
+    [InlineData(1.0, 2800, 1_000_000)]
+    [InlineData(1.1, 2200, 4_000_000)]
+    [InlineData(1.2, 1800, 2_000_000)]
+    [InlineData(1.3, 2600, 6_000_000)]
+    public void EquivalenceRatioDerivativesMatchAFiniteDifference(double equivalenceRatio, double temperature, double pressure)
+    {
+        const double Step = 0.002;
+
+        var solver = Solved(equivalenceRatio, pressure, temperature);
+        var up = Solved(equivalenceRatio + Step, pressure, temperature);
+        var down = Solved(equivalenceRatio - Step, pressure, temperature);
+
+        for (var i = 1; i <= EsaLimits.SpeciesCount; i++)
+        {
+            var analytic = solver.State.DxDf[i];
+            var numeric = (up.State.X[i] - down.State.X[i]) / (2 * Step);
+
+            Assert.True(
+                Math.Abs(analytic - numeric) <= Math.Abs(numeric) * 0.01,
+                $"{(Species)i}: analytic {analytic:E6}, finite difference {numeric:E6}.");
+        }
+    }
+
     // ---------------------------------------------------------------------------
     // Behaviour carried over from the original
     // ---------------------------------------------------------------------------

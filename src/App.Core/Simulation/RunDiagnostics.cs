@@ -16,6 +16,10 @@ namespace App.Core.Simulation;
 /// <param name="EquilibriumTemperatureClamps">Solves above the 4000 K top of the curve fits (B21).</param>
 /// <param name="EquilibriumCapHits">Solves whose Newton iteration reached its cap.</param>
 /// <param name="EquilibriumEstimateCapHits">Initial estimates that reached their cap.</param>
+/// <param name="EquilibriumExtendedPrecisionReductions">
+/// Equilibrium matrix solves redone wider than double because double could not resolve
+/// them (A30). Not a warning: it stands in for the original's 80-bit arithmetic.
+/// </param>
 /// <param name="GasPropertyTemperatureClamps">
 /// Species curve-fit evaluations outside 260-5000 K, answered at the nearer end of the fit,
 /// where the original terminated the run (B20, A19).
@@ -26,6 +30,7 @@ public sealed record RunDiagnostics(
     long EquilibriumTemperatureClamps,
     long EquilibriumCapHits,
     long EquilibriumEstimateCapHits,
+    long EquilibriumExtendedPrecisionReductions,
     long GasPropertyTemperatureClamps,
     ManifoldDiagnostics Manifold)
 {
@@ -45,6 +50,7 @@ public sealed record RunDiagnostics(
             solvers.Sum(d => d.TemperatureClamps),
             solvers.Sum(d => d.EquilibriumCapHits),
             solvers.Sum(d => d.InitialEstimateCapHits),
+            solvers.Sum(d => d.ExtendedPrecisionReductions),
             gasPropertyTemperatureClamps,
             manifold);
     }

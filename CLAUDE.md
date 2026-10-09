@@ -156,7 +156,12 @@ work.
 
 - Delphi's 80-bit `Extended` has no .NET equivalent; those values are `double`.
   This affects the equilibrium model and is the first thing to suspect if phase 4
-  numbers drift from the legacy reference runs.
+  numbers drift from the legacy reference runs. It has bitten once outright: rich burnt gas
+  near 1000 K leaves the equilibrium Jacobian too ill-conditioned for double, and every
+  run below lambda 0.98 stopped on "Insufficient Resolution" (`ISSUES.md` A30, #194). The
+  solver now retries any matrix double cannot resolve in double-double
+  (`DelphiNumerics.GaussReduceExtended`). A matrix double does resolve is untouched,
+  which keeps the baseline bit-identical.
 - `.eng` keys must be matched **case-insensitively**. `Edit.pas` reads `CdIvIn`
   while every shipped file writes `CdIVIn`; Delphi's `TIniFile` did not care and
   neither can we.
@@ -166,7 +171,7 @@ work.
   wall temperatures are Celsius, and grid sizes are fixed counts under `[Calculation]`. The
   `Effective*` and `UsesInline*` accessors on `EngineDefinition` translate them as the
   predecessor's `Edit.pas` did, without writing anything; where a file carries both schemas
-  (`Nissan1-3`) the current keys win (`ISSUES.md` A31-A34).
+  (`Nissan1-3`) the current keys win (`ISSUES.md` A31-A35).
 - The original menu assigned `Ctrl+Q` to both Exit and QuickRun. Exit keeps it (and
   `Cmd+Q`); QuickRun is `Ctrl+Shift+R` (C8). In Avalonia `MenuItem.InputGesture` is
   display-only, so every caption needs a matching `KeyBinding`; `MenuStructureTests`
@@ -244,7 +249,7 @@ work.
   reads them: the 1999 predecessor's `TGridSize.Load` took their second line, `35`, as a
   grid size and ignored the Pascal fragments after it. The port reads them the same way
   for `Nissan4.eng` and `Nissan5.eng`, which give no grid size of their own (`ISSUES.md`
-  A34, E1).
+  A35, E1).
 - Side-file paths in `.eng` files mix bare names, backslash-relative paths and
   absolute paths to drives that no longer exist. `LegacyPathResolver` handles all
   three; on Linux and macOS nothing resolves without it.
