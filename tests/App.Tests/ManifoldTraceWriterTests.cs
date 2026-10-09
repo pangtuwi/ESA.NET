@@ -50,7 +50,13 @@ public sealed class ManifoldTraceWriterTests
 
         var result = new SimulationRunner(new CachingExpressionEvaluator()).Run(
             BaselineEngine(),
-            new SimulationSettings { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 },
+            new SimulationSettings
+            {
+                CycleCount = 6,
+                OneZoneCycleCount = 1,
+                MassBalance = 1,
+                Physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy },
+            },
             cancellation: TestContext.Current.CancellationToken,
             manifoldRecorder: writer,
             recordManifoldData: true);
@@ -277,7 +283,13 @@ public sealed class ManifoldTraceWriterTests
 
         var result = new SimulationRunner(new CachingExpressionEvaluator()).Run(
             BaselineEngine(),
-            new SimulationSettings { CycleCount = 6, OneZoneCycleCount = 1, MassBalance = 1 },
+            new SimulationSettings
+            {
+                CycleCount = 6,
+                OneZoneCycleCount = 1,
+                MassBalance = 1,
+                Physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy },
+            },
             cancellation: TestContext.Current.CancellationToken,
             manifoldRecorder: writer,
             recordManifoldData: true);

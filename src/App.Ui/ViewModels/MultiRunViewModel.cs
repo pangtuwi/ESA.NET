@@ -143,7 +143,7 @@ public sealed partial class MultiRunViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LegacyPhysics), nameof(CorrectedPhysics))]
-    private PhysicsMode _physics = PhysicsMode.Legacy;
+    private PhysicsMode _physics = PhysicsCorrections.DefaultMode;
 
     /// <summary>The Legacy radio button.</summary>
     public bool LegacyPhysics

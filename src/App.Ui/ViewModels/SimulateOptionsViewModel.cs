@@ -217,7 +217,7 @@ public sealed partial class SimulateOptionsViewModel : ObservableValidator
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LegacyPhysics), nameof(CorrectedPhysics))]
-    private PhysicsMode _physics = PhysicsMode.Legacy;
+    private PhysicsMode _physics = PhysicsCorrections.DefaultMode;
 
     /// <summary>The original's behaviour, as validated against <c>data/baseline/</c>.</summary>
     public bool LegacyPhysics

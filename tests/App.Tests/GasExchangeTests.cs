@@ -35,7 +35,7 @@ public sealed class GasExchangeTests
     /// </summary>
     private static CycleSolver Solver(Engine engine, bool twoZones)
     {
-        var physics = new PhysicsCorrections();
+        var physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
         physics.Overrides[CorrectionCatalogue.GasExchangeZones.Entry] = twoZones;
         physics.Overrides[CorrectionCatalogue.EndOfStepState.Entry] = true;
         physics.Overrides[CorrectionCatalogue.ResidualMolecularWeight.Entry] = true;

@@ -54,7 +54,9 @@ public sealed class StartupSettingsTests
         Assert.Equal(4000, viewModel.EngineSpeed);
         Assert.Equal(6, viewModel.Settings.CycleCount);
         Assert.Equal(1, viewModel.Settings.MassBalance);
-        Assert.Equal(PhysicsMode.Legacy, viewModel.Settings.Physics.Mode);
+
+        // The port's own default, not the original's: it had no corrections to make.
+        Assert.Equal(PhysicsMode.Corrected, viewModel.Settings.Physics.Mode);
         Assert.Empty(viewModel.Settings.Physics.Overrides);
     }
 

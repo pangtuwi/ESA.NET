@@ -19,8 +19,10 @@ namespace App.Tests;
 public sealed class RunFolderWiringTests
 {
     private static (MainWindowViewModel ViewModel, Workspace Workspace) Loaded(
-        IMultiRunWindowService? editor = null)
+        IMultiRunWindowService? editor = null, string? enginePath = null)
     {
+        enginePath ??= BaselinePaths.File("A2China.eng");
+
         var workspace = TestServices.TemporaryWorkspace();
 
         var viewModel = TestServices.Resolve<MainWindowViewModel>(services =>
@@ -30,10 +32,9 @@ public sealed class RunFolderWiringTests
             services.AddSingleton<ISimulateOptionsWindowService>(new StubSimulateOptions());
         });
 
-        viewModel.CurrentEngine = TestServices.Resolve<IEngineLoader>()
-            .Load(BaselinePaths.File("A2China.eng"));
+        viewModel.CurrentEngine = TestServices.Resolve<IEngineLoader>().Load(enginePath);
 
-        viewModel.CurrentEngineFile = BaselinePaths.File("A2China.eng");
+        viewModel.CurrentEngineFile = enginePath;
         viewModel.EngineSpeed = 4000;
         viewModel.Settings.CycleCount = 6;
         viewModel.Settings.OneZoneCycleCount = 1;
@@ -64,6 +65,11 @@ public sealed class RunFolderWiringTests
         BaselinePaths.Require();
 
         var (viewModel, workspace) = Loaded();
+
+        // Legacy, because the run must be clean for the status line to stay quiet. Under
+        // Corrected one pipe point at 4000 rev/min reaches the wave solver's outer cap
+        // (ISSUES.md B52), which is the diagnostics working, not the wiring failing.
+        viewModel.Settings.Physics.Mode = PhysicsMode.Legacy;
 
         await viewModel.SinglePointSimulationCommand.ExecuteAsync(null);
 
@@ -192,9 +198,10 @@ public sealed class RunFolderWiringTests
     {
         BaselinePaths.Require();
 
-        // 2500 rev/min fails on this engine with a non-finite state - MultiRunnerTests
-        // pins that - so the middle row fails and the two either side of it do not.
-        var editor = new StubMultiRunEditor { Grid = Grid(3000, 2500, 4000) };
+        // 2500 rev/min fails on this engine with a non-finite state under Legacy -
+        // MultiRunnerTests pins that - so the middle row fails and the two either side of
+        // it do not.
+        var editor = new StubMultiRunEditor { Grid = Grid(3000, 2500, 4000), Physics = PhysicsMode.Legacy };
         var (viewModel, workspace) = Loaded(editor);
 
         await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
@@ -230,6 +237,73 @@ public sealed class RunFolderWiringTests
             File.ReadAllLines(Path.Combine(sweep, RunArchive.ManifestFileName)),
             line => line.StartsWith("Row02_2500rpm", StringComparison.Ordinal)
                     && line.Contains("failed:", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ARowKeepsTheFilesItsGridNamed()
+    {
+        BaselinePaths.Require();
+
+        // The baseline engine in a folder of its own, beside a second inlet manifold for
+        // the grid to name. The sweep's inputs are the engine's; a file only a row read
+        // was copied nowhere until the row carried it out (ISSUES.md A30).
+        var directory = Directory.CreateTempSubdirectory("esa-sweep-inputs");
+
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(BaselinePaths.Directory!))
+            {
+                if (Path.GetExtension(file).ToLowerInvariant() is ".eng" or ".cam" or ".vcd" or ".cwt"
+                    or ".exh" or ".maf" or ".spk")
+                {
+                    File.Copy(file, Path.Combine(directory.FullName, Path.GetFileName(file)));
+                }
+            }
+
+            var other = Path.Combine(directory.FullName, "OtherInlet.maf");
+            File.Copy(Path.Combine(directory.FullName, "A2ChinaInlet_M758.maf"), other);
+
+            var grid = Grid(4000, 4000);
+            grid[1, 2] = "OtherInlet.maf";
+
+            var (viewModel, workspace) = Loaded(
+                new StubMultiRunEditor { Grid = grid }, Path.Combine(directory.FullName, "A2China.eng"));
+
+            await viewModel.MultiPointSimulationCommand.ExecuteAsync(null);
+
+            var sweep = OnlyRunFolder(workspace);
+
+            // The sweep's own inputs are the engine and what it names, as before.
+            var sweepInputs = Directory.GetFiles(Path.Combine(sweep, RunArchive.InputsFolderName))
+                .Select(Path.GetFileName)
+                .ToList();
+
+            Assert.Contains("A2China.eng", sweepInputs);
+            Assert.DoesNotContain("OtherInlet.maf", sweepInputs);
+
+            // A row that names nothing copies nothing of its own.
+            Assert.False(Directory.Exists(
+                Path.Combine(sweep, "Row01_4000rpm", RunArchive.InputsFolderName)));
+
+            // The row that named a manifold keeps it, byte for byte, and only it.
+            var copied = Path.Combine(sweep, "Row02_4000rpm", RunArchive.InputsFolderName, "OtherInlet.maf");
+
+            Assert.True(File.Exists(copied), "The row did not keep the manifold its grid named.");
+            Assert.Equal(File.ReadAllBytes(other), File.ReadAllBytes(copied));
+            Assert.Single(Directory.GetFiles(Path.GetDirectoryName(copied)!));
+
+            // And run.txt lists it under that row, not among the sweep's inputs.
+            var manifest = File.ReadAllLines(Path.Combine(sweep, RunArchive.ManifestFileName));
+            var row = Array.FindIndex(manifest, line => line.StartsWith("Row02_4000rpm", StringComparison.Ordinal));
+
+            Assert.True(row >= 0, "run.txt does not name the second row.");
+            Assert.Contains(
+                "inputs/OtherInlet.maf  (inlet manifold area)", manifest[row + 1], StringComparison.Ordinal);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
     }
 
     /// <summary>Answers the Save As with a path a test chose, so no dialog opens.</summary>

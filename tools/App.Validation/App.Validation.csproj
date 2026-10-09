@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The thesis validation suite's runner: re-runs every dynamometer correlation of thesis
+    sections 6.4-6.6 on the current physics and writes a self-contained HTML report.
+    See validation/README.md. A tool, not part of the application, so it may reference
+    both Core and Persistence and nothing references it.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>App.Validation</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\App.Core\App.Core.csproj" />
+    <ProjectReference Include="..\..\src\App.Persistence\App.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

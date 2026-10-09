@@ -1,0 +1,57 @@
+series,role,x,y
+9.3 Measured,measured,12.30,143.499
+9.3 Measured,measured,13.00,144.801
+9.3 Measured,measured,13.80,145.499
+9.3 Measured,measured,14.50,146.301
+9.3 Measured,measured,15.30,146.999
+9.3 Measured,measured,16.00,146.702
+10.3 Measured (103RON),measured,11.90,149.303
+10.3 Measured (103RON),measured,13.40,150.906
+10.3 Measured (103RON),measured,14.90,151.802
+10.3 Measured (103RON),measured,16.40,152.703
+10.3 Measured (103RON),measured,17.50,152.005
+9.3 Simulated,thesis_model,10.00,143.782
+9.3 Simulated,thesis_model,12.00,145.968
+9.3 Simulated,thesis_model,14.00,147.692
+9.3 Simulated,thesis_model,16.00,148.944
+9.3 Simulated,thesis_model,18.00,149.657
+9.3 Simulated,thesis_model,20.00,149.852
+9.3 Simulated,thesis_model,22.00,149.482
+10.3 Simulated,thesis_model,12.00,148.449
+10.3 Simulated,thesis_model,12.25,148.674
+10.3 Simulated,thesis_model,12.50,148.904
+10.3 Simulated,thesis_model,12.75,149.133
+10.3 Simulated,thesis_model,13.00,149.367
+10.3 Simulated,thesis_model,13.25,149.592
+10.3 Simulated,thesis_model,13.50,149.818
+10.3 Simulated,thesis_model,14.00,150.223
+10.3 Simulated,thesis_model,14.25,150.410
+10.3 Simulated,thesis_model,14.50,150.585
+10.3 Simulated,thesis_model,14.75,150.756
+10.3 Simulated,thesis_model,15.00,150.919
+10.3 Simulated,thesis_model,15.25,151.071
+10.3 Simulated,thesis_model,15.50,151.215
+10.3 Simulated,thesis_model,15.75,151.351
+10.3 Simulated,thesis_model,16.00,151.472
+10.3 Simulated,thesis_model,16.25,151.588
+10.3 Simulated,thesis_model,16.50,151.693
+10.3 Simulated,thesis_model,16.75,151.787
+10.3 Simulated,thesis_model,17.25,151.950
+10.3 Simulated,thesis_model,17.50,152.016
+10.3 Simulated,thesis_model,17.75,152.071
+10.3 Simulated,thesis_model,18.00,152.121
+10.3 Simulated,thesis_model,18.25,152.164
+10.3 Simulated,thesis_model,18.50,152.191
+10.3 Simulated,thesis_model,18.75,152.219
+10.3 Simulated,thesis_model,19.00,152.230
+10.3 Simulated,thesis_model,19.25,152.234
+10.3 Simulated,thesis_model,19.50,152.230
+10.3 Simulated,thesis_model,19.75,152.219
+10.3 Simulated,thesis_model,20.00,152.191
+10.3 Simulated,thesis_model,20.50,152.102
+10.3 Simulated,thesis_model,20.75,152.040
+10.3 Simulated,thesis_model,21.00,151.966
+10.3 Simulated,thesis_model,21.25,151.888
+10.3 Simulated,thesis_model,21.50,151.806
+10.3 Simulated,thesis_model,21.75,151.732
+10.3 Simulated,thesis_model,22.00,151.662

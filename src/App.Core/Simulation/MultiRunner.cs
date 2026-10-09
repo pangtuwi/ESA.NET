@@ -9,7 +9,16 @@ namespace App.Core.Simulation;
 /// <param name="Result">What the run produced, or null if the row failed.</param>
 /// <param name="Failure">Why the row failed, or null if it succeeded.</param>
 public sealed record MultiRunRowResult(
-    int Row, double Speed, SimulationResult? Result, string? Failure);
+    int Row, double Speed, SimulationResult? Result, string? Failure)
+{
+    /// <summary>
+    /// The side files this row read in place of the engine's own, because grid columns 2
+    /// to 5 named them - empty for a row that names none. The sweep's run folder copies
+    /// the engine's inputs once; these are what only this row read, so they go into the
+    /// row's own folder (ISSUES.md A30). A row that failed lists whatever it did read.
+    /// </summary>
+    public IReadOnlyList<ResolvedSideFile> GridSideFiles { get; init; } = [];
+}
 
 /// <summary>Progress across a multi-run.</summary>
 public readonly record struct MultiRunProgress(
@@ -99,10 +108,21 @@ public sealed class MultiRunner
 
         var rows = grid.RunCount;
         var speed = grid.Speed(row) ?? 0;
+        IReadOnlyList<ResolvedSideFile> gridSideFiles = [];
 
         try
         {
-            var engine = _loader.Load(enginePath).Engine;
+            var loaded = LoadRowEngine(enginePath, grid, row, out gridSideFiles, out var sideFileFailure);
+
+            if (sideFileFailure is not null)
+            {
+                return new MultiRunRowResult(row, speed, null, sideFileFailure)
+                {
+                    GridSideFiles = gridSideFiles,
+                };
+            }
+
+            var engine = loaded.Engine;
             var (rowSettings, afterInitialise) = ApplyRow(engine, grid, row, settings);
 
             var inner = progress is null
@@ -119,7 +139,10 @@ public sealed class MultiRunner
                     // does; the engine's own flag no longer gates them.
                     recordManifoldData: manifoldRecorder is not null,
                     pause: pause),
-                null);
+                null)
+            {
+                GridSideFiles = gridSideFiles,
+            };
         }
         catch (OperationCanceledException)
         {
@@ -131,8 +154,111 @@ public sealed class MultiRunner
         {
             // The original writes "Error in Multirun Command Line n" and carries on to
             // the next row rather than abandoning the sweep.
-            return new MultiRunRowResult(row, speed, null, error.Message);
+            return new MultiRunRowResult(row, speed, null, error.Message)
+            {
+                GridSideFiles = gridSideFiles,
+            };
         }
+    }
+
+    /// <summary>
+    /// Loads the engine for one row, reading the side files that grid columns 2 to 5 name
+    /// in place of the engine's own.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The original set <c>AInManf.AFileName</c> and the other three from the grid
+    /// (<c>Main.pas:1329-1332</c>) and it was <c>InitVars</c> that read them
+    /// (<c>ICEngine2Z.pas:994-1009</c>). Here the tables are read when the engine is loaded,
+    /// and Core reads no files, so the row's names go onto the definition and the engine is
+    /// rebuilt from it through the loader, which resolves them against the engine file
+    /// exactly as it resolves the <c>.eng</c>'s own. Assigning the names onto the loaded
+    /// engine, which is what the port first did, ran every row on the base engine's
+    /// tables (ISSUES.md A30).
+    /// </para>
+    /// <para>
+    /// The definition is the one this row's load just read and is never written back, so
+    /// nothing reaches the <c>.eng</c> file or the next row.
+    /// </para>
+    /// <para>
+    /// A side file the engine itself names but cannot find stays the warning it is for a
+    /// single-point run. One the grid names is the row's whole point, so a row whose file
+    /// cannot be found or read fails, rather than run silently on whatever the engine had.
+    /// </para>
+    /// </remarks>
+    /// <param name="gridSideFiles">The side files the grid named that the load read.</param>
+    private EngineLoadResult LoadRowEngine(
+        string enginePath, MultiRunGrid grid, int row,
+        out IReadOnlyList<ResolvedSideFile> gridSideFiles, out string? failure)
+    {
+        gridSideFiles = [];
+        failure = null;
+
+        var loaded = _loader.Load(enginePath);
+        var definition = loaded.Definition;
+
+        // The kinds are the loader's own words for each table, as ResolvedSideFile carries
+        // them. Writing [Inlet] and [Exhaust] serves the older schema too: the effective
+        // area file looks there before [InManifold] and [ExManifold].
+        var overrides = new List<(string Kind, string Stored)>();
+
+        if (grid.Text(row, 2) is { } inletArea)
+        {
+            definition.InletAreaFile = inletArea;
+            overrides.Add(("inlet manifold area", inletArea));
+        }
+
+        if (grid.Text(row, 3) is { } exhaustArea)
+        {
+            definition.ExhaustAreaFile = exhaustArea;
+            overrides.Add(("exhaust manifold area", exhaustArea));
+        }
+
+        if (grid.Text(row, 4) is { } inletCam)
+        {
+            definition.InletValveProfileFile = inletCam;
+            overrides.Add(("inlet cam profile", inletCam));
+        }
+
+        if (grid.Text(row, 5) is { } exhaustCam)
+        {
+            definition.ExhaustValveProfileFile = exhaustCam;
+            overrides.Add(("exhaust cam profile", exhaustCam));
+        }
+
+        if (overrides.Count == 0)
+        {
+            return loaded;
+        }
+
+        loaded = _loader.Rebuild(definition, enginePath);
+
+        var read = new List<ResolvedSideFile>();
+
+        foreach (var (kind, stored) in overrides)
+        {
+            var file = loaded.SideFiles.FirstOrDefault(file =>
+                file.Kind == kind && string.Equals(file.Stored, stored.Trim(), StringComparison.Ordinal));
+
+            if (file is not null)
+            {
+                read.Add(file);
+                continue;
+            }
+
+            if (failure is null)
+            {
+                var reason = loaded.Problems.FirstOrDefault(
+                    problem => problem.Contains($"the {kind} file", StringComparison.Ordinal));
+
+                failure = $"Row {row + 1} names the {kind} file '{stored}', which could not be loaded."
+                          + (reason is null ? string.Empty : $" {reason}");
+            }
+        }
+
+        gridSideFiles = read;
+
+        return loaded;
     }
 
     /// <summary>
@@ -168,26 +294,6 @@ public sealed class MultiRunner
         engine.Rpm = grid.Speed(row) ?? engine.Rpm;
 
         var cycles = (int)(grid.Cycles(row) ?? settings.CycleCount);
-
-        if (grid.Text(row, 2) is { } inletArea)
-        {
-            manifold.InletPipe.AreaVersusLength.FileName = inletArea;
-        }
-
-        if (grid.Text(row, 3) is { } exhaustArea)
-        {
-            manifold.ExhaustPipe.AreaVersusLength.FileName = exhaustArea;
-        }
-
-        if (grid.Text(row, 4) is { } inletCam)
-        {
-            manifold.InletValve.ProfileFile = inletCam;
-        }
-
-        if (grid.Text(row, 5) is { } exhaustCam)
-        {
-            manifold.ExhaustValve.ProfileFile = exhaustCam;
-        }
 
         // Converted exactly as the loader converts the .eng's own values. See B72.
         if (grid.Number(row, 6) is { } inletOpen)

@@ -19,7 +19,7 @@ public sealed record SimulateOptionsResult(
     int TotalCycles,
     double MassBalance,
     GraphSelection Graphs,
-    PhysicsMode Physics = PhysicsMode.Legacy);
+    PhysicsMode Physics = PhysicsCorrections.DefaultMode);
 
 /// <summary>
 /// Opens the Single Speed Simulation dialog. Injected for the same reason the other

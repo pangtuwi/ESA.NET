@@ -95,6 +95,29 @@ public sealed class RunArchive
     {
         ArgumentNullException.ThrowIfNull(engineFilePath);
 
+        return Copy(engineFilePath, engine?.SideFiles ?? []);
+    }
+
+    /// <summary>
+    /// Copies side files without the engine into <c>inputs</c>, and returns what was
+    /// copied, described for the manifest.
+    /// </summary>
+    /// <remarks>
+    /// For a sweep row, whose grid named a manifold or cam file in place of the engine's
+    /// own. The sweep's folder holds the engine and everything it read; a row's holds only
+    /// what that row read and the sweep's did not (ISSUES.md A30). Copied exactly as
+    /// <see cref="CopyInputs(string, EngineLoadResult?)"/> copies. Nothing to copy creates
+    /// no folder, so a row that named no files has no <c>inputs</c> at all.
+    /// </remarks>
+    public IReadOnlyList<string> CopyInputs(IReadOnlyList<ResolvedSideFile> sideFiles)
+    {
+        ArgumentNullException.ThrowIfNull(sideFiles);
+
+        return sideFiles.Count == 0 ? [] : Copy(null, sideFiles);
+    }
+
+    private List<string> Copy(string? engineFilePath, IReadOnlyList<ResolvedSideFile> sideFiles)
+    {
         var inputs = Path.Combine(Directory, InputsFolderName);
         System.IO.Directory.CreateDirectory(inputs);
 
@@ -102,16 +125,19 @@ public sealed class RunArchive
         var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var sources = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        Copy(engineFilePath, "engine");
-
-        foreach (var side in engine?.SideFiles ?? [])
+        if (engineFilePath is not null)
         {
-            Copy(side.Path, side.Kind);
+            CopyOne(engineFilePath, "engine");
+        }
+
+        foreach (var side in sideFiles)
+        {
+            CopyOne(side.Path, side.Kind);
         }
 
         return copied;
 
-        void Copy(string path, string what)
+        void CopyOne(string path, string what)
         {
             if (path.Length == 0 || !File.Exists(path))
             {

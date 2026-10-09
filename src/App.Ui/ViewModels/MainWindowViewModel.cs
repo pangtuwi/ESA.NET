@@ -740,6 +740,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// (ISSUES.md C6) earns its keep, since every row there belongs to the same sweep.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A row that failed still gets its folder, holding <c>failure.txt</c> with the reason,
     /// for the same reason <see cref="ArchiveRun"/> keeps the folder of a failed run: the
     /// failure is the case the operator most wants something to look at (ISSUES.md A16).
@@ -747,6 +748,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// line there starts with its speed, so the gap is visible, and <c>run.txt</c> names
     /// the row that failed. Nor does it write the manifold files, whose capture window may
     /// hold part of a cycle that never finished.
+    /// </para>
+    /// <para>
+    /// The sweep's folder copies the engine's inputs once, at the end. A manifold or cam
+    /// file the row's grid named instead is not among them, so it is copied into the row's
+    /// own <c>inputs</c>, beside the results it produced (ISSUES.md A30).
+    /// </para>
     /// </remarks>
     private void ArchiveRow(
         RunArchive? sweep, RunManifest? manifest, MultiRunRowResult row, ManifoldTraceWriter manifoldWriter)
@@ -761,7 +768,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
             // The folder first, so the manifest never names one that was not created.
             var archive = sweep.Row(row.Row, row.Speed);
 
-            manifest?.Row(row.Row, row.Speed, RunFolderName.ForRow(row.Row, row.Speed), row);
+            // The files the row's grid named in place of the engine's: the sweep's own
+            // inputs are the engine's, so these are kept with the row that read them, failed
+            // or not (ISSUES.md A30).
+            var inputs = archive.CopyInputs(row.GridSideFiles);
+
+            manifest?.Row(row.Row, row.Speed, RunFolderName.ForRow(row.Row, row.Speed), row, inputs);
 
             if (row.Result is not { } result)
             {

@@ -4,6 +4,9 @@
     <Project Path="src/App.Persistence/App.Persistence.csproj" />
     <Project Path="src/App.Ui/App.Ui.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/App.Validation/App.Validation.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/App.Tests/App.Tests.csproj" />
   </Folder>

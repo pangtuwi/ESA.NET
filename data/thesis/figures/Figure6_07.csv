@@ -1,0 +1,11 @@
+series,role,x,y
+Measured,measured,15.50,186.478
+Measured,measured,19.70,190.883
+Measured,measured,24.00,190.111
+Modelled,thesis_model,12.50,182.370
+Modelled,thesis_model,15.00,184.889
+Modelled,thesis_model,17.50,186.311
+Modelled,thesis_model,20.00,186.867
+Modelled,thesis_model,22.50,186.249
+Modelled,thesis_model,25.00,184.487
+Modelled,thesis_model,27.50,181.667
