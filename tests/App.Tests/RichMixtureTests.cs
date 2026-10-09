@@ -12,7 +12,7 @@ namespace App.Tests;
 /// Rich mixtures, which every full-load spark-ignition engine runs: the thesis's
 /// dynamometer logs show lambda 0.88 to 0.93. Below lambda 0.98 every run on the
 /// baseline engine stopped at its first step with "Matrixsolver Returned Insufficient
-/// Resolution", in Legacy and Corrected alike. ISSUES.md A30.
+/// Resolution", in Legacy and Corrected alike. ISSUES.md A34.
 /// </summary>
 /// <remarks>
 /// The failing solve was the burnt zone's equilibrium at the 1000 K floor, phi 1/0.92,

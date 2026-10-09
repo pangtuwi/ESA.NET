@@ -521,7 +521,7 @@ public sealed class EquilibriumSolver
     /// answered exactly as before, so no run that completed is changed by a bit; only a
     /// system that would otherwise end the run with "Insufficient Resolution" is redone
     /// wider, and counted in <see cref="EquilibriumDiagnostics.ExtendedPrecisionReductions"/>.
-    /// Rich burnt gas near 1000 K is the case that needs it. See ISSUES.md A30.
+    /// Rich burnt gas near 1000 K is the case that needs it. See ISSUES.md A34.
     /// </remarks>
     private int Reduce(double[] rhs)
     {

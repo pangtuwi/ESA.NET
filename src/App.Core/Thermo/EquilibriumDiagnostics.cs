@@ -58,7 +58,7 @@ public sealed class EquilibriumDiagnostics
     /// <summary>
     /// Matrix solves that double precision could not resolve and that were redone in
     /// double-double, standing in for the original's 80-bit <c>Extended</c>. Each one
-    /// would otherwise have been a resolution error (ISSUES.md A30).
+    /// would otherwise have been a resolution error (ISSUES.md A34).
     /// </summary>
     public long ExtendedPrecisionReductions { get; internal set; }
 
