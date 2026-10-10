@@ -94,9 +94,11 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   extracted from the PDF's vector graphics by `validation/tools/digitise_thesis.py`.
   **`data/thesis/source/`** holds the author's original spreadsheets they were drawn from.
 - **`legacy/CAEEng/`** is the only surviving definition of the eight-valve engine of
-  section 6.5, from the 1998-99 predecessor program. It does not run in the port yet: its
-  stepped exhaust area profile drives the wave solver to a negative state (`ISSUES.md`
-  A36, `validation/README.md`, "What does not run").
+  section 6.5, from the 1998-99 predecessor program. It partly runs, in Corrected. Its exhaust
+  steps its area a millimetre at a time, which the original's ±2 mm area gradient turns
+  into a pressure source several times the pressure; under B83 each step is a junction
+  (`PipeLayout`, `JunctionBoundary`). The inlet valve still stops it at 1500, 2000 and
+  3000 rpm (`ISSUES.md` A36, B83, `validation/README.md`, "What does not run").
 - **A grid row's file overrides (`IManfFile` to `ECamFile`) reach the run** since A30:
   `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
   `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each

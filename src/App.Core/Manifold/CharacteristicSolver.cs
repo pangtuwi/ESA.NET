@@ -53,7 +53,12 @@ public static class CharacteristicSolver
     /// </summary>
     /// <param name="current">The pipe state at the start of the step, Delphi's un-suffixed arrays.</param>
     /// <param name="target">Where the new state goes, Delphi's <c>...New</c> arrays.</param>
-    /// <param name="pipe">The pipe's area profile.</param>
+    /// <param name="pipe">
+    /// The pipe's area profile, or under ISSUES.md B83 the segment of a stepped pipe the
+    /// point lies in. The feet are held between its <see cref="PipeGeometry.Start"/> and
+    /// <see cref="PipeGeometry.End"/>, which for a whole pipe are the original's zero and
+    /// pipe length.
+    /// </param>
     /// <param name="gamma"><see cref="InletGamma"/> or <see cref="ExhaustGamma"/>.</param>
     /// <param name="dt">Time step in seconds.</param>
     /// <param name="index">
@@ -123,9 +128,9 @@ public static class CharacteristicSolver
                 var lambdaPlus = 1 / (meanVelocity + c);
                 var x = here - (dt / lambdaPlus);
 
-                if (x < 0)
+                if (x < pipe.Start)
                 {
-                    x = 0;
+                    x = pipe.Start;
                 }
 
                 if (Math.Abs(x - one.X) < FootTolerance)
@@ -172,9 +177,9 @@ public static class CharacteristicSolver
                 var lambdaMinus = 1 / (meanVelocity - c);
                 var x = here - (dt / lambdaMinus);
 
-                if (x > pipe.Length)
+                if (x > pipe.End)
                 {
-                    x = pipe.Length;
+                    x = pipe.End;
                 }
 
                 if (Math.Abs(x - two.X) < FootTolerance)
@@ -221,14 +226,14 @@ public static class CharacteristicSolver
                 // Stagnant gas has no path line to trace: the foot is the point itself.
                 var x = Math.Abs(meanVelocity) < 1E-8 ? here : here - (dt / (1 / meanVelocity));
 
-                if (x < 0)
+                if (x < pipe.Start)
                 {
-                    x = 0;
+                    x = pipe.Start;
                 }
 
-                if (x > pipe.Length)
+                if (x > pipe.End)
                 {
-                    x = pipe.Length;
+                    x = pipe.End;
                 }
 
                 if (Math.Abs(x - three.X) < FootTolerance)

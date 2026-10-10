@@ -78,6 +78,14 @@ public sealed class ManifoldSolver : IManifoldSource
     /// <summary>B82: release an inlet inflow held only by the forward guard's pin.</summary>
     private readonly bool _inletReleaseLatch;
 
+    /// <summary>
+    /// B83: each pipe's grid with a junction at every abrupt area step, or null where the
+    /// correction is off or the pipe has no step, which is the original's single even grid.
+    /// </summary>
+    private readonly PipeLayout? _inletLayout;
+
+    private readonly PipeLayout? _exhaustLayout;
+
     /// <summary>B65: report the inlet valve end's temperature from the speed of sound it holds.</summary>
     private readonly bool _liveInletTemperature;
 
@@ -180,7 +188,22 @@ public sealed class ManifoldSolver : IManifoldSource
 
         _inletPoints = inletPoints;
         _exhaustPoints = exhaustPoints;
+
+        // B83: a junction at every abrupt area step. A pipe with none keeps the original's
+        // grid exactly, so the correction cannot move a run on a smooth manifold.
+        if (physics?.IsOn(CorrectionCatalogue.AreaJunctions) ?? false)
+        {
+            _inletLayout = SteppedLayout(_inletPipe, manifold.InletPipe.AreaVersusLength, inletPoints);
+            _exhaustLayout = SteppedLayout(_exhaustPipe, manifold.ExhaustPipe.AreaVersusLength, exhaustPoints);
+        }
     }
+
+    private static PipeLayout? SteppedLayout(PipeGeometry pipe, ManifoldAreaTable table, int points) =>
+        PipeLayout.FindSteps(table).Count == 0 ? null : PipeLayout.Build(pipe, table, points);
+
+    /// <summary>The stretch of pipe grid point <paramref name="index"/> lies in.</summary>
+    private static PipeGeometry GeometryAt(PipeLayout? layout, PipeGeometry pipe, int index) =>
+        layout is null ? pipe : layout.Geometry[index];
 
     private readonly int _inletPoints;
     private readonly int _exhaustPoints;
@@ -222,20 +245,27 @@ public sealed class ManifoldSolver : IManifoldSource
             _exhaustGamma = _engine.Manifold.GammaEx;
         }
 
-        foreach (var (grid, points, length, pressure, temperature, gamma) in
+        foreach (var (grid, layout, points, length, pressure, temperature, gamma) in
                  new[]
                  {
-                     (_inlet, inletPoints, _inletPipe.Length, _plenumPressure, _plenumTemperature,
-                         _inletGamma),
-                     (_inletNext, inletPoints, _inletPipe.Length, _plenumPressure, _plenumTemperature,
-                         _inletGamma),
-                     (_exhaust, exhaustPoints, _exhaustPipe.Length, _backPressure, _backTemperature,
-                         _exhaustGamma),
-                     (_exhaustNext, exhaustPoints, _exhaustPipe.Length, _backPressure, _backTemperature,
-                         _exhaustGamma),
+                     (_inlet, _inletLayout, inletPoints, _inletPipe.Length, _plenumPressure,
+                         _plenumTemperature, _inletGamma),
+                     (_inletNext, _inletLayout, inletPoints, _inletPipe.Length, _plenumPressure,
+                         _plenumTemperature, _inletGamma),
+                     (_exhaust, _exhaustLayout, exhaustPoints, _exhaustPipe.Length, _backPressure,
+                         _backTemperature, _exhaustGamma),
+                     (_exhaustNext, _exhaustLayout, exhaustPoints, _exhaustPipe.Length, _backPressure,
+                         _backTemperature, _exhaustGamma),
                  })
         {
-            PipeGridInitialiser.Initialise(grid, points, length, pressure, temperature, gamma);
+            if (layout is null)
+            {
+                PipeGridInitialiser.Initialise(grid, points, length, pressure, temperature, gamma);
+            }
+            else
+            {
+                PipeGridInitialiser.Initialise(grid, layout.Positions, pressure, temperature, gamma);
+            }
         }
 
         // The throat quantities start at zero so that the first cylinder-pressure
@@ -331,20 +361,18 @@ public sealed class ManifoldSolver : IManifoldSource
 
     private void SolveInletPipe(in ManifoldRequest request, double dt, double crankAngle, bool open)
     {
-        OpenEndBoundary.ApplyInlet(
-            _inlet, _inletNext, _inletPipe, dt, _plenumPressure, _plenumTemperature, _inletGamma,
-            _inletOpenEndChecksDensity);
+        var valveEnd = GeometryAt(_inletLayout, _inletPipe, _inlet.ActiveCount - 1);
 
-        for (var i = 1; i <= _inlet.ActiveCount - 2; i++)
-        {
-            CharacteristicSolver.UpdateInteriorPoint(
-                _inlet, _inletNext, _inletPipe, _inletGamma, dt, i, Diagnostics);
-        }
+        OpenEndBoundary.ApplyInlet(
+            _inlet, _inletNext, GeometryAt(_inletLayout, _inletPipe, 0), dt, _plenumPressure,
+            _plenumTemperature, _inletGamma, _inletOpenEndChecksDensity);
+
+        SolveInterior(_inlet, _inletNext, _inletLayout, _inletPipe, _inletGamma, dt);
 
         if (open)
         {
             _inletThroat = InletValveOpenBoundary.Apply(
-                _inlet, _inletNext, _inletPipe, _inletValve, dt,
+                _inlet, _inletNext, valveEnd, _inletValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _inletPipe.Area(_inletPipe.Length), request.InletValveArea,
                 _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket, _inletReverseStall,
@@ -353,7 +381,7 @@ public sealed class ManifoldSolver : IManifoldSource
         else
         {
             ClosedValveBoundary.ApplyInlet(
-                _inlet, _inletNext, _inletPipe, dt, gamma: _inletGamma,
+                _inlet, _inletNext, valveEnd, dt, gamma: _inletGamma,
                 imposedWallVelocityInInterpolant: _imposedWallVelocity);
 
             // A shut valve passes nothing, so the throat quantities MassFlow multiplies
@@ -366,10 +394,12 @@ public sealed class ManifoldSolver : IManifoldSource
 
     private void SolveExhaustPipe(in ManifoldRequest request, double dt, double crankAngle, bool open)
     {
+        var valveEnd = GeometryAt(_exhaustLayout, _exhaustPipe, 0);
+
         if (open)
         {
             _exhaustThroat = ExhaustValveOpenBoundary.Apply(
-                _exhaust, _exhaustNext, _exhaustPipe, _exhaustValve, dt,
+                _exhaust, _exhaustNext, valveEnd, _exhaustValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
                 _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket,
@@ -378,19 +408,41 @@ public sealed class ManifoldSolver : IManifoldSource
         }
         else
         {
-            ClosedValveBoundary.ApplyExhaust(_exhaust, _exhaustNext, _exhaustPipe, dt, gamma: _exhaustGamma);
+            ClosedValveBoundary.ApplyExhaust(_exhaust, _exhaustNext, valveEnd, dt, gamma: _exhaustGamma);
         }
 
-        for (var i = 1; i <= _exhaust.ActiveCount - 2; i++)
-        {
-            CharacteristicSolver.UpdateInteriorPoint(
-                _exhaust, _exhaustNext, _exhaustPipe, _exhaustGamma, dt, i, Diagnostics);
-        }
+        SolveInterior(_exhaust, _exhaustNext, _exhaustLayout, _exhaustPipe, _exhaustGamma, dt);
 
         OpenEndBoundary.ApplyExhaust(
-            _exhaust, _exhaustNext, _exhaustPipe, dt, _backPressure, _backTemperature, _exhaustGamma);
+            _exhaust, _exhaustNext, GeometryAt(_exhaustLayout, _exhaustPipe, _exhaust.ActiveCount - 1), dt,
+            _backPressure, _backTemperature, _exhaustGamma);
 
         Advance(_exhaust, _exhaustNext);
+    }
+
+    /// <summary>
+    /// Every point between the two ends: by the method of characteristics, or under B83 a
+    /// junction's two faces together.
+    /// </summary>
+    private void SolveInterior(
+        PipeGrid current, PipeGrid next, PipeLayout? layout, PipeGeometry pipe, double gamma, double dt)
+    {
+        var junction = 0;
+
+        for (var i = 1; i <= current.ActiveCount - 2; i++)
+        {
+            if (layout is not null && junction < layout.Junctions.Count && layout.Junctions[junction] == i)
+            {
+                JunctionBoundary.Apply(
+                    current, next, layout.Geometry[i], layout.Geometry[i + 1], gamma, dt, i, Diagnostics);
+                junction++;
+                i++;
+                continue;
+            }
+
+            CharacteristicSolver.UpdateInteriorPoint(
+                current, next, GeometryAt(layout, pipe, i), gamma, dt, i, Diagnostics);
+        }
     }
 
     private static void Advance(PipeGrid current, PipeGrid next)

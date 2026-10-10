@@ -59,4 +59,38 @@ public static class PipeGridInitialiser
             grid.SpeedOfSound[i] = Math.Sqrt(gamma * 287 * grid.Temperature[i]);
         }
     }
+
+    /// <summary>
+    /// Sets up <paramref name="grid"/> on the points a <see cref="PipeLayout"/> gives, all at
+    /// rest at the given pressure and temperature: a stepped pipe's grid, with both faces of
+    /// every junction (ISSUES.md B83).
+    /// </summary>
+    public static void Initialise(
+        PipeGrid grid,
+        IReadOnlyList<double> positions,
+        double pressure,
+        double temperature,
+        double gamma)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+        ArgumentNullException.ThrowIfNull(positions);
+
+        if (positions.Count > grid.Capacity)
+        {
+            throw new CfdException(
+                $"Calculated grid length of {positions.Count} but was greater than maximum of {grid.Capacity}");
+        }
+
+        grid.ActiveCount = positions.Count;
+
+        for (var i = 0; i < positions.Count; i++)
+        {
+            grid.X[i] = positions[i];
+            grid.Velocity[i] = 0;
+            grid.Pressure[i] = pressure;
+            grid.Temperature[i] = temperature;
+            grid.Density[i] = pressure / 287 / temperature;
+            grid.SpeedOfSound[i] = Math.Sqrt(gamma * 287 * temperature);
+        }
+    }
 }
