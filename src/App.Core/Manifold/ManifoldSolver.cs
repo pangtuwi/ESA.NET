@@ -75,6 +75,9 @@ public sealed class ManifoldSolver : IManifoldSource
     private readonly bool _exhaustUpwardProbe;
     private readonly bool _exhaustReleaseLatch;
 
+    /// <summary>B82: release an inlet inflow held only by the forward guard's pin.</summary>
+    private readonly bool _inletReleaseLatch;
+
     /// <summary>B65: report the inlet valve end's temperature from the speed of sound it holds.</summary>
     private readonly bool _liveInletTemperature;
 
@@ -133,6 +136,7 @@ public sealed class ManifoldSolver : IManifoldSource
             physics?.IsOn(CorrectionCatalogue.ExhaustReverseStagnationChoke) ?? false;
         _exhaustUpwardProbe = physics?.IsOn(CorrectionCatalogue.SecantProbe) ?? false;
         _exhaustReleaseLatch = physics?.IsOn(CorrectionCatalogue.ExhaustValveLatch) ?? false;
+        _inletReleaseLatch = physics?.IsOn(CorrectionCatalogue.InletValveLatch) ?? false;
         _liveInletTemperature = physics?.IsOn(CorrectionCatalogue.LiveInletTemperature) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
@@ -343,7 +347,8 @@ public sealed class ManifoldSolver : IManifoldSource
                 _inlet, _inletNext, _inletPipe, _inletValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _inletPipe.Area(_inletPipe.Length), request.InletValveArea,
-                _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket, _inletReverseStall);
+                _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket, _inletReverseStall,
+                _inletReleaseLatch, Diagnostics);
         }
         else
         {

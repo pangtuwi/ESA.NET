@@ -282,8 +282,9 @@ work.
   checked against its physical oracle.
 - **Both modes match the dynamometer.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (5.4 %, 163.3
-  Nm, stopping at 2500 and 2750 rpm: `ISSUES.md` A29). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (7.2 %
+  over all sixteen correlated speeds, 163.3 Nm; it ran only fourteen until A29 was fixed, and
+  is 5.4 % over those). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A
   correction's oracle says it is right; the thesis curve says whether Corrected as a whole is.
   See `ISSUES.md` B78 and F6.

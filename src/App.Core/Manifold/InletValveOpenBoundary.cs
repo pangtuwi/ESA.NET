@@ -55,7 +55,9 @@ public static class InletValveOpenBoundary
         (double Forward, double ForwardReverse, double Reverse) tuning,
         double gamma = CharacteristicSolver.InletGamma,
         bool wholeSubsonicBracket = false,
-        bool stallBelowThroat = false)
+        bool stallBelowThroat = false,
+        bool releaseLatch = false,
+        ManifoldDiagnostics? diagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -101,6 +103,7 @@ public static class InletValveOpenBoundary
 
         var iteration = 0;
         var handedToReverse = false;
+        var releasing = false;
         bool converged;
 
         do
@@ -196,8 +199,13 @@ public static class InletValveOpenBoundary
             }
 
             // A one-shot nudge that lifts the pipe end back above the throat when it has
-            // sagged below it while still flowing forwards.
-            if (p4 <= throatPressure && u4 > tuning.Forward)
+            // sagged below it while still flowing forwards. It can latch: a solve that
+            // settles with it applied holds the pipe end a hair above a cylinder that has
+            // risen above the pipe, at an inflow near IVF that only the nudge sustains.
+            // B82 releases such a solve to the reverse routine (ISSUES.md B82).
+            var pinned = !releasing && p4 <= throatPressure && u4 > tuning.Forward;
+
+            if (pinned)
             {
                 p4 += pressureDifference * 0.5;
 
@@ -211,7 +219,7 @@ public static class InletValveOpenBoundary
                 pressureDifference = 0;
             }
 
-            var reversed = p4 <= throatPressure || u4 < tuning.ForwardReverse;
+            var reversed = releasing || p4 <= throatPressure || u4 < tuning.ForwardReverse;
 
             double stagnationPressure;
             double stagnationTemperature = 0;
@@ -241,7 +249,8 @@ public static class InletValveOpenBoundary
 
                 // The reverse routine reads and writes the current arrays in place, so the
                 // working state is published into them and read back. See ISSUES.md B58.
-                current.Velocity[q] = u4;
+                // A released latch hands over a still pipe end: its inflow was the pin's own.
+                current.Velocity[q] = releasing ? 0 : u4;
                 current.Density[q] = r4;
                 current.Pressure[q] = p4;
                 current.SpeedOfSound[q] = Math.Sqrt(gamma * p4 / r4);
@@ -394,6 +403,26 @@ public static class InletValveOpenBoundary
                             && Math.Abs(u4 - previousU) < VelocityTolerance
                             && Math.Abs(r4 - previousR) < DensityTolerance
                             && Math.Abs(p4 - previousP) < PressureTolerance);
+
+            // Settled with the pipe end pinned: the inflow is the nudge's own, not the
+            // pipe's. B82 hands over to the reverse routine instead.
+            if (converged && pinned && !handedToReverse)
+            {
+                if (releaseLatch)
+                {
+                    releasing = true;
+                    converged = false;
+
+                    if (diagnostics is not null)
+                    {
+                        diagnostics.InletValveLatchReleases++;
+                    }
+                }
+                else if (diagnostics is not null)
+                {
+                    diagnostics.InletValveLatches++;
+                }
+            }
 
             previousU = u4;
             previousP = p4;
