@@ -2,11 +2,23 @@
 
 This document supersedes `archive/SPEC2.md` for the .NET port. It incorporates the answers in `archive/answers2.md`. The Delphi source and forms remain unchanged.
 
+Corrected on 2026-10-10 against `ISSUES.md` section D, which lists where this phase 1 document disagreed with the source and the shipped data. Each correction is marked with the D entry it comes from; where they disagree, the source and the data win.
+
 ## 1. Form inventory
 
 ### `Main.pas` / `Main.dfm` - `TFMain`
 
 The main form owns startup, simulation execution, result display, and menus. It contains a main menu, status bar, memo, three TeeChart charts, and labels/panels for engine and performance results.
+
+The `.dfm` files are **binary** DFM, not the text form: their component names, captions and event handlers have to be recovered by string extraction. The main menu, as recovered from `Main.dfm` (the port's `MenuStructureTests` pins it):
+
+- **File**: Load..., Save As..., Edit, Load Default, Exit.
+- **Run**: Single Point Simulation, Multi Point Simulation, Pause, STOP, QuickRun. The original assigned `Ctrl+Q` to both Exit and QuickRun (`ISSUES.md` C8).
+- **Graph**: Run-Time Graph Options, Torque Curve, Valve Opening, Energy Balance. The original drew its P-V, in-cylinder and gas-flow charts inside the main form, switched by the Run-Time Graph Options dialog, not by menu items.
+- **Text**: PVT Trace.
+- **Help**: User Manual, About.
+
+(Corrected: `ISSUES.md` D7.)
 
 - `Chart1`: manifold gas-flow traces.
 - `Chart2`: cylinder pressure and P-V diagram.
@@ -132,7 +144,7 @@ Configured grid functions calculate active counts `QI` and `QE` at the first tim
 
 ### Captured and performance data
 
-`TCAPoint` contains `Value: array[1..28] of Double`. `TCAList` contains `CaVar: array[-359..360] of TCAPoint`, column names, decimal counts, and display scale factors.
+`TCAPoint` is a Delphi **class**, not a record (corrected: `ISSUES.md` D6), holding `Value: array[1..28] of Double`. `TCAList` contains `CaVar: array[-359..360] of TCAPoint`, column names, decimal counts, and display scale factors.
 
 `TPerfPoint` stores speed, torque, power, and volumetric efficiency. `TPerfData` has `MaxNoPoints = 100`. `AddDataPoint` refuses additional points after 100 and displays `Max No Of Stored Datapoints reached... This point will not be stored.`
 
@@ -150,11 +162,15 @@ Configured grid functions calculate active counts `QI` and `QE` at the first tim
 
 `.eng` files are text INI files with sections equivalent to `[Cylinders]`, `[HeatTransfer]`, `[Inlet]`, `[Exhaust]`, `[Cams]`, `[Valves]`, `[Fuel]`, `[Conditions]`, and `[Calculation]`. They contain geometry, file names, timing, valve data, fuel/condition data, and calculation flags including `VariableGamma`, `SaveManfData`, `Integrator`, and `PerfDataSave`.
 
-`ESA.ini` contains defaults such as:
+Keys must be matched **case-insensitively**, as Delphi's `TIniFile` matched them: `Edit.pas` reads `CdIvIn` while every shipped file writes `CdIVIn` (corrected: `ISSUES.md` D3).
+
+An older, undocumented schema survives in five `Example1` engines and `legacy/CAEEng/A4LowCost.eng`, written for the 1998-99 predecessor program. It keeps the manifolds under `[InManifold]` and `[ExManifold]`, and its units differ from the current schema's: `PlenumP` is kPa rather than Pa, the wall temperatures (`THead` and the others) are Celsius rather than kelvin, and grid sizes are fixed counts under `[Calculation]` rather than expressions. Where a file carries both schemas, the current keys win (corrected: `ISSUES.md` D2; see A31-A35).
+
+The shipped `ESA.ini` (`legacy/ESA/ESA.ini`) reads, with no trailing newline:
 
 ```ini
 [DefaultFiles]
-ErrorLog=ESA2z1z.err
+ErrorLog=CAEEng.err
 TextSave=Lastcyc.txt
 Engine=Default.eng
 
@@ -162,8 +178,10 @@ Engine=Default.eng
 EngineSpeed=4000
 Nocycles=6
 No1zcycles=1
-MassBalance=1
+MassBalance=0.5
 ```
+
+(Corrected: `ISSUES.md` D5. This section earlier quoted `ErrorLog=ESA2z1z.err` and `MassBalance=1`.)
 
 The .NET implementation may standardize `.eng`, INI, and exported text files on UTF-8. ANSI compatibility with Delphi is not required. No BDE, ADO, database, or registry access was identified.
 
@@ -176,7 +194,9 @@ The sample `.maf`, `.vcd`, `.cam`, `.spk`, `.cwt`, and `.exh` files in the data 
 - `.cam`: two-column profile points, loaded into the `TProfile` linked list.
 - `.spk`: RPM/spark-angle pairs, loaded into `TVarSpeedList`.
 - `.cwt`: RPM and wall-temperature columns, loaded into `TWallTemps`.
-- `.exh`: RPM, exhaust pressure, and exhaust-temperature columns, loaded into `TExhaustPandT`.
+- `.exh`: RPM, exhaust **temperature**, and exhaust **pressure** columns, in that order, loaded into `TExhaustPandT`. The loader reads `ATExh` before `APExh`, and the shipped heading row reads `SPEED / TEMP[C] / P[kPa]`. Despite that heading the temperature is used as kelvin (`ISSUES.md` B66), and the pressure is gauge kPa, to which atmospheric pressure is added (A9). (Corrected: `ISSUES.md` D1.)
+
+`.spk`, `.cwt` and `.exh` are not bare column pairs: each starts with a row-count line, then a heading line the loader discards, then the data rows (corrected: `ISSUES.md` D4).
 
 ### PVT and multi-run exports
 
@@ -199,6 +219,8 @@ PVT export is delimited text containing crank angle plus the 28 captured values.
 The legacy layout is whitespace-delimited with fixed-width numeric formatting. The .NET implementation should use a standard UTF-8 .NET text-output implementation rather than requiring byte-for-byte MATLAB/Delphi formatting. It should retain the equivalent file names, numeric columns, units, and final-cycle-only behavior. Headers and other standard .NET formatting are permitted, provided downstream consumers and the documented columns are preserved.
 
 ## 4. External dependencies
+
+**Superseded** by `TECHSTACK.md`, which requires Avalonia and ScottPlot; the two paragraphs below are kept as phase 1 wrote them (corrected: `ISSUES.md` D8).
 
 VCL controls map to Windows Forms or WPF. `TStringGrid` maps most directly to `DataGridView`. `TIniFile` and Delphi file I/O map to an INI parser and `System.IO`. The VCL message loop and `Application.ProcessMessages` require an equivalent UI-dispatch strategy.
 
@@ -312,8 +334,8 @@ The equilibrium model calculates 12 species. The Delphi equilibrium behavior is 
 - Manifold output is enabled by `SAVEMANFDATA`, is written only for the final simulated cycle, and comprises the nine files listed above.
 - AdCalc expressions may be compiled/cached in the .NET implementation, subject to compatibility testing.
 
-The calibration/reference cases are the two examples in `Original_ESA/ESA/Data/Example1` and `Original_ESA/ESA/Data/Example2`. They should be used to validate the one-zone/two-zone transition, manifold flow, emissions, performance outputs, convergence behavior, and the retained Delphi chemistry. Expected numerical tolerances are not specified in the answers; the test harness should record legacy outputs first and use those as the comparison baseline.
+The calibration/reference cases are the two examples in `legacy/ESA/Data/Example1` and `legacy/ESA/Data/Example2`. They should be used to validate the one-zone/two-zone transition, manifold flow, emissions, performance outputs, convergence behavior, and the retained Delphi chemistry. Expected numerical tolerances are not specified in the answers; the test harness should record legacy outputs first and use those as the comparison baseline. **Done**: `data/baseline/` holds a complete reference run of the original, every input and output recorded, and `BASELINE.md` documents it and the agreement measured against it (corrected: `ISSUES.md` D9).
 
 ## Further questions
 
-No original open questions remain. One implementation detail remains for the engineering test plan rather than the legacy specification: the numerical comparison tolerances for `Example1` and `Example2` must be measured from legacy reference runs before automated .NET acceptance tests are finalized.
+No original open questions remain. The one implementation detail this section left for the engineering test plan - measuring the numerical comparison tolerances from legacy reference runs before the acceptance tests were finalized - has been done: see `BASELINE.md` (corrected: `ISSUES.md` D9). The questions still open are `ISSUES.md` section F.
