@@ -460,19 +460,20 @@ field. `Run` therefore guards itself as well.
 ## D. Errors and gaps in SPEC.md
 
 `SPEC.md` is the phase 1 reverse-engineering output. Where it disagrees with the
-source or the data, the source and the data win.
+source or the data, the source and the data win. Every entry below was corrected in
+`SPEC.md` itself on 2026-10-10, each correction marked with its entry.
 
-| # | Section | Problem |
-|---|---|---|
-| D1 ([#101](https://github.com/pangtuwi/ESA.NET/issues/101)) | §3 | `.exh` columns are given as RPM, pressure, temperature. They are RPM, **temperature**, **pressure** — the loader reads `ATExh` before `APExh` and the shipped header row reads `SPEED / TEMP[C] / P[kPa]` |
-| D2 ([#102](https://github.com/pangtuwi/ESA.NET/issues/102)) | §3 | The `.eng` section list omits the older `[InManifold]` / `[ExManifold]` schema used by five `Example1` engines |
-| D3 ([#103](https://github.com/pangtuwi/ESA.NET/issues/103)) | §3 | Does not state that `.eng` keys must match **case-insensitively**. `Edit.pas` reads `CdIvIn`; every shipped file writes `CdIVIn` |
-| D4 ([#104](https://github.com/pangtuwi/ESA.NET/issues/104)) | §3 | Describes `.spk`, `.cwt` and `.exh` as simple column pairs. They have a row-count line and a discarded heading line first |
-| D5 ([#105](https://github.com/pangtuwi/ESA.NET/issues/105)) | §3 | The quoted `ESA.ini` does not match the shipped file: `CAEEng.err` not `ESA2z1z.err`, `MassBalance=0.5` not `1`, and no trailing newline |
-| D6 ([#106](https://github.com/pangtuwi/ESA.NET/issues/106)) | §2 | Calls `TCAPoint` a record; it is a Delphi `class` |
-| D7 ([#107](https://github.com/pangtuwi/ESA.NET/issues/107)) | §1 | Says to reproduce the main menu but never lists it, and treats `Main.dfm` as readable when it is **binary** DFM needing string extraction |
-| D8 ([#108](https://github.com/pangtuwi/ESA.NET/issues/108)) | §4 | Recommends WPF and OxyPlot. Superseded by `TECHSTACK.md`, which requires Avalonia and ScottPlot |
-| D9 ([#109](https://github.com/pangtuwi/ESA.NET/issues/109)) | §6 | Says tolerances "must be measured from legacy reference runs" before acceptance tests are written. Now satisfied — see `BASELINE.md` |
+| # | Section | Problem | Status |
+|---|---|---|---|
+| D1 ([#101](https://github.com/pangtuwi/ESA.NET/issues/101)) | §3 | `.exh` columns are given as RPM, pressure, temperature. They are RPM, **temperature**, **pressure** — the loader reads `ATExh` before `APExh` and the shipped header row reads `SPEED / TEMP[C] / P[kPa]` | **Corrected in SPEC.md** |
+| D2 ([#102](https://github.com/pangtuwi/ESA.NET/issues/102)) | §3 | The `.eng` section list omits the older `[InManifold]` / `[ExManifold]` schema used by five `Example1` engines | **Corrected in SPEC.md** |
+| D3 ([#103](https://github.com/pangtuwi/ESA.NET/issues/103)) | §3 | Does not state that `.eng` keys must match **case-insensitively**. `Edit.pas` reads `CdIvIn`; every shipped file writes `CdIVIn` | **Corrected in SPEC.md** |
+| D4 ([#104](https://github.com/pangtuwi/ESA.NET/issues/104)) | §3 | Describes `.spk`, `.cwt` and `.exh` as simple column pairs. They have a row-count line and a discarded heading line first | **Corrected in SPEC.md** |
+| D5 ([#105](https://github.com/pangtuwi/ESA.NET/issues/105)) | §3 | The quoted `ESA.ini` does not match the shipped file: `CAEEng.err` not `ESA2z1z.err`, `MassBalance=0.5` not `1`, and no trailing newline | **Corrected in SPEC.md** |
+| D6 ([#106](https://github.com/pangtuwi/ESA.NET/issues/106)) | §2 | Calls `TCAPoint` a record; it is a Delphi `class` | **Corrected in SPEC.md** |
+| D7 ([#107](https://github.com/pangtuwi/ESA.NET/issues/107)) | §1 | Says to reproduce the main menu but never lists it, and treats `Main.dfm` as readable when it is **binary** DFM needing string extraction | **Corrected in SPEC.md** |
+| D8 ([#108](https://github.com/pangtuwi/ESA.NET/issues/108)) | §4 | Recommends WPF and OxyPlot. Superseded by `TECHSTACK.md`, which requires Avalonia and ScottPlot | **Superseded** — marked so in `SPEC.md` |
+| D9 ([#109](https://github.com/pangtuwi/ESA.NET/issues/109)) | §6 | Says tolerances "must be measured from legacy reference runs" before acceptance tests are written. Now satisfied — see `BASELINE.md` | **Superseded** — marked so in `SPEC.md` |
 
 ## E. Dead data
 
