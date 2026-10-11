@@ -71,7 +71,7 @@ them; `LegacyPathResolver` finds each one beside the `.eng`.
 | `Nissan_390` | 390 mm inlet | `.../Nissan5.eng` | `torque`; `pulse5000` | 6.5, 6.8 |
 | `Nissan_490` | 490 mm inlet | `.../Nissan4.eng` | `torque` | 6.5 |
 | `Nissan_290_Adv12` | 290 mm, cam advanced 12° | `.../Nissan7.eng` | `torque`; `timing2000` spark 10-30° | 6.6, 6.7 |
-| `VW8V_A4LowCost` | VW 1.6 L eight-valve | `legacy/CAEEng/A4LowCost.eng`, unchanged (V1) | `torque` 1500-6000; `camA`, `camB` | 6.10, 6.11, **partly runs** |
+| `VW8V_A4LowCost` | VW 1.6 L eight-valve | `legacy/CAEEng/A4LowCost.eng`, unchanged (V1) | `torque` 1500-6000; `camA`, `camB` | 6.10; 6.11 **does not run** |
 | `A2China_Baseline` | VW 1.6 L five-valve baseline | `data/baseline/A2China.eng` | `torque` 1500-6250 | 6.12 |
 | `ChinaBora_CR93` | five-valve, CR 9.3 | `legacy/ESA/Data/Example2/ChinaBora92.eng`, CR changed | `timing4000` spark 8-24° | 6.13 |
 | `ChinaBora_CR103` | five-valve, CR 10.3 | the same, CR changed | `timing4000` | 6.13 |
@@ -91,9 +91,11 @@ so that every input of a case sits in its own folder.
 
 ## What does not run
 
-**`VW8V_A4LowCost` partly runs.** In Corrected, Figure 6.10 has 2500 and 3500 to 6000 rpm,
-and Figure 6.11 none of its cam grids. Three causes were isolated, by moving its inputs onto
-the working `A2China_Baseline` one group at a time and by tracing the stops:
+**`VW8V_A4LowCost` partly runs.** In Corrected, Figure 6.10 runs at every speed and Figure
+6.11 at none: its cam grids, which move the valve timing and lift, stop in the inlet
+valve's reverse-flow velocity solves, which is not yet an entry. Three causes were found
+and fixed, by moving the case's inputs onto the working `A2China_Baseline` one group at a
+time and by tracing the stops:
 
 - **λ below about 0.97** - **fixed** (`ISSUES.md` A34). The burnt-gas equilibrium matrix
   was too ill-conditioned for double; it is now retried in double-double, and the case
@@ -103,20 +105,18 @@ the working `A2China_Baseline` one group at a time and by tracing the stops:
   original's plus-and-minus-two-millimetre area gradient reads each step as a pressure
   source several times the pressure, driving an interior point of the exhaust pipe
   negative in blowdown. Under Corrected, or `B83=1`, each step is a junction conserving
-  mass and energy. `A2China_Baseline` on this exhaust now runs at every speed tried, within
-  a few per cent of its own torque. Legacy still stops, on the exhaust valve's reverse-flow
+  mass and energy. `A2China_Baseline` on this exhaust runs at every speed tried, within a
+  few per cent of its own torque. Legacy still stops, on the exhaust valve's reverse-flow
   solves that the other corrections repair.
-- **The inlet valve at opening** - **open** (`ISSUES.md` A36). At 1500, 2000 and 3000 rpm
-  the inlet valve's open routine, on its first pass after the valve opens, works from the
-  previous valve event's throat state. This engine's `IVF` and `IVFR` are zero, and the
-  closed valve leaves the pipe end at exactly zero velocity, so neither test that resets
-  the throat to the cylinder passes. The routine then runs forward flow into a cylinder
-  30 kPa above the pipe. The cam grids of Figure 6.11 stop in the inlet reverse-flow
-  solves.
+- **The inlet valve at opening** - **fixed behind the switch** (`ISSUES.md` B84). This
+  engine's `IVF` and `IVFR` are zero, and the open routine's first pass then measured the
+  pipe end against the previous valve event's throat, and drove gas into a cylinder 34 kPa
+  above the pipe at 1500, 2000 and 3000 rpm. Under Corrected, or `B84=1`, a valve that has
+  just opened starts from a throat at rest at cylinder pressure.
 
-Where it runs, the case is 14.6 % rms below the measured Figure 6.10, which it is compared
-with as shape (V3). Nothing in the suite substitutes inputs to make it run, because that
-would be fitting.
+The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
+(V3). Nothing in the suite substitutes inputs to make it run, because that would be
+fitting.
 
 ## Assumptions
 

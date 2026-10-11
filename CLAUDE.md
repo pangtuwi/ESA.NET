@@ -97,8 +97,9 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   section 6.5, from the 1998-99 predecessor program. It partly runs, in Corrected. Its exhaust
   steps its area a millimetre at a time, which the original's ±2 mm area gradient turns
   into a pressure source several times the pressure; under B83 each step is a junction
-  (`PipeLayout`, `JunctionBoundary`). The inlet valve still stops it at 1500, 2000 and
-  3000 rpm (`ISSUES.md` A36, B83, `validation/README.md`, "What does not run").
+  (`PipeLayout`, `JunctionBoundary`), and under B84 its inlet valve, whose tuning constants are
+  zero, opens from a fresh throat. Figure 6.10 runs at every speed; Figure 6.11's cam grids
+  still stop (`ISSUES.md` A36, B83, B84, `validation/README.md`, "What does not run").
 - **A grid row's file overrides (`IManfFile` to `ECamFile`) reach the run** since A30:
   `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
   `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each

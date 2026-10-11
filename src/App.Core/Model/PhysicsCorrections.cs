@@ -240,6 +240,13 @@ public static class CorrectionCatalogue
     public static Correction AreaJunctions { get; } =
         new("B83", "Abrupt area steps are junctions conserving mass and energy, not a gradient source");
 
+    /// <summary>
+    /// ISSUES.md B84: a valve that has just opened starts from a throat at rest at the
+    /// cylinder's pressure, instead of the state the previous valve event left behind.
+    /// </summary>
+    public static Correction FreshValveThroat { get; } =
+        new("B84", "A valve that has just opened starts from a throat at rest at cylinder pressure, not the last event's throat");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -250,7 +257,7 @@ public static class CorrectionCatalogue
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
-        AreaJunctions,
+        AreaJunctions, FreshValveThroat,
     ];
 }
 
