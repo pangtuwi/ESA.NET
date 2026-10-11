@@ -232,6 +232,14 @@ public static class CorrectionCatalogue
     public static Correction InletValveLatch { get; } =
         new("B82", "Inlet-valve inflow held only by the forward guard's pin is released, not latched");
 
+    /// <summary>
+    /// ISSUES.md B83: an area step narrower than the original's plus-and-minus-two-millimetre
+    /// area gradient is a junction between two segments, conserving mass and energy, instead
+    /// of a gradient source a characteristic foot can land on.
+    /// </summary>
+    public static Correction AreaJunctions { get; } =
+        new("B83", "Abrupt area steps are junctions conserving mass and energy, not a gradient source");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -242,6 +250,7 @@ public static class CorrectionCatalogue
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
+        AreaJunctions,
     ];
 }
 

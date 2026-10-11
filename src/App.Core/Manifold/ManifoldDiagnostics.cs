@@ -64,9 +64,19 @@ public sealed class ManifoldDiagnostics
     /// <summary>The same latches, released by B82. Not a warning.</summary>
     public long InletValveLatchReleases { get; internal set; }
 
+    /// <summary>Area-junction solves, two faces per junction per time step (ISSUES.md B83).</summary>
+    public long JunctionPoints { get; internal set; }
+
+    /// <summary>
+    /// Area-junction solves whose outer iteration reached its cap without converging and
+    /// took the last pass as the answer, as an interior point does (ISSUES.md B83).
+    /// </summary>
+    public long JunctionOuterCapHits { get; internal set; }
+
     /// <summary>Whether anything was counted that an operator should hear about.</summary>
     public bool HasWarnings =>
-        FootLoopCapHits > 0 || OuterIterationCapHits > 0 || NegativeFootStates > 0;
+        FootLoopCapHits > 0 || OuterIterationCapHits > 0 || NegativeFootStates > 0
+        || JunctionOuterCapHits > 0;
 
     public override string ToString() =>
         $"{InteriorPoints} interior points, worst {WorstOuterIterations} outer iterations, "

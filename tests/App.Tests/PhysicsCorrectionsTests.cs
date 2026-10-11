@@ -72,7 +72,8 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B79", CorrectionCatalogue.OverlapValveTotals.Entry);
         Assert.Equal("B81", CorrectionCatalogue.ExhaustValveLatch.Entry);
         Assert.Equal("B82", CorrectionCatalogue.InletValveLatch.Entry);
-        Assert.Equal(27, CorrectionCatalogue.All.Count);
+        Assert.Equal("B83", CorrectionCatalogue.AreaJunctions.Entry);
+        Assert.Equal(28, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections { Mode = PhysicsMode.Legacy }.Describe());
         Assert.Equal($"Corrected, all {CorrectionCatalogue.All.Count} corrections on", new PhysicsCorrections().Describe());
