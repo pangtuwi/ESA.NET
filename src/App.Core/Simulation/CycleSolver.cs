@@ -1432,7 +1432,9 @@ public sealed class CycleSolver
             }
 
             if (Math.Abs(engine.TotalMassInInletValve - engine.TotalMassOutExhaustValve) * 1E6
-                < settings.MassBalance)
+                < settings.MassBalance
+                && CorrectionCatalogue.MayConverge(
+                    settings.Physics, cycle - 1, twoZone ? settings.OneZoneCycleCount : 0))
             {
                 engine.CycleCount = cycle - 1;
                 return cycle - 1;

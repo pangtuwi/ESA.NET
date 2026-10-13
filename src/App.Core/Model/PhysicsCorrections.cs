@@ -255,6 +255,23 @@ public static class CorrectionCatalogue
     public static Correction ThroatSolveFromZero { get; } =
         new("B85", "The throat velocity solves bracket from zero, so a nearly shut valve's root is inside");
 
+    /// <summary>
+    /// ISSUES.md B86: convergence is not tested until a two-zone cycle has run, because the
+    /// warm-up cycle's own inlet and exhaust totals agreeing is a coincidence, not
+    /// convergence.
+    /// </summary>
+    public static Correction WarmUpConvergence { get; } =
+        new("B86", "Convergence is not tested until a two-zone cycle has run: the warm-up cycle's balance is a coincidence");
+
+    /// <summary>
+    /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
+    /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
+    /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
+    /// run's first cycle, which starts from <c>InitVars</c>' guesses.
+    /// </summary>
+    public static bool MayConverge(PhysicsCorrections physics, int completedCycles, int oneZoneCycles) =>
+        !physics.IsOn(WarmUpConvergence) || completedCycles >= Math.Max(2, oneZoneCycles + 1);
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -265,7 +282,7 @@ public static class CorrectionCatalogue
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
-        AreaJunctions, FreshValveThroat, ThroatSolveFromZero,
+        AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence,
     ];
 }
 

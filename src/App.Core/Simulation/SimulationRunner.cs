@@ -145,8 +145,10 @@ public sealed class SimulationRunner
                 Math.Abs(engine.TotalMassInInletValve - engine.TotalMassOutExhaustValve) * 1e6;
 
             // Convergence is tested at the top of each cycle against the totals the
-            // previous one left, so a converged run stops before doing the work.
-            if (balance < settings.MassBalance)
+            // previous one left, so a converged run stops before doing the work. Under B86
+            // not until a two-zone cycle has run.
+            if (balance < settings.MassBalance
+                && CorrectionCatalogue.MayConverge(settings.Physics, cycle - 1, settings.OneZoneCycleCount))
             {
                 engine.CycleCount = cycle - 1;
                 new PerformanceCalculator().Calculate(engine);

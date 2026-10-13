@@ -94,7 +94,12 @@ public sealed class CycleSolverTests
         engine.TotalMassInInletValve = 1E-6;
         engine.TotalMassOutExhaustValve = 1E-6;
 
-        var settings = new SimulationSettings { CycleCount = 6, MassBalance = 1 };
+        // The original's test, from the first cycle on: under B86 the first test waits for
+        // a two-zone cycle (ISSUES.md B86).
+        var settings = new SimulationSettings
+        {
+            CycleCount = 6, MassBalance = 1, Physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy },
+        };
         var completed = solver.RunCycles(settings);
 
         Assert.Equal(0, completed);
@@ -113,7 +118,10 @@ public sealed class CycleSolverTests
         solver.Engine.TotalMassInInletValve = 0;
         solver.Engine.TotalMassOutExhaustValve = 0;
 
-        solver.RunCycles(new SimulationSettings { CycleCount = 1, MassBalance = 1 });
+        solver.RunCycles(new SimulationSettings
+        {
+            CycleCount = 1, MassBalance = 1, Physics = new PhysicsCorrections { Mode = PhysicsMode.Legacy },
+        });
 
         // CycleCount is set to the requested figure before the loop begins.
         Assert.Equal(EsaLimits.MinimumCycles, Math.Max(EsaLimits.MinimumCycles, 1));
