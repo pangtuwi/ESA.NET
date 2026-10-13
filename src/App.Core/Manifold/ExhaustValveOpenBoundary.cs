@@ -60,7 +60,8 @@ public static class ExhaustValveOpenBoundary
         bool stagnationChoke = false,
         bool upwardProbe = false,
         bool releaseLatch = false,
-        ManifoldDiagnostics? diagnostics = null)
+        ManifoldDiagnostics? diagnostics = null,
+        bool bracketFromZero = false)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -212,7 +213,7 @@ public static class ExhaustValveOpenBoundary
 
                     entranceVelocity = ThroatVelocitySolvers.ExhaustSonic(
                         gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
-                        wholeSubsonicBracket);
+                        wholeSubsonicBracket, bracketFromZero);
 
                     var machRatio = entranceVelocity / cylinderSpeedOfSound;
 
@@ -245,7 +246,7 @@ public static class ExhaustValveOpenBoundary
 
                     entranceVelocity = ThroatVelocitySolvers.ExhaustSubsonic(
                         gamma, dischargeCoefficient, areaRatio, throatVelocity,
-                        throatSpeedOfSound, cylinderSpeedOfSound);
+                        throatSpeedOfSound, cylinderSpeedOfSound, bracketFromZero);
 
                     c4 = Math.Sqrt((cylinderSpeedOfSound * cylinderSpeedOfSound)
                                    - ((gamma - 1) / 2 * entranceVelocity * entranceVelocity));

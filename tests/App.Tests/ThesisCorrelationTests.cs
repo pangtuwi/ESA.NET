@@ -22,7 +22,9 @@ namespace App.Tests;
 /// original's empirical inputs were calibrated around, so how far it sits from the test
 /// data is a finding to weigh, not a regression. Before B78 it was 13.4 per cent rms; with
 /// B78 it was 5.2, Legacy's figure, and with B37 5.3; since A29's fix it runs every speed,
-/// 7.2 over all sixteen from 2500 rpm and 5.4 over the fourteen it ran before (ISSUES.md F6).
+/// 7.2 over all sixteen from 2500 rpm and 5.4 over the fourteen it ran before (ISSUES.md F6),
+/// and 7.4 since B85, whose effect on this engine is which of two answers its 2000 rpm run
+/// settles on.
 /// </remarks>
 public sealed class ThesisCorrelationTests
 {

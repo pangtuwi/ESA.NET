@@ -98,8 +98,9 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   steps its area a millimetre at a time, which the original's ±2 mm area gradient turns
   into a pressure source several times the pressure; under B83 each step is a junction
   (`PipeLayout`, `JunctionBoundary`), and under B84 its inlet valve, whose tuning constants are
-  zero, opens from a fresh throat. Figure 6.10 runs at every speed; Figure 6.11's cam grids
-  still stop (`ISSUES.md` A36, B83, B84, `validation/README.md`, "What does not run").
+  zero, opens from a fresh throat; under B85 its nearly shut valve's throat solve brackets from
+  zero. Figures 6.10 and 6.11 run at every speed, two of 6.11's runs stopping after one cycle
+  on the convergence test (`ISSUES.md` A36, B83-B86, `validation/README.md`, "What does not run").
 - **A grid row's file overrides (`IManfFile` to `ECamFile`) reach the run** since A30:
   `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
   `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each
@@ -285,9 +286,9 @@ work.
   checked against its physical oracle.
 - **Both modes match the dynamometer.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (7.2 %
-  over all sixteen correlated speeds, 163.3 Nm; it ran only fourteen until A29 was fixed, and
-  is 5.4 % over those). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (7.4 %
+  over all sixteen correlated speeds since B85, 7.2 before, 163.3 Nm; it ran only fourteen
+  until A29 was fixed, and is 5.4 % over those). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A
   correction's oracle says it is right; the thesis curve says whether Corrected as a whole is.
   See `ISSUES.md` B78 and F6.

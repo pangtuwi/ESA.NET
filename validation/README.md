@@ -71,7 +71,7 @@ them; `LegacyPathResolver` finds each one beside the `.eng`.
 | `Nissan_390` | 390 mm inlet | `.../Nissan5.eng` | `torque`; `pulse5000` | 6.5, 6.8 |
 | `Nissan_490` | 490 mm inlet | `.../Nissan4.eng` | `torque` | 6.5 |
 | `Nissan_290_Adv12` | 290 mm, cam advanced 12° | `.../Nissan7.eng` | `torque`; `timing2000` spark 10-30° | 6.6, 6.7 |
-| `VW8V_A4LowCost` | VW 1.6 L eight-valve | `legacy/CAEEng/A4LowCost.eng`, unchanged (V1) | `torque` 1500-6000; `camA`, `camB` | 6.10; 6.11 **does not run** |
+| `VW8V_A4LowCost` | VW 1.6 L eight-valve | `legacy/CAEEng/A4LowCost.eng`, unchanged (V1) | `torque` 1500-6000; `camA`, `camB` | 6.10, 6.11 |
 | `A2China_Baseline` | VW 1.6 L five-valve baseline | `data/baseline/A2China.eng` | `torque` 1500-6250 | 6.12 |
 | `ChinaBora_CR93` | five-valve, CR 9.3 | `legacy/ESA/Data/Example2/ChinaBora92.eng`, CR changed | `timing4000` spark 8-24° | 6.13 |
 | `ChinaBora_CR103` | five-valve, CR 10.3 | the same, CR changed | `timing4000` | 6.13 |
@@ -91,11 +91,12 @@ so that every input of a case sits in its own folder.
 
 ## What does not run
 
-**`VW8V_A4LowCost` partly runs.** In Corrected, Figure 6.10 runs at every speed and Figure
-6.11 at none: its cam grids, which move the valve timing and lift, stop in the inlet
-valve's reverse-flow velocity solves, which is not yet an entry. Three causes were found
-and fixed, by moving the case's inputs onto the working `A2China_Baseline` one group at a
-time and by tracing the stops:
+**`VW8V_A4LowCost` runs**, in Corrected, at every speed of Figures 6.10 and 6.11. But two
+of Figure 6.11's runs, cam A at 4500 rpm and cam B at 5000, stop after their single-zone
+first cycle, whose inlet and exhaust totals happen to agree to within the convergence
+tolerance (`ISSUES.md` B86), and report 194 and 180 Nm; the figure's cam B minus cam A is
+-89 and +80 Nm there. Four causes were found and fixed, by moving the case's inputs onto
+the working `A2China_Baseline` one group at a time and by tracing the stops:
 
 - **λ below about 0.97** - **fixed** (`ISSUES.md` A34). The burnt-gas equilibrium matrix
   was too ill-conditioned for double; it is now retried in double-double, and the case
@@ -113,8 +114,14 @@ time and by tracing the stops:
   pipe end against the previous valve event's throat, and drove gas into a cylinder 34 kPa
   above the pipe at 1500, 2000 and 3000 rpm. Under Corrected, or `B84=1`, a valve that has
   just opened starts from a throat at rest at cylinder pressure.
+- **Cam B's earlier inlet opening** - **fixed behind the switch** (`ISSUES.md` B85). At
+  the last open step before the inlet closes the valve is half a micrometre open, and the
+  throat velocity solve's root lies below its bracket's lower end of a millionth of the
+  throat velocity. Under Corrected, or `B85=1`, the solves bracket from zero.
 
-The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
+Away from those two speeds the model's cam B minus cam A is negative throughout, -3 to
+-17 Nm, where the measured delta turns positive from 3500 rpm; which cam is which (V4) is
+the first thing to check. The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
 (V3). Nothing in the suite substitutes inputs to make it run, because that would be
 fitting.
 

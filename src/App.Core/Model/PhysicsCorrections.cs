@@ -247,6 +247,14 @@ public static class CorrectionCatalogue
     public static Correction FreshValveThroat { get; } =
         new("B84", "A valve that has just opened starts from a throat at rest at cylinder pressure, not the last event's throat");
 
+    /// <summary>
+    /// ISSUES.md B85: the throat velocity solves bracket the entrance velocity from zero
+    /// rather than a millionth of the throat velocity, which a nearly shut valve's root
+    /// falls below.
+    /// </summary>
+    public static Correction ThroatSolveFromZero { get; } =
+        new("B85", "The throat velocity solves bracket from zero, so a nearly shut valve's root is inside");
+
     /// <summary>Every correction, in the order they landed.</summary>
     public static IReadOnlyList<Correction> All { get; } =
     [
@@ -257,7 +265,7 @@ public static class CorrectionCatalogue
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
-        AreaJunctions, FreshValveThroat,
+        AreaJunctions, FreshValveThroat, ThroatSolveFromZero,
     ];
 }
 
