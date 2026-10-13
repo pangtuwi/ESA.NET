@@ -124,4 +124,92 @@ public sealed class ThroatVelocitySolversTests
         Assert.Throws<CfdException>(
             () => ThroatVelocitySolvers.InletSonic(Gamma, 1.0, 100.0, 300, 500));
     }
+
+    /// <summary>The smaller root of <c>u^2 - b u + c</c>, written so that it does not cancel.</summary>
+    private static double SmallRoot(double b, double c) => 2 * c / (b + Math.Sqrt((b * b) - (4 * c)));
+
+    // ISSUES.md B85: the inlet valve's last open step before closing on the eight-valve
+    // engine with cam B at 2000 rpm, under Corrected - a lift of half a micrometre, gas
+    // flowing back out of the cylinder.
+    private const double ShutGamma = 1.3523466604344605;
+    private const double ShutCd = 0.010602190923317711;
+    private const double ShutAreaRatio = 7.267307535169792E-05;
+
+    /// <summary>
+    /// B85's oracle for the subsonic solve. As the valve shuts the physical root, the
+    /// smaller one, falls towards zero; here it lies below the original's lower bracket of
+    /// a millionth of the throat velocity, and the original stops. From zero the solve
+    /// returns the root, the closed form's to nine figures.
+    /// </summary>
+    [Fact]
+    public void ANearlyShutValvesSubsonicRootIsFoundFromZero()
+    {
+        const double throatVelocity = 283.1040961574345;
+        const double throatSpeedOfSound = 401.2444210511341;
+        const double cylinderSpeedOfSound = 418.4698472203295;
+
+        var b = 2 / (ShutGamma + 1)
+                * ((throatSpeedOfSound * throatSpeedOfSound / throatVelocity / ShutCd / ShutAreaRatio)
+                   + (ShutGamma * throatVelocity));
+        var c = cylinderSpeedOfSound * cylinderSpeedOfSound * (2 / (ShutGamma + 1));
+        var root = SmallRoot(b, c);
+
+        Assert.True(root < 0.000001 * throatVelocity, $"{root}");
+        Assert.Throws<CfdException>(() => ThroatVelocitySolvers.InletSubsonic(
+            ShutGamma, ShutCd, ShutAreaRatio, throatVelocity, throatSpeedOfSound, cylinderSpeedOfSound));
+
+        var u = ThroatVelocitySolvers.InletSubsonic(
+            ShutGamma, ShutCd, ShutAreaRatio, throatVelocity, throatSpeedOfSound, cylinderSpeedOfSound,
+            fromZero: true);
+
+        Assert.Equal(root, u, root * 1e-9);
+        Assert.Equal(u, ThroatVelocitySolvers.ExhaustSubsonic(
+            ShutGamma, ShutCd, ShutAreaRatio, throatVelocity, throatSpeedOfSound, cylinderSpeedOfSound,
+            fromZero: true));
+    }
+
+    /// <summary>B85's oracle for the sonic solve, from the same step one pass later, choked.</summary>
+    [Fact]
+    public void ANearlyShutValvesSonicRootIsFoundFromZero()
+    {
+        const double throatVelocity = 374.0975300802144;
+        const double cylinderSpeedOfSound = 405.7144768309805;
+
+        var b = Math.Pow(2 / (ShutGamma + 1), 1.5) * ((1 / ShutCd / ShutAreaRatio) + ShutGamma)
+                * cylinderSpeedOfSound;
+        var c = cylinderSpeedOfSound * cylinderSpeedOfSound * (2 / (ShutGamma + 1));
+        var root = SmallRoot(b, c);
+
+        Assert.True(root < 0.000001 * throatVelocity, $"{root}");
+        Assert.Throws<CfdException>(() => ThroatVelocitySolvers.InletSonic(
+            ShutGamma, ShutCd, ShutAreaRatio, throatVelocity, cylinderSpeedOfSound, wholeSubsonicRange: true));
+
+        var u = ThroatVelocitySolvers.InletSonic(
+            ShutGamma, ShutCd, ShutAreaRatio, throatVelocity, cylinderSpeedOfSound,
+            wholeSubsonicRange: true, fromZero: true);
+
+        Assert.Equal(root, u, root * 1e-9);
+        Assert.InRange(u, 0, throatVelocity);
+    }
+
+    /// <summary>
+    /// Where the original's bracket does hold the root, starting from zero finds the same
+    /// one: both are the closed form's to nine figures.
+    /// </summary>
+    [Fact]
+    public void AnOpenValvesRootIsTheSameFromZero()
+    {
+        const double Cd = 0.7;
+        const double AreaRatio = 0.25;
+        const double ThroatVelocity = 300;
+        const double ThroatSpeedOfSound = 450;
+        const double CylinderSpeedOfSound = 500;
+
+        var original = ThroatVelocitySolvers.InletSubsonic(
+            Gamma, Cd, AreaRatio, ThroatVelocity, ThroatSpeedOfSound, CylinderSpeedOfSound);
+        var fromZero = ThroatVelocitySolvers.InletSubsonic(
+            Gamma, Cd, AreaRatio, ThroatVelocity, ThroatSpeedOfSound, CylinderSpeedOfSound, fromZero: true);
+
+        Assert.Equal(original, fromZero, original * 1e-9);
+    }
 }

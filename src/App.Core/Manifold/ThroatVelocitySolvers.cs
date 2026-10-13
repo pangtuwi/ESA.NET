@@ -31,10 +31,11 @@ public static class ThroatVelocitySolvers
     /// </param>
     public static double InletSonic(
         double gamma, double dischargeCoefficient, double areaRatio, double throatVelocity,
-        double cylinderSpeedOfSound, bool wholeSubsonicRange = false) =>
+        double cylinderSpeedOfSound, bool wholeSubsonicRange = false, bool fromZero = false) =>
         Sonic(
             gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
             upperFraction: wholeSubsonicRange ? WholeSubsonicRange : 0.6,
+            fromZero,
             what: "Inlet Sonic Velocity Solve(Reverse Flow)");
 
     /// <summary>
@@ -54,10 +55,11 @@ public static class ThroatVelocitySolvers
     /// </param>
     public static double ExhaustSonic(
         double gamma, double dischargeCoefficient, double areaRatio, double throatVelocity,
-        double cylinderSpeedOfSound, bool wholeSubsonicRange = false) =>
+        double cylinderSpeedOfSound, bool wholeSubsonicRange = false, bool fromZero = false) =>
         Sonic(
             gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
             upperFraction: wholeSubsonicRange ? WholeSubsonicRange : 0.8,
+            fromZero,
             what: "Exhaust Sonic Velocity Solve(Reverse Flow)");
 
     /// <summary>
@@ -76,10 +78,10 @@ public static class ThroatVelocitySolvers
     /// </remarks>
     private static double Sonic(
         double gamma, double dischargeCoefficient, double areaRatio, double throatVelocity,
-        double cylinderSpeedOfSound, double upperFraction, string what) =>
+        double cylinderSpeedOfSound, double upperFraction, bool fromZero, string what) =>
         Solve(
             SonicResidual(gamma, dischargeCoefficient, areaRatio, cylinderSpeedOfSound),
-            low: 0.000001 * throatVelocity,
+            low: LowerBracket(throatVelocity, fromZero),
             high: upperFraction * throatVelocity,
             what: what);
 
@@ -89,10 +91,10 @@ public static class ThroatVelocitySolvers
     /// </summary>
     public static double InletSubsonic(
         double gamma, double dischargeCoefficient, double areaRatio, double throatVelocity,
-        double throatSpeedOfSound, double cylinderSpeedOfSound) =>
+        double throatSpeedOfSound, double cylinderSpeedOfSound, bool fromZero = false) =>
         Subsonic(
             gamma, dischargeCoefficient, areaRatio, throatVelocity, throatSpeedOfSound,
-            cylinderSpeedOfSound, what: "Inlet Subsonic Velocity Solve(Reverse Flow)");
+            cylinderSpeedOfSound, fromZero, what: "Inlet Subsonic Velocity Solve(Reverse Flow)");
 
     /// <summary>
     /// Throat velocity for subsonic flow out of the exhaust valve. Port of
@@ -105,10 +107,10 @@ public static class ThroatVelocitySolvers
     /// </remarks>
     public static double ExhaustSubsonic(
         double gamma, double dischargeCoefficient, double areaRatio, double throatVelocity,
-        double throatSpeedOfSound, double cylinderSpeedOfSound) =>
+        double throatSpeedOfSound, double cylinderSpeedOfSound, bool fromZero = false) =>
         Subsonic(
             gamma, dischargeCoefficient, areaRatio, throatVelocity, throatSpeedOfSound,
-            cylinderSpeedOfSound, what: "Exhaust Subsonic Velocity Solve(Reverse Flow)");
+            cylinderSpeedOfSound, fromZero, what: "Exhaust Subsonic Velocity Solve(Reverse Flow)");
 
     /// <summary>
     /// The one subsonic entrance-velocity solve both valves share. The original wrote it
@@ -116,12 +118,12 @@ public static class ThroatVelocitySolvers
     /// </summary>
     private static double Subsonic(
         double gamma, double dischargeCoefficient, double areaRatio, double throatVelocity,
-        double throatSpeedOfSound, double cylinderSpeedOfSound, string what) =>
+        double throatSpeedOfSound, double cylinderSpeedOfSound, bool fromZero, string what) =>
         Solve(
             SubsonicResidual(
                 gamma, dischargeCoefficient, areaRatio, throatVelocity, throatSpeedOfSound,
                 cylinderSpeedOfSound),
-            low: 0.000001 * throatVelocity,
+            low: LowerBracket(throatVelocity, fromZero),
             high: WholeSubsonicRange * throatVelocity,
             what: what);
 
@@ -140,6 +142,22 @@ public static class ThroatVelocitySolvers
             low: 0.45 * areaRatio,
             high: 0.75 * areaRatio,
             what: "Exhaust Sonic Mach Solve(Reverse Flow)");
+
+    /// <summary>
+    /// The lower end of the sonic and subsonic brackets: the original's millionth of the
+    /// throat velocity, or under ISSUES.md B85 zero.
+    /// </summary>
+    /// <remarks>
+    /// Both residuals are <c>u^2 - b u + c</c> with <c>c = 2 a^2/(gamma+1)</c>, positive, so
+    /// the residual is positive at zero and the physical root is the smaller one, about
+    /// <c>c/b</c>. And <c>b</c> grows as the inverse of the discharge coefficient times the
+    /// area ratio, so as a valve shuts the root falls towards zero: once their product is
+    /// below about a millionth it falls below the original's lower end, both ends have the
+    /// same sign, and the solve stops. From zero the bracket holds the root however nearly
+    /// shut the valve is.
+    /// </remarks>
+    private static double LowerBracket(double throatVelocity, bool fromZero) =>
+        fromZero ? 0 : 0.000001 * throatVelocity;
 
     private static Func<double, double> SonicResidual(
         double gamma, double dischargeCoefficient, double areaRatio, double cylinderSpeedOfSound) =>
