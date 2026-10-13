@@ -86,6 +86,12 @@ public sealed class ManifoldSolver : IManifoldSource
 
     private readonly PipeLayout? _exhaustLayout;
 
+    /// <summary>B84: a valve that has just opened starts from a throat at rest at cylinder pressure.</summary>
+    private readonly bool _freshValveThroat;
+
+    /// <summary>Whether the inlet valve was open on the previous step, for B84.</summary>
+    private bool _inletWasOpen;
+
     /// <summary>B65: report the inlet valve end's temperature from the speed of sound it holds.</summary>
     private readonly bool _liveInletTemperature;
 
@@ -146,6 +152,7 @@ public sealed class ManifoldSolver : IManifoldSource
         _exhaustReleaseLatch = physics?.IsOn(CorrectionCatalogue.ExhaustValveLatch) ?? false;
         _inletReleaseLatch = physics?.IsOn(CorrectionCatalogue.InletValveLatch) ?? false;
         _liveInletTemperature = physics?.IsOn(CorrectionCatalogue.LiveInletTemperature) ?? false;
+        _freshValveThroat = physics?.IsOn(CorrectionCatalogue.FreshValveThroat) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -371,6 +378,14 @@ public sealed class ManifoldSolver : IManifoldSource
 
         if (open)
         {
+            // B84: the throat is left where the last valve event put it while the valve is
+            // shut, and the open routine's first pass resets it to the cylinder only on two
+            // tests a still pipe end with IVFR = 0 passes neither of.
+            if (_freshValveThroat && !_inletWasOpen)
+            {
+                _inletThroat = FreshThroat(_inletThroat, request.CylinderPressure);
+            }
+
             _inletThroat = InletValveOpenBoundary.Apply(
                 _inlet, _inletNext, valveEnd, _inletValve, dt,
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
@@ -389,8 +404,19 @@ public sealed class ManifoldSolver : IManifoldSource
             // which is what actually stops the flow.
         }
 
+        _inletWasOpen = open;
+
         Advance(_inlet, _inletNext);
     }
+
+    /// <summary>
+    /// The throat of a valve that has just opened: nothing yet flowing through it, at the
+    /// cylinder's pressure (ISSUES.md B84). Only the flow and the pressure are reset: the
+    /// speed of sound, density and discharge coefficient are left as they were.
+    /// </summary>
+    internal static InletValveReverseBoundary.ThroatState FreshThroat(
+        InletValveReverseBoundary.ThroatState throat, double cylinderPressure) =>
+        throat with { MachNumber = 0, Velocity = 0, Pressure = cylinderPressure };
 
     private void SolveExhaustPipe(in ManifoldRequest request, double dt, double crankAngle, bool open)
     {
