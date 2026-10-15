@@ -91,12 +91,9 @@ so that every input of a case sits in its own folder.
 
 ## What does not run
 
-**`VW8V_A4LowCost` runs**, in Corrected, at every speed of Figures 6.10 and 6.11. But two
-of Figure 6.11's runs, cam A at 4500 rpm and cam B at 5000, stop after their single-zone
-first cycle, whose inlet and exhaust totals happen to agree to within the convergence
-tolerance (`ISSUES.md` B86), and report 194 and 180 Nm; the figure's cam B minus cam A is
--89 and +80 Nm there. Four causes were found and fixed, by moving the case's inputs onto
-the working `A2China_Baseline` one group at a time and by tracing the stops:
+**`VW8V_A4LowCost` runs**, in Corrected, at every speed of Figures 6.10 and 6.11. Five
+causes were found and fixed, by moving the case's inputs onto the working
+`A2China_Baseline` one group at a time and by tracing the stops:
 
 - **λ below about 0.97** - **fixed** (`ISSUES.md` A34). The burnt-gas equilibrium matrix
   was too ill-conditioned for double; it is now retried in double-double, and the case
@@ -118,9 +115,13 @@ the working `A2China_Baseline` one group at a time and by tracing the stops:
   the last open step before the inlet closes the valve is half a micrometre open, and the
   throat velocity solve's root lies below its bracket's lower end of a millionth of the
   throat velocity. Under Corrected, or `B85=1`, the solves bracket from zero.
+- **One-cycle results** - **fixed behind the switch** (`ISSUES.md` B86). Cam A at 4500 rpm
+  and cam B at 5000 stopped after their single-zone first cycle, whose inlet and exhaust
+  totals happened to agree within the convergence tolerance, and reported 194 and 180 Nm,
+  -89 and +80 Nm in the figure's difference. Under Corrected, or `B86=1`, a run reports
+  no earlier than its first two-zone cycle.
 
-Away from those two speeds the model's cam B minus cam A is negative throughout, -3 to
--17 Nm, where the measured delta turns positive from 3500 rpm; which cam is which (V4) is
+The model's cam B minus cam A is negative throughout, -3 to -17 Nm (12.3 Nm rms), where the measured delta turns positive from 3500 rpm; which cam is which (V4) is
 the first thing to check. The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
 (V3). Nothing in the suite substitutes inputs to make it run, because that would be
 fitting.

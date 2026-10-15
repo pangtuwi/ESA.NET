@@ -99,8 +99,8 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   into a pressure source several times the pressure; under B83 each step is a junction
   (`PipeLayout`, `JunctionBoundary`), and under B84 its inlet valve, whose tuning constants are
   zero, opens from a fresh throat; under B85 its nearly shut valve's throat solve brackets from
-  zero. Figures 6.10 and 6.11 run at every speed, two of 6.11's runs stopping after one cycle
-  on the convergence test (`ISSUES.md` A36, B83-B86, `validation/README.md`, "What does not run").
+  zero. Figures 6.10 and 6.11 run at every speed (`ISSUES.md` A36, B83-B86,
+  `validation/README.md`, "What does not run").
 - **A grid row's file overrides (`IManfFile` to `ECamFile`) reach the run** since A30:
   `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
   `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each
