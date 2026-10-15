@@ -121,8 +121,7 @@ causes were found and fixed, by moving the case's inputs onto the working
   -89 and +80 Nm in the figure's difference. Under Corrected, or `B86=1`, a run reports
   no earlier than its first two-zone cycle.
 
-The model's cam B minus cam A is negative throughout, -3 to -17 Nm (12.3 Nm rms), where the measured delta turns positive from 3500 rpm; which cam is which (V4) is
-the first thing to check. The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
+The model's cam B minus cam A is negative throughout, -3 to -17 Nm (12.3 Nm rms), where the measured delta turns positive from 3500 rpm. The cams are not swapped, and the sign comes from cam B's exhaust timing (`ISSUES.md` F7). The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
 (V3). Nothing in the suite substitutes inputs to make it run, because that would be
 fitting.
 
@@ -143,7 +142,7 @@ measured curve. Each figure in `suite.json` lists the entries it depends on.
 | V1 | The eight-valve engine is `legacy/CAEEng/A4LowCost.eng`, including its fixed 15° spark, λ 0.92, and constant 20 kPa, 400 °C back pressure. The file is in the older `[InManifold]` schema: plenum pressure in kPa, wall temperatures in Celsius, grid sizes as fixed counts under `[Calculation]` | It is the only eight-valve definition that survives, named after the project and dated within it. Its cam profile 050 109 113 B is the "050 B" of the Kick-Up spreadsheet. The loader translates the older schema's units as the predecessor's own `Edit.pas` and `GridSizes.pas` (CAEEng backup) did (`ISSUES.md` A31-A33), so the case is a byte copy |
 | V2 | The long production manifold `06A133205G long.maf` (658 mm) stands in for both the final prototype manifold of Figure 6.10 and the 630 mm aluminium manifold of the cam study | Neither manifold file survives |
 | V3 | Figure 6.10 is compared as shape, not level | The case is the pre-development engine; the measured curve is the final one |
-| V4 | Cam A and cam B are Table 6.3's timings and lifts on the `050109113B` profile shape, the same lift for both valves | The cams' own profiles (026 109 113B and 113D) are not in the backup. `China Cam Effect Modelling.xls` identifies cam A as 026 109 101M and cam B as 101L |
+| V4 | Cam A and cam B are Table 6.3's timings and lifts on the `050109113B` profile shape, the same lift for both valves | The cams' own profiles (026 109 113B and 113D) are not in the backup. `China Cam Effect Modelling.xls` identifies cam A as 026 109 101M and cam B as 101L. Its cam data block, profile 113B, is cam A's 8.6 mm and 23/66/51/38 exactly, and its `Torque(101L-101M)` table is the figure's model and test series to the digit. Cam B's own block is not in the workbook. The thesis model ran `VWCh101M.eng` and `VWCh101L.eng` on `VWChina630T.maf` with 1050 mm of exhaust to the first box, at 10° spark; none survives, and the case's 15° makes no difference to the difference (`ISSUES.md` F7) |
 | C1 | Figure 6.12 is `data/baseline/A2China.eng`, the reference run's engine | `China_5V Baseline Modelling.xls` names the same engine, manifold and spark map; `ThesisCorrelationTests` uses it |
 | C2 | The compression ratio cases are `ChinaBora92.eng` with only `CR` changed, to the legend's 9.3 and 10.3 | `ChinaBora92/98/103.eng` are the compression ratio series; 92 says 9.2 where the figure says 9.3. `ChinaBora103.eng` was not used: it names a `ChinaBora103.spk` that does not exist and a different manifold, so it would change two things at once |
 | C3 | The timing loops are at 4000 rpm | Not recorded anywhere that survives. The measured torque (143-153 Nm) is the engine's level at its 4000 rpm peak |
