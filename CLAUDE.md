@@ -101,7 +101,8 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   zero, opens from a fresh throat; under B85 its nearly shut valve's throat solve brackets from
   zero. Figures 6.10 and 6.11 run at every speed (`ISSUES.md` A36, B83-B86,
   `validation/README.md`, "What does not run"). 6.11's cam B gain at speed is not reproduced:
-  the cams are not swapped, and cam B's early exhaust opening is what costs it (F7).
+  the cams are not swapped, and the original's IVC-to-EVO work window is what costs cam B's early
+  exhaust opening its torque (F7).
 - **A grid row's file overrides (`IManfFile` to `ECamFile`) reach the run** since A30:
   `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
   `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each
