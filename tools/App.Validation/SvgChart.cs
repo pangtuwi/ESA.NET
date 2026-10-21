@@ -106,8 +106,13 @@ internal sealed class SvgChart(AxisSpec x, AxisSpec y, string xUnit, string yUni
             switch (source)
             {
                 case Source.Measured:
+                    // A cross, over a halo of the background, so it reads on top of the curves.
+                    var cross = FormattableString.Invariant(
+                        $"M{N(Px(p.X) - 5)},{N(Py(p.Y) - 5)} L{N(Px(p.X) + 5)},{N(Py(p.Y) + 5)} M{N(Px(p.X) - 5)},{N(Py(p.Y) + 5)} L{N(Px(p.X) + 5)},{N(Py(p.Y) - 5)}");
                     _marks.Append(CultureInfo.InvariantCulture,
-                        $"<circle cx=\"{cx}\" cy=\"{cy}\" r=\"4.5\" fill=\"{colour}\" stroke=\"var(--surface-1)\" stroke-width=\"2\"/>");
+                        $"<path d=\"{cross}\" stroke=\"var(--surface-1)\" stroke-width=\"5\" stroke-linecap=\"round\"/>");
+                    _marks.Append(CultureInfo.InvariantCulture,
+                        $"<path d=\"{cross}\" stroke=\"{colour}\" stroke-width=\"2.5\" stroke-linecap=\"round\"/>");
                     break;
                 case Source.Thesis:
                     _marks.Append(CultureInfo.InvariantCulture,

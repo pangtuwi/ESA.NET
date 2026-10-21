@@ -55,7 +55,7 @@ internal static partial class HtmlReport
 
     private static string Key() =>
         "<p class=\"key\" aria-label=\"How to read the charts\">" +
-        "<span><svg width=\"22\" height=\"12\"><circle cx=\"11\" cy=\"6\" r=\"4.5\" fill=\"var(--text-secondary)\"/></svg>measured on the dynamometer</span>" +
+        "<span><svg width=\"22\" height=\"12\"><path d=\"M6,1 L16,11 M6,11 L16,1\" stroke=\"var(--text-secondary)\" stroke-width=\"2.5\" stroke-linecap=\"round\"/></svg>measured on the dynamometer</span>" +
         "<span><svg width=\"30\" height=\"12\"><line x1=\"1\" x2=\"29\" y1=\"6\" y2=\"6\" stroke=\"var(--text-secondary)\" stroke-width=\"2\" stroke-dasharray=\"7 4\"/><rect x=\"11.5\" y=\"2.5\" width=\"7\" height=\"7\" fill=\"var(--surface-1)\" stroke=\"var(--text-secondary)\" stroke-width=\"1.6\"/></svg>the thesis's 2002 model</span>" +
         "<span><svg width=\"30\" height=\"12\"><line x1=\"1\" x2=\"29\" y1=\"6\" y2=\"6\" stroke=\"var(--text-secondary)\" stroke-width=\"2.5\"/><circle cx=\"15\" cy=\"6\" r=\"3.5\" fill=\"var(--text-secondary)\"/></svg>ESA.NET now</span>" +
         "<span><svg width=\"30\" height=\"12\"><line x1=\"1\" x2=\"29\" y1=\"6\" y2=\"6\" stroke=\"var(--text-secondary)\" stroke-width=\"1.6\" stroke-dasharray=\"1.5 3.5\"/></svg>previous run</span>" +
@@ -174,11 +174,6 @@ internal static partial class HtmlReport
 
             foreach (var s in series)
             {
-                chart.Add(s.Slot, s.Spec.Name, Source.Measured, s.Measured);
-            }
-
-            foreach (var s in series)
-            {
                 chart.Add(s.Slot, s.Spec.Name, Source.Thesis, s.Thesis);
                 if (s.Previous is not null)
                 {
@@ -187,6 +182,12 @@ internal static partial class HtmlReport
 
                 chart.Add(s.Slot, s.Spec.Name, Source.Esa, s.Esa);
                 chart.AddFailures(s.Spec.Name, s.Failures);
+            }
+
+            // The measured crosses last, so no curve's markers cover them.
+            foreach (var s in series)
+            {
+                chart.Add(s.Slot, s.Spec.Name, Source.Measured, s.Measured);
             }
 
             html.Append("<figure>").Append(chart.Render($"Figure {spec.Id}: {ySpec.Label} against {spec.X.Label}")).Append("</figure>");
