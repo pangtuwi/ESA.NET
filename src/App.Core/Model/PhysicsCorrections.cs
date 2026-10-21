@@ -272,6 +272,14 @@ public static class CorrectionCatalogue
         new("B87", "BMEP is the cycle's net indicated work less the friction correlation, not the work from inlet closing to exhaust opening");
 
     /// <summary>
+    /// ISSUES.md B88: friction is the mechanical and auxiliary friction of Sandoval and
+    /// Heywood's model, from the engine's design, with pumping from the simulated cycle only,
+    /// not the Barnes-Moss curve in speed, which carries pumping of its own.
+    /// </summary>
+    public static Correction MechanicalFriction { get; } =
+        new("B88", "Friction is a mechanical model from the engine's design, with pumping from the simulated cycle, not a total-friction curve in speed");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -291,6 +299,7 @@ public static class CorrectionCatalogue
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
+        MechanicalFriction,
     ];
 }
 

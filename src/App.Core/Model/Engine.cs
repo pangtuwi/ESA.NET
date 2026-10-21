@@ -83,6 +83,9 @@ public sealed class Engine
 
     public WallTemperatureTable WallTemperature { get; set; } = new();
 
+    /// <summary>The mechanical friction model's inputs, from optional <c>[Friction]</c> keys (ISSUES.md B88).</summary>
+    public FrictionInputs Friction { get; set; } = new();
+
     public SpeedKeyedTable SparkAngle { get; set; } = new();
 
     /// <summary>Oil viscosity, Delphi <c>VOil</c>.</summary>

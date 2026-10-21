@@ -52,7 +52,19 @@ public sealed class PerformanceCalculator
         // the gas does the same work. Under B87 BMEP is the whole cycle's net work, IMEP
         // less PMEP, less the friction correlation, which no window divides; IMEP and PMEP
         // are still reported as the original splits them. See ISSUES.md B87.
-        if (physics?.IsOn(CorrectionCatalogue.NetWorkTorque) ?? false)
+        //
+        // Under B88 friction is not that curve, which as a motored total carries pumping of
+        // its own, but the engine's mechanical and auxiliary friction from its design, set
+        // against the same net work, so pumping is the simulated cycle's alone. See
+        // ISSUES.md B88.
+        if (physics?.IsOn(CorrectionCatalogue.MechanicalFriction) ?? false)
+        {
+            engine.Fmep = FrictionModel.Calculate(
+                    FrictionGeometry.FromEngine(engine), engine.Rpm, engine.Plenum.PGas / engine.Atmosphere.PGas)
+                .Total;
+            engine.Bmep = engine.Imep - engine.Pmep - engine.Fmep;
+        }
+        else if (physics?.IsOn(CorrectionCatalogue.NetWorkTorque) ?? false)
         {
             engine.Fmep = TotalFmep(engine.Rpm);
             engine.Bmep = engine.Imep - engine.Pmep - engine.Fmep;
