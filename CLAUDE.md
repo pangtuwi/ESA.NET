@@ -101,7 +101,8 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   zero, opens from a fresh throat; under B85 its nearly shut valve's throat solve brackets from
   zero. Figures 6.10 and 6.11 run at every speed (`ISSUES.md` A36, B83-B86,
   `validation/README.md`, "What does not run"). 6.11's cam B gain at speed is not reproduced:
-  the cams are not swapped, and cam B's early exhaust opening is what costs it (F7).
+  the cams are not swapped; the original's IVC-to-EVO work window cost cam B's early exhaust
+  opening its torque, and under B87 torque is the cycle's net work less friction (B87, F7).
 - **A grid row's file overrides (`IManfFile` to `ECamFile`) reach the run** since A30:
   `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
   `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each
@@ -282,13 +283,14 @@ work.
   the plenum's, and since B77 it counts work without the original's one-step phase error,
   about 4 % more, and since B78 its burns conserve energy where the original's created about
   15 % of the fuel energy, and since B37 overlap runs as two zones, the burnt residual and the
-  fresh charge. With every correction torque is about 8 % higher at 4000 rpm and about 10 %
-  lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  fresh charge, and since B87 torque is the cycle's net work less friction, not the work from inlet
+  closing to exhaust opening. With every correction torque is about 12 % higher at 4000 rpm and
+  about 6 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 - **Both modes match the dynamometer.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (7.4 %
-  over all sixteen correlated speeds since B85, 7.2 before, 163.3 Nm; it ran only fourteen
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (8.7 %
+  over all sixteen correlated speeds since B87, bias +4.2 %, 169.8 Nm; 7.4 % and 163.3 Nm before; it ran only fourteen
   until A29 was fixed, and is 5.4 % over those). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A
   correction's oracle says it is right; the thesis curve says whether Corrected as a whole is.

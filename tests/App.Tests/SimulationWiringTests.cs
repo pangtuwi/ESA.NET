@@ -67,10 +67,11 @@ public sealed class SimulationWiringTests
         Assert.True(viewModel.EnergyBalanceCommand.CanExecute(null));
         Assert.True(viewModel.PressureVolumeCommand.CanExecute(null));
 
-        // And a point lands on the torque curve.
+        // And a point lands on the torque curve: a plausible one, not a figure under test.
+        // Corrected, the application's default, is about 170 Nm at 4000 rpm since B87.
         var point = Assert.Single(viewModel.Performance.Points);
         Assert.Equal(4000, point.Speed);
-        Assert.InRange(point.Torque, 140, 165);
+        Assert.InRange(point.Torque, 140, 180);
         Assert.True(viewModel.TorqueCurveCommand.CanExecute(null));
 
         // The status line reports what happened rather than staying blank.

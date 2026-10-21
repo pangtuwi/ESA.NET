@@ -264,6 +264,14 @@ public static class CorrectionCatalogue
         new("B86", "Convergence is not tested until a two-zone cycle has run: the warm-up cycle's balance is a coincidence");
 
     /// <summary>
+    /// ISSUES.md B87: BMEP, and torque with it, is the cycle's net indicated work less the
+    /// friction correlation, not the work from inlet closing to exhaust opening less it,
+    /// which made torque depend on the valve timings through the window.
+    /// </summary>
+    public static Correction NetWorkTorque { get; } =
+        new("B87", "BMEP is the cycle's net indicated work less the friction correlation, not the work from inlet closing to exhaust opening");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -282,7 +290,7 @@ public static class CorrectionCatalogue
         SecantProbe, LiveInletTemperature, AreaClamp, AnalyticPressureDerivative,
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
-        AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence,
+        AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
     ];
 }
 

@@ -151,7 +151,7 @@ public sealed class SimulationRunner
                 && CorrectionCatalogue.MayConverge(settings.Physics, cycle - 1, settings.OneZoneCycleCount))
             {
                 engine.CycleCount = cycle - 1;
-                new PerformanceCalculator().Calculate(engine);
+                new PerformanceCalculator().Calculate(engine, settings.Physics);
 
                 // The cycle that just converged never ran, so the recorder still holds the
                 // one before it - which is the last cycle there was.
@@ -171,7 +171,7 @@ public sealed class SimulationRunner
         }
 
         engine.CycleCount = requested;
-        new PerformanceCalculator().Calculate(engine);
+        new PerformanceCalculator().Calculate(engine, settings.Physics);
 
         return new SimulationResult(
             engine, recorder.Trace, requested, Converged: false, ManifoldDataCaptured: capturing,

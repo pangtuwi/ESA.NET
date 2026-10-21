@@ -121,7 +121,7 @@ causes were found and fixed, by moving the case's inputs onto the working
   -89 and +80 Nm in the figure's difference. Under Corrected, or `B86=1`, a run reports
   no earlier than its first two-zone cycle.
 
-The model's cam B minus cam A is negative throughout, -3 to -17 Nm (12.3 Nm rms), where the measured delta turns positive from 3500 rpm. The cams are not swapped, and the sign comes from cam B's exhaust timing (`ISSUES.md` F7). The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
+The cams are not swapped. The original counted torque from the work between inlet closing and exhaust opening only, so cam B's earlier exhaust opening moved work the gas still does out of torque, and cam B minus cam A was negative at every speed (12.3 Nm rms). Under B87 torque is the cycle's net work less friction, and the delta is 5.3 Nm rms, positive at speed as measured though smaller (`ISSUES.md` B87, F7). The case is 13.6 % rms below the measured Figure 6.10, which it is compared with as shape
 (V3). Nothing in the suite substitutes inputs to make it run, because that would be
 fitting.
 
