@@ -45,7 +45,7 @@ reported rather than aborting the run. The folder holds:
 - **`failures.csv`**: every run that did not finish, with its message.
 - **`run.json`**: what was run and when. `--previous` reads it along with `results.csv`.
 
-The charts mark where each curve came from. Dots are the dynamometer, a dashed line with
+The charts mark where each curve came from. Crosses in the series colour are the dynamometer, drawn over everything else, a dashed line with
 open squares is the thesis's 2002 model, a solid line is ESA.NET now, and a dotted line
 is the previous run. Colour marks the series. Each comparison is the rms and the bias of
 one curve against another, taken at the reference curve's own points, in percent of the
