@@ -23,7 +23,9 @@ public sealed class PerformanceCalculator
         1.0e5 * (0.97 + (0.15 * rpm / 1000) + (0.05 * (rpm / 1000) * (rpm / 1000)));
 
     /// <summary>Computes every reported figure and stores it on <paramref name="engine"/>.</summary>
-    public void Calculate(Engine engine)
+    /// <param name="engine">The engine whose completed cycle to report.</param>
+    /// <param name="physics">Which corrections apply (<c>CORRECTIONS.md</c>). Null is Legacy.</param>
+    public void Calculate(Engine engine, PhysicsCorrections? physics = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
 
@@ -43,8 +45,23 @@ public sealed class PerformanceCalculator
         // FMEP is the friction correlation minus PMEP, and BMEP then subtracts PMEP
         // again, so the two cancel and BMEP is really IMEP - TFMEP. The reported FMEP is
         // therefore the intermediate rather than the correlation. See ISSUES.md B2.
-        engine.Fmep = TotalFmep(engine.Rpm) - engine.Pmep;
-        engine.Bmep = engine.Imep - engine.Pmep - engine.Fmep;
+        //
+        // IMEP is the work from inlet closing to exhaust opening and PMEP the rest
+        // (CycleSolver.AccumulateWorkAndHeat), so the original's torque counts the work in
+        // that window only, and moving a valve event moves work in or out of torque though
+        // the gas does the same work. Under B87 BMEP is the whole cycle's net work, IMEP
+        // less PMEP, less the friction correlation, which no window divides; IMEP and PMEP
+        // are still reported as the original splits them. See ISSUES.md B87.
+        if (physics?.IsOn(CorrectionCatalogue.NetWorkTorque) ?? false)
+        {
+            engine.Fmep = TotalFmep(engine.Rpm);
+            engine.Bmep = engine.Imep - engine.Pmep - engine.Fmep;
+        }
+        else
+        {
+            engine.Fmep = TotalFmep(engine.Rpm) - engine.Pmep;
+            engine.Bmep = engine.Imep - engine.Pmep - engine.Fmep;
+        }
 
         engine.Torque = engine.Bmep * sweptVolume * engine.CylinderCount / (2 * 2 * Math.PI);
         engine.BrakePower = engine.Torque * engine.Rpm * 2 * Math.PI / 60;
