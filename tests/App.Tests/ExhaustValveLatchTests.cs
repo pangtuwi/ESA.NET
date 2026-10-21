@@ -223,8 +223,8 @@ public sealed class ExhaustValveLatchTests
 
         var result = runner.Run(engine, settings, cancellation: TestContext.Current.CancellationToken);
 
-        // Measured at 159.8 Nm, against 163.3 at lambda 1.
-        Assert.InRange(result.Engine.Torque, 150, 170);
+        // Measured at 178.4 Nm, against 182.8 at lambda 1; 159.8 and 163.3 before B88.
+        Assert.InRange(result.Engine.Torque, 165, 190);
         Assert.True(result.Diagnostics!.Manifold.ExhaustValveLatchReleases > 0);
     }
 }

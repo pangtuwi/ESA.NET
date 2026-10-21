@@ -452,6 +452,62 @@ public abstract class EngineDefinition
     public double ExhaustInsertAt => GetDouble("ExManifold", "InsertAt", 0);
 
     /// <summary>True when the file lists wall temperatures inline.</summary>
+    // ---------------------------------------------------------------------------
+    // Friction. No ESA file has these keys: the original's friction is a curve in speed
+    // alone. The mechanical friction model of ISSUES.md B88 reads them where they are
+    // given and defaults what is not, and nothing writes them, so every existing file
+    // stays byte-identical.
+    // ---------------------------------------------------------------------------
+
+    /// <summary>Main bearing diameter, mm, or null.</summary>
+    public double? FrictionMainBearingDiameter => GetOptionalDouble("Friction", "MainBearingD");
+
+    /// <summary>Main bearing length, mm, or null.</summary>
+    public double? FrictionMainBearingLength => GetOptionalDouble("Friction", "MainBearingL");
+
+    /// <summary>Number of main bearings, or null.</summary>
+    public int? FrictionMainBearingCount => GetOptionalInt32("Friction", "MainBearings");
+
+    /// <summary>Connecting rod bearing diameter, mm, or null.</summary>
+    public double? FrictionRodBearingDiameter => GetOptionalDouble("Friction", "RodBearingD");
+
+    /// <summary>Connecting rod bearing length, mm, or null.</summary>
+    public double? FrictionRodBearingLength => GetOptionalDouble("Friction", "RodBearingL");
+
+    /// <summary>Number of camshaft bearings, every camshaft together, or null.</summary>
+    public int? FrictionCamshaftBearingCount => GetOptionalInt32("Friction", "CamBearings");
+
+    /// <summary>The valvetrain mechanism by its <c>ValvetrainMechanism</c> name, or null.</summary>
+    public string? FrictionValvetrain => GetValue("Friction", "Valvetrain");
+
+    /// <summary>The cam follower, <c>Flat</c> or <c>Roller</c>, or null.</summary>
+    public string? FrictionFollower => GetValue("Friction", "Follower");
+
+    /// <summary>Oil viscosity over the model's reference, or null.</summary>
+    public double? FrictionOilViscosityRatio => GetOptionalDouble("Friction", "OilViscosityRatio");
+
+    /// <summary>Piston ring tension over the model's reference, or null.</summary>
+    public double? FrictionRingTensionRatio => GetOptionalDouble("Friction", "RingTensionRatio");
+
+    /// <summary>Liner roughness factor, or null.</summary>
+    public double? FrictionRingRoughnessFactor => GetOptionalDouble("Friction", "RingRoughness");
+
+    private double? GetOptionalDouble(string section, string key)
+    {
+        var raw = GetValue(section, key);
+        return raw is not null && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
+    }
+
+    private int? GetOptionalInt32(string section, string key)
+    {
+        var raw = GetValue(section, key);
+        return raw is not null && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
+    }
+
     public bool HasInlineWallTemperatures => GetValue("Cylinders", "THead") is not null;
 
     /// <summary>

@@ -284,14 +284,16 @@ work.
   about 4 % more, and since B78 its burns conserve energy where the original's created about
   15 % of the fuel energy, and since B37 overlap runs as two zones, the burnt residual and the
   fresh charge, and since B87 torque is the cycle's net work less friction, not the work from inlet
-  closing to exhaust opening. With every correction torque is about 12 % higher at 4000 rpm and
-  about 6 % lower at 3000, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  closing to exhaust opening, and since B88 friction is a mechanical model from the engine's design
+  (Sandoval and Heywood), about half the Barnes-Moss curve, with pumping from the cycle alone. With
+  every correction torque is about 20 % higher at 4000 rpm, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
-- **Both modes match the dynamometer.** `data/thesis/` holds the baseline engine's measured
+- **Legacy matches the dynamometer; Corrected over-predicts it since B88.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (8.7 %
-  over all sixteen correlated speeds since B87, bias +4.2 %, 169.8 Nm; 7.4 % and 163.3 Nm before; it ran only fourteen
-  until A29 was fixed, and is 5.4 % over those). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (19.1 %
+  since B88, bias +16.3 %, 182.8 Nm; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
+  speeds until A29 was fixed). The mechanical friction of B88 is about half the curve's, which had been
+  hiding an over-prediction elsewhere in Corrected (`ISSUES.md` B88, F8). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A
   correction's oracle says it is right; the thesis curve says whether Corrected as a whole is.
   See `ISSUES.md` B78 and F6.

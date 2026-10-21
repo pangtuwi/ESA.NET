@@ -25,6 +25,9 @@ public sealed class NetWorkTorqueTests
     {
         var physics = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
         physics.Overrides[CorrectionCatalogue.NetWorkTorque.Entry] = netWork;
+
+        // B87 is about the window the friction curve is set against, so the curve stays.
+        physics.Overrides[CorrectionCatalogue.MechanicalFriction.Entry] = false;
         return physics;
     }
 

@@ -176,9 +176,10 @@ public sealed class RichMixtureTests
         TestContext.Current.TestOutputHelper?.WriteLine(
             $"{mode}: {result.Engine.Torque:F2} Nm, {diagnostics.EquilibriumExtendedPrecisionReductions} widened reductions of {diagnostics.EquilibriumSolves} solves");
 
-        // Measured at 152.8 Nm in Legacy and 163.9 in Corrected, against 151.8 and 163.3 at
-        // lambda 1: a little more torque for a little more fuel, as an engine gives.
-        Assert.InRange(result.Engine.Torque, 145, 175);
+        // Measured at 152.8 Nm in Legacy and 182.9 in Corrected, against 151.8 and 182.8 at
+        // lambda 1: a little more torque for a little more fuel, as an engine gives. Corrected
+        // was 163.9 before B88's mechanical friction (ISSUES.md B88).
+        Assert.InRange(result.Engine.Torque, 145, 195);
         Assert.True(diagnostics.EquilibriumExtendedPrecisionReductions > 0);
     }
 }

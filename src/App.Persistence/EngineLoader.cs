@@ -58,6 +58,7 @@ public sealed class EngineLoader : IEngineLoader
         ApplyValveGeometry(engine, definition);
         ApplyExpressions(engine, definition);
         ApplyOlderSchemaValues(engine, definition);
+        ApplyFriction(engine, definition);
         LoadSideFiles(engine, definition, context);
 
         // The same definition instance goes back out, so whoever is editing it - the edit
@@ -139,6 +140,30 @@ public sealed class EngineLoader : IEngineLoader
         exhaust.Count = definition.ExhaustValveCount;
         exhaust.Diameter = EngineFileUnits.Length(definition.ExhaustValveDiameter);
         exhaust.ProfileFile = definition.ExhaustValveProfileFile;
+    }
+
+    private static void ApplyFriction(Engine engine, EngineDefinition definition)
+    {
+        // Optional [Friction] keys for the mechanical friction model; what is absent stays
+        // null and is defaulted when the model runs (ISSUES.md B88).
+        engine.Friction = new FrictionInputs
+        {
+            MainBearingDiameter = definition.FrictionMainBearingDiameter,
+            MainBearingLength = definition.FrictionMainBearingLength,
+            MainBearingCount = definition.FrictionMainBearingCount,
+            RodBearingDiameter = definition.FrictionRodBearingDiameter,
+            RodBearingLength = definition.FrictionRodBearingLength,
+            CamshaftBearingCount = definition.FrictionCamshaftBearingCount,
+            Valvetrain = Enum.TryParse<ValvetrainMechanism>(definition.FrictionValvetrain, ignoreCase: true, out var mechanism)
+                ? mechanism
+                : null,
+            Follower = Enum.TryParse<CamFollower>(definition.FrictionFollower, ignoreCase: true, out var follower)
+                ? follower
+                : null,
+            OilViscosityRatio = definition.FrictionOilViscosityRatio,
+            RingTensionRatio = definition.FrictionRingTensionRatio,
+            RingRoughnessFactor = definition.FrictionRingRoughnessFactor,
+        };
     }
 
     private static void ApplyExpressions(Engine engine, EngineDefinition definition)
