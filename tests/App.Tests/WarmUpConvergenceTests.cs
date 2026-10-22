@@ -58,35 +58,27 @@ public sealed class WarmUpConvergenceTests
 
     /// <summary>
     /// The case it was found on: the baseline engine at 1500 rpm, Corrected as it stood
-    /// before B85. The warm-up cycle's totals agree to within the 1 mg tolerance and the
-    /// original reports it, at 135 Nm against 106 measured; with B86 the run goes on, and
-    /// lands within a few per cent of the dynamometer.
+    /// before B85. There the warm-up cycle's totals agreed to within the 1 mg tolerance and
+    /// the original reported it, at 135 Nm against 106 measured. Since A39 they no longer
+    /// agree by that coincidence, the overlap's flows having changed, so only B86's half
+    /// is left to test here: the run goes on past the warm-up cycle and lands within a few
+    /// per cent of the dynamometer. The original's early stop is
+    /// <see cref="TheWarmUpCycleIsNeverTheConvergedOne"/>'s.
     /// </summary>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void TheBaselineEngineAt1500RpmIsNotReportedFromItsWarmUpCycle(bool warmUpConvergence)
+    [Fact]
+    public void TheBaselineEngineAt1500RpmIsNotReportedFromItsWarmUpCycle()
     {
         BaselinePaths.Require();
 
         var physics = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
         physics.Overrides[CorrectionCatalogue.ThroatSolveFromZero.Entry] = false;
 
-        // B89 changes the warm-up cycle's burn, and with it the coincidence this rebuilds.
+        // B89 changes the warm-up cycle's burn, and with it the case this rebuilds.
         physics.Overrides[CorrectionCatalogue.WiebeBurn.Entry] = false;
-        physics.Overrides[CorrectionCatalogue.WarmUpConvergence.Entry] = warmUpConvergence;
 
         var result = Run(1500, 1, physics);
 
-        if (warmUpConvergence)
-        {
-            Assert.True(result.CyclesRun >= 2, $"{result.CyclesRun}");
-            Assert.Equal(106.0, result.Engine.Torque, 106.0 * 0.1);
-        }
-        else
-        {
-            Assert.Equal(1, result.CyclesRun);
-            Assert.True(result.Engine.Torque > 125, $"{result.Engine.Torque}");
-        }
+        Assert.True(result.CyclesRun >= 2, $"{result.CyclesRun}");
+        Assert.Equal(106.0, result.Engine.Torque, 106.0 * 0.1);
     }
 }
