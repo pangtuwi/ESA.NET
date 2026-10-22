@@ -212,4 +212,45 @@ public sealed class ThroatVelocitySolversTests
 
         Assert.Equal(original, fromZero, original * 1e-9);
     }
+
+    private static double AreaMachResidual(double gamma, double cd, double areaRatio, double mach) =>
+        (1 / cd / areaRatio)
+        - (1 / mach * Math.Pow(2 / (gamma + 1) * (1 + ((gamma - 1) / 2 * mach * mach)), (gamma + 1) / 2 / (gamma - 1)));
+
+    /// <summary>
+    /// B91's oracle: the subsonic root of the area-Mach relation lies between
+    /// <c>g(0) Cd AR</c> and 1, and the solve finds it across six decades of
+    /// <c>Cd AR</c>, including the nearly shut valve it was found on: the eight-valve engine
+    /// at 6000 rpm under B90, overlap at crank -329, Cd 0.0104 and area ratio 1.36e-4.
+    /// </summary>
+    [Theory]
+    [InlineData(1.3302313921665512, 0.010416786570743464, 0.00013629486544891977)]
+    [InlineData(ExhaustGamma, 0.5, 0.4)]
+    [InlineData(ExhaustGamma, 0.8, 0.4)]
+    [InlineData(ExhaustGamma, 0.3, 1e-3)]
+    [InlineData(ExhaustGamma, 0.9, 0.99)]
+    [InlineData(1.4, 1e-3, 1e-3)]
+    public void UnderB91TheSonicMachSolveFindsTheSubsonicRoot(double gamma, double cd, double areaRatio)
+    {
+        var mach = ThroatVelocitySolvers.ExhaustSonicMach(gamma, cd, areaRatio, analyticBracket: true);
+        var lowest = Math.Pow(2 / (gamma + 1), (gamma + 1) / 2 / (gamma - 1)) * cd * areaRatio;
+
+        Assert.InRange(mach, lowest, 1);
+        Assert.True(
+            Math.Abs(AreaMachResidual(gamma, cd, areaRatio, mach)) * cd * areaRatio < 1e-6,
+            $"{AreaMachResidual(gamma, cd, areaRatio, mach)} at {mach}");
+    }
+
+    /// <summary>
+    /// The original's bracket, 0.45 to 0.75 of the area ratio, holds the root only for a
+    /// discharge coefficient near 1, and stops the run on the nearly shut valve and on an
+    /// ordinary one of 0.5.
+    /// </summary>
+    [Theory]
+    [InlineData(1.3302313921665512, 0.010416786570743464, 0.00013629486544891977)]
+    [InlineData(ExhaustGamma, 0.5, 0.4)]
+    public void TheOriginalsSonicMachBracketMissesALowDischargeCoefficient(double gamma, double cd, double areaRatio)
+    {
+        Assert.Throws<CfdException>(() => ThroatVelocitySolvers.ExhaustSonicMach(gamma, cd, areaRatio));
+    }
 }
