@@ -97,10 +97,11 @@ public static class InletValveReverseBoundary
         var footP = grid.Pressure[interior];
         var footR = grid.Density[interior];
 
-        // B59 judges the stall against the pipe end's own pressure (see below).
+        // B59 judges the stall against the pipe end, and A39 against the pressure the end
+        // would have this step with nothing flowing (see below).
         var pipeEndPressure = grid.Pressure[q];
         var pipeEndDensity = grid.Density[q];
-        var stalled = stallBelowThroat && cylinderPressure <= pipeEndPressure;
+        var stalled = false;
 
         var throatPressure = throat.Pressure;
         var throatMach = throat.MachNumber;
@@ -157,6 +158,20 @@ public static class InletValveReverseBoundary
                 footU = line.VelocityAt(x);
                 footP = line.PressureAt(x);
                 footR = line.DensityAt(x);
+            }
+
+            // B59 stalls the valve when the cylinder cannot push gas into the pipe. Judged
+            // against the pipe end's pressure from the previous step, the judgement flips
+            // every step near equality: stalled, the end is a wall and its pressure falls
+            // below the cylinder's; flowing, the gas it takes raises it above. The flip
+            // feeds an odd-even oscillation into the pipe that grows until it fails
+            // (ISSUES.md A39). The pressure the end would have this step with nothing
+            // flowing is the arriving characteristic's constant, tPlus, which is what the
+            // stalled branch sets it to: the cylinder cannot push into an end that would
+            // stand above it at rest. Decided once, on the first pass, for the step.
+            if (iteration == 0 && stallBelowThroat)
+            {
+                stalled = cylinderPressure <= tPlus;
             }
 
             // The reverse tuning constant only ever appears here, nudging the throat
