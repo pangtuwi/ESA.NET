@@ -22,6 +22,14 @@ public sealed class Fuel
 
     public double BurnAngle { get; set; }
 
+    /// <summary>
+    /// Crank angle from the spark to the start of combustion, in degrees: the flame
+    /// development the original's burn law has no place for. No Delphi counterpart; read
+    /// from an optional <c>[Fuel] CombustionDelay</c> key, 0 when absent, and used only
+    /// under B89 (ISSUES.md B89).
+    /// </summary>
+    public double CombustionDelay { get; set; }
+
     /// <summary>Fuel mass, <c>m</c>.</summary>
     public double M { get; set; }
 

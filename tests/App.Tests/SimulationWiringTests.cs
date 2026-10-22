@@ -68,7 +68,7 @@ public sealed class SimulationWiringTests
         Assert.True(viewModel.PressureVolumeCommand.CanExecute(null));
 
         // And a point lands on the torque curve: a plausible one, not a figure under test.
-        // Corrected, the application's default, is about 183 Nm at 4000 rpm since B88.
+        // Corrected, the application's default, is about 185 Nm at 4000 rpm since B89.
         var point = Assert.Single(viewModel.Performance.Points);
         Assert.Equal(4000, point.Speed);
         Assert.InRange(point.Torque, 140, 195);
