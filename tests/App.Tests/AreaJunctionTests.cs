@@ -613,7 +613,9 @@ public sealed class AreaJunctionTests
 
         if (stopsWithoutJunctions)
         {
-            Assert.Contains("Presssure negative", Failure(rpm, junctions: false));
+            // The steps drive the gas state negative, its pressure or its density first
+            // depending on the burn.
+            Assert.Contains("negative in \"cThermo\"", Failure(rpm, junctions: false));
         }
 
         Assert.Null(Failure(rpm, junctions: true));

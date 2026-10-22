@@ -312,11 +312,28 @@ public sealed class TwoZoneGas
     public bool WiebeBurn { get; set; }
 
     /// <summary>
+    /// The flame-development angle at the running speed, spark to 10 per cent burnt, in
+    /// degrees, when B90 supplies the default delay; null otherwise. Set by the solver
+    /// from <see cref="FlameDevelopment.Angle"/>.
+    /// </summary>
+    public double? FlameDevelopmentAngle { get; set; }
+
+    /// <summary>
+    /// Degrees from the spark to the start of combustion: the file's
+    /// <see cref="Model.Fuel.CombustionDelay"/> if it gives one; otherwise, under B90, the
+    /// delay that puts the Wiebe law's 10 per cent point at the flame-development angle,
+    /// for the burn angle the cylinder has now; otherwise none. Only under B89.
+    /// </summary>
+    public double DelayToStartOfCombustion =>
+        !WiebeBurn ? 0
+        : State.Fuel.CombustionDelay
+          ?? (FlameDevelopmentAngle is { } angle ? FlameDevelopment.DefaultDelay(angle, State.Fuel.BurnAngle) : 0);
+
+    /// <summary>
     /// The crank angle combustion starts at, in degrees: the spark, plus the delay to the
     /// start of combustion under B89.
     /// </summary>
-    public double StartOfCombustion =>
-        WiebeBurn ? State.ThetaSpark + State.Fuel.CombustionDelay : State.ThetaSpark;
+    public double StartOfCombustion => State.ThetaSpark + DelayToStartOfCombustion;
 
     /// <summary>
     /// Fraction of the charge burnt at this crank angle. Port of the private

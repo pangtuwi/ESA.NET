@@ -121,7 +121,7 @@ causes were found and fixed, by moving the case's inputs onto the working
   -89 and +80 Nm in the figure's difference. Under Corrected, or `B86=1`, a run reports
   no earlier than its first two-zone cycle.
 
-The cams are not swapped. The original counted torque from the work between inlet closing and exhaust opening only, so cam B's earlier exhaust opening moved work the gas still does out of torque, and cam B minus cam A was negative at every speed (12.3 Nm rms). Under B87 torque is the cycle's net work less friction, and the delta is 5.3 Nm rms, positive at speed as measured though smaller (`ISSUES.md` B87, F7). The case is 7.1 % rms against the measured Figure 6.10, 4.6 % above it, since B89's Wiebe burn (6.6 %, 3.9 % above, under B88's mechanical friction; 10.2 % rms, 9.3 % below, with the Barnes-Moss curve), which it is compared with as shape
+The cams are not swapped. The original counted torque from the work between inlet closing and exhaust opening only, so cam B's earlier exhaust opening moved work the gas still does out of torque, and cam B minus cam A was negative at every speed (12.3 Nm rms). Under B87 torque is the cycle's net work less friction, and the delta is 5.3 Nm rms, positive at speed as measured though smaller (`ISSUES.md` B87, F7). The case is 13.5 % rms against the measured Figure 6.10, 13.1 % below it, since B90's flame-development delay; the case is short of air (`ISSUES.md` F8), which the over-efficiency of the earlier corrections had hidden (7.1 %, 4.6 % above, under B89; 10.2 % rms, 9.3 % below, with the Barnes-Moss curve), which it is compared with as shape
 (V3). Nothing in the suite substitutes inputs to make it run, because that would be
 fitting.
 

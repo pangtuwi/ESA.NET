@@ -110,7 +110,7 @@ public sealed class WiebeBurnTests
     {
         BaselinePaths.Require();
 
-        Assert.Equal(0, Loader().Load(BaselinePaths.File("A2China.eng")).Engine.Cylinder.Fuel.CombustionDelay);
+        Assert.Null(Loader().Load(BaselinePaths.File("A2China.eng")).Engine.Cylinder.Fuel.CombustionDelay);
     }
 
     /// <summary>

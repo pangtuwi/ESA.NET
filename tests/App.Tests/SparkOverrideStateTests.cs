@@ -58,6 +58,10 @@ public sealed class SparkOverrideStateTests
         var engine = BaselineEngine();
         engine.Rpm = 4000;
         var physics = new PhysicsCorrections { Mode = mode };
+
+        // The window follows the spark itself here; B90 would start it later by the
+        // default delay to the start of combustion.
+        physics.Overrides[CorrectionCatalogue.FlameDevelopmentDelay.Entry] = false;
         var solver = new CycleSolver(engine, new ManifoldSolver(engine, physics: physics), physics: physics);
         Assert.True(solver.Initialise());
         Assert.Equal(21, solver.SparkAdvance);
