@@ -33,6 +33,18 @@ namespace App.Core.Manifold;
 /// the characteristics are then traced again from the new faces until the faces stop
 /// moving, to the tolerances <see cref="CharacteristicSolver"/> uses for an interior point.
 /// </para>
+/// <para>
+/// A step can choke, and the face that chokes is the smaller one. When the subsonic
+/// solution puts it at or past the speed of sound it is solved again as choked, its
+/// velocity the local speed of sound in the direction of the flow (ISSUES.md A38). Gas
+/// leaving the smaller area into the larger then leaves as a sonic jet: the upstream face
+/// is sonic and fixed by its characteristic and entropy alone, and the downstream face by
+/// its own characteristic, mass and energy, the Borda-Carnot momentum balance giving way,
+/// as it must once the jet's exit pressure no longer acts across the whole step. Gas
+/// entering the smaller area chokes at its downstream face, where the characteristic from
+/// downstream stands still and can carry nothing back, so that relation gives way to the
+/// sonic one and the contraction stays isentropic.
+/// </para>
 /// </remarks>
 public static class JunctionBoundary
 {
@@ -91,6 +103,8 @@ public static class JunctionBoundary
         };
 
         var iteration = 0;
+        var choked = false;
+        var smallerFace = leftArea < rightArea ? 0 : 3;
         bool converged;
 
         do
@@ -106,7 +120,29 @@ public static class JunctionBoundary
                 ? Trace(leftPath, leftLine, leftPipe, gamma, dt, here, 0, faces[0], faces[1], faces[2], leftPipe.Start, here)
                 : Trace(rightPath, rightLine, rightPipe, gamma, dt, here, 0, faces[3], faces[4], faces[5], here, rightPipe.End);
 
-            Solve(faces, new Relations(qPlus, tPlus, qMinus, tMinus, a0, t0, fromLeft, leftArea, rightArea, gamma));
+            var relations = new Relations(qPlus, tPlus, qMinus, tMinus, a0, t0, fromLeft, leftArea, rightArea, gamma, choked);
+            var guess = (double[])faces.Clone();
+
+            // The smaller face at or past the speed of sound, in the flow's direction, or no
+            // subsonic solution at all: the step chokes (ISSUES.md A38). A step that fails
+            // the subsonic solve flows from the side whose characteristic carries the
+            // higher pressure.
+            if (!choked && !TrySolve(faces, relations))
+            {
+                choked = true;
+                Array.Copy(guess, faces, faces.Length);
+                SeedSonic(faces, smallerFace, gamma, tPlus >= tMinus, leftArea, rightArea);
+                Solve(faces, relations with { Choked = true, FromLeft = tPlus >= tMinus });
+            }
+            else if (!choked && SonicOrBeyond(faces, smallerFace, gamma, fromLeft))
+            {
+                choked = true;
+                Solve(faces, relations with { Choked = true });
+            }
+            else if (choked)
+            {
+                Solve(faces, relations);
+            }
 
             converged = iteration != 0
                         && Math.Abs(faces[0] - previous[0]) < VelocityTolerance
@@ -133,6 +169,11 @@ public static class JunctionBoundary
         if (diagnostics is not null)
         {
             diagnostics.JunctionPoints++;
+
+            if (choked)
+            {
+                diagnostics.JunctionChokes++;
+            }
         }
 
         for (var face = 0; face < 2; face++)
@@ -147,7 +188,9 @@ public static class JunctionBoundary
 
             var c = Math.Sqrt(gamma * p / r);
 
-            if (Math.Abs(u) >= c)
+            // A choked face sits at the speed of sound to the Newton tolerance; past it, or
+            // either face supersonic otherwise, the step has no solution here.
+            if (Math.Abs(u) > c * (1 + 1e-6))
             {
                 throw new CfdException("ERROR : Flow chokes at an area junction !!!");
             }
@@ -214,10 +257,34 @@ public static class JunctionBoundary
         throw new CfdException("ERROR : No convergence in area-junction characteristic foot !!!");
     }
 
+    /// <summary>
+    /// A starting point for the choked solve when the subsonic one found none: the smaller
+    /// face at its own speed of sound in the flow's direction, the other carrying the same
+    /// mass flux.
+    /// </summary>
+    private static void SeedSonic(double[] faces, int smallerFace, double gamma, bool fromLeft, double leftArea, double rightArea)
+    {
+        var other = 3 - smallerFace;
+        var sign = fromLeft ? 1 : -1;
+        var (smallArea, otherArea) = smallerFace == 0 ? (leftArea, rightArea) : (rightArea, leftArea);
+
+        faces[smallerFace] = sign * Math.Sqrt(gamma * faces[smallerFace + 1] / faces[smallerFace + 2]);
+        faces[other] = faces[smallerFace] * faces[smallerFace + 2] * smallArea / (faces[other + 2] * otherArea);
+    }
+
+    /// <summary>Whether the face at <paramref name="face"/> flows at or past the speed of sound in the flow's direction.</summary>
+    private static bool SonicOrBeyond(double[] faces, int face, double gamma, bool fromLeft)
+    {
+        var (u, p, r) = (faces[face], faces[face + 1], faces[face + 2]);
+        var c = Math.Sqrt(gamma * p / r);
+        return p > 0 && r > 0 && (fromLeft ? u >= c : -u >= c);
+    }
+
     /// <summary>The six relations at the junction, with the characteristics' coefficients held.</summary>
+    /// <param name="Choked">Whether the smaller face is choked (ISSUES.md A38).</param>
     private readonly record struct Relations(
         double QPlus, double TPlus, double QMinus, double TMinus, double A0, double T0,
-        bool FromLeft, double LeftArea, double RightArea, double Gamma)
+        bool FromLeft, double LeftArea, double RightArea, double Gamma, bool Choked = false)
     {
         /// <summary>The residuals and their Jacobian at <paramref name="v"/>: uL, pL, rL, uR, pR, rR.</summary>
         public void Evaluate(double[] v, double[] f, double[,] j)
@@ -284,6 +351,60 @@ public static class JunctionBoundary
                 j[5, down + 1] = 1;
                 j[5, down + 2] = -pU * Gamma * ratio / rd;
             }
+
+            if (!Choked)
+            {
+                return;
+            }
+
+            // Choked (ISSUES.md A38): the smaller face is sonic in the flow's direction.
+            // Leaving the smaller area, that replaces the momentum balance; entering it, it
+            // replaces the characteristic arriving from downstream, which stands still at a
+            // sonic face.
+            var sign = FromLeft ? 1 : -1;
+
+            if (areaUp < areaDown)
+            {
+                Sonic(v, f, j, row: 5, face: up, sign);
+            }
+            else
+            {
+                Sonic(v, f, j, row: FromLeft ? 1 : 0, face: down, sign);
+            }
+        }
+
+        /// <summary>Row <paramref name="row"/> becomes <c>u = sign c</c> at <paramref name="face"/>.</summary>
+        private void Sonic(double[] v, double[] f, double[,] j, int row, int face, int sign)
+        {
+            var (u, p, r) = (v[face], v[face + 1], v[face + 2]);
+            var c = Math.Sqrt(Gamma * p / r);
+
+            for (var column = 0; column < 6; column++)
+            {
+                j[row, column] = 0;
+            }
+
+            f[row] = u - (sign * c);
+            j[row, face] = 1;
+            j[row, face + 1] = -sign * Gamma / (2 * c * r);
+            j[row, face + 2] = sign * Gamma * p / (2 * c * r * r);
+        }
+    }
+
+    /// <summary>
+    /// <see cref="Solve"/>, reporting a failure to converge, or a non-physical state, as
+    /// false rather than throwing.
+    /// </summary>
+    private static bool TrySolve(double[] v, in Relations relations)
+    {
+        try
+        {
+            Solve(v, relations);
+            return v[1] > 0 && v[2] > 0 && v[4] > 0 && v[5] > 0;
+        }
+        catch (CfdException)
+        {
+            return false;
         }
     }
 
@@ -322,9 +443,24 @@ public static class JunctionBoundary
             var step = SolveLinear(j, f);
             var largest = 0.0;
 
+            // Damped so that no pressure or density falls below a tenth of its value in one
+            // step: a choked solve started far from its answer (ISSUES.md A38) otherwise
+            // overshoots to a negative state. A step that keeps them positive is taken whole.
+            var damping = 1.0;
+
+            foreach (var c in (int[])[1, 2, 4, 5])
+            {
+                var change = step[c] * columns[c];
+
+                if (v[c] + change < 0.1 * v[c])
+                {
+                    damping = Math.Min(damping, 0.9 * v[c] / -change);
+                }
+            }
+
             for (var c = 0; c < 6; c++)
             {
-                v[c] += step[c] * columns[c];
+                v[c] += damping * step[c] * columns[c];
                 largest = Math.Max(largest, Math.Abs(step[c]));
             }
 
