@@ -89,6 +89,8 @@ public sealed class ManifoldSolver : IManifoldSource
     /// <summary>B85: the throat velocity solves bracket from zero.</summary>
     private readonly bool _bracketFromZero;
 
+    private readonly bool _sonicMachBracket;
+
     /// <summary>B84: a valve that has just opened starts from a throat at rest at cylinder pressure.</summary>
     private readonly bool _freshValveThroat;
 
@@ -157,6 +159,7 @@ public sealed class ManifoldSolver : IManifoldSource
         _liveInletTemperature = physics?.IsOn(CorrectionCatalogue.LiveInletTemperature) ?? false;
         _freshValveThroat = physics?.IsOn(CorrectionCatalogue.FreshValveThroat) ?? false;
         _bracketFromZero = physics?.IsOn(CorrectionCatalogue.ThroatSolveFromZero) ?? false;
+        _sonicMachBracket = physics?.IsOn(CorrectionCatalogue.SonicMachBracket) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -434,7 +437,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
                 _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket,
                 _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke, _exhaustUpwardProbe,
-                _exhaustReleaseLatch, Diagnostics, _bracketFromZero);
+                _exhaustReleaseLatch, Diagnostics, _bracketFromZero, _sonicMachBracket);
         }
         else
         {

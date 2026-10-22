@@ -57,7 +57,8 @@ public static class ExhaustValveReverseBoundary
         bool singleRelaxation = false,
         bool stagnationChoke = false,
         bool releaseLatch = false,
-        ManifoldDiagnostics? diagnostics = null)
+        ManifoldDiagnostics? diagnostics = null,
+        bool sonicMachBracket = false)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(pipe);
@@ -269,7 +270,7 @@ public static class ExhaustValveReverseBoundary
                         crankAngle - 360, p4 / cylinderPressure, reverse: true);
 
                     entranceMach = ThroatVelocitySolvers.ExhaustSonicMach(
-                        gamma, dischargeCoefficient, areaRatio);
+                        gamma, dischargeCoefficient, areaRatio, sonicMachBracket);
                 }
                 else
                 {

@@ -61,7 +61,8 @@ public static class ExhaustValveOpenBoundary
         bool upwardProbe = false,
         bool releaseLatch = false,
         ManifoldDiagnostics? diagnostics = null,
-        bool bracketFromZero = false)
+        bool bracketFromZero = false,
+        bool sonicMachBracket = false)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -177,7 +178,8 @@ public static class ExhaustValveOpenBoundary
                     singleRelaxation,
                     stagnationChoke,
                     releaseLatch,
-                    diagnostics);
+                    diagnostics,
+                    sonicMachBracket);
 
                 throatMach = reverseResult.MachNumber;
                 throatVelocity = reverseResult.Velocity;

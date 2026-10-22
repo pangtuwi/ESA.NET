@@ -131,17 +131,32 @@ public static class ThroatVelocitySolvers
     /// Mach number at a choked exhaust valve entrance, from the area-Mach relation. Port
     /// of <c>ExhSonicMachSolve</c>.
     /// </summary>
+    /// <remarks>
+    /// The subsonic root of <c>1/(Cd AR) = A/A*(M)</c> satisfies <c>M = g(M) Cd AR</c>
+    /// with <c>g(M) = [2/(gamma+1) (1 + (gamma-1)/2 M^2)]^((gamma+1)/(2(gamma-1)))</c>,
+    /// which rises from <c>g(0)</c> to 1 at Mach 1, so the root lies between
+    /// <c>m0 = g(0) Cd AR</c> and 1 whenever <c>Cd AR</c> is at most 1. The original
+    /// brackets it on 0.45 to 0.75 of the area ratio, which holds the root only for a
+    /// discharge coefficient between about 0.78 and 1.29; below that the solve stops.
+    /// Under B91 the bracket is <c>m0</c> to 1 (ISSUES.md B91).
+    /// </remarks>
+    /// <param name="analyticBracket">ISSUES.md B91: bracket the root on <c>[m0, 1]</c>.</param>
     public static double ExhaustSonicMach(
-        double gamma, double dischargeCoefficient, double areaRatio) =>
-        Solve(
-            mach => (1 / dischargeCoefficient / areaRatio)
-                    - (1 / mach
-                       * ManifoldNumerics.Power(
-                           2 / (gamma + 1) * (1 + ((gamma - 1) / 2 * mach * mach)),
-                           (gamma + 1) / 2 / (gamma - 1))),
-            low: 0.45 * areaRatio,
-            high: 0.75 * areaRatio,
-            what: "Exhaust Sonic Mach Solve(Reverse Flow)");
+        double gamma, double dischargeCoefficient, double areaRatio, bool analyticBracket = false)
+    {
+        var exponent = (gamma + 1) / 2 / (gamma - 1);
+
+        double Residual(double mach) =>
+            (1 / dischargeCoefficient / areaRatio)
+            - (1 / mach
+               * ManifoldNumerics.Power(2 / (gamma + 1) * (1 + ((gamma - 1) / 2 * mach * mach)), exponent));
+
+        var (low, high) = analyticBracket
+            ? (ManifoldNumerics.Power(2 / (gamma + 1), exponent) * dischargeCoefficient * areaRatio, 1.0)
+            : (0.45 * areaRatio, 0.75 * areaRatio);
+
+        return Solve(Residual, low, high, what: "Exhaust Sonic Mach Solve(Reverse Flow)");
+    }
 
     /// <summary>
     /// The lower end of the sonic and subsonic brackets: the original's millionth of the

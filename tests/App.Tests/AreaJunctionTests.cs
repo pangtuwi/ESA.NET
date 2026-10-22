@@ -598,18 +598,24 @@ public sealed class AreaJunctionTests
     }
 
     /// <summary>
-    /// A36: the eight-valve engine of the thesis's section 6.5 stops in the first cycle on
-    /// its exhaust's area steps without the junctions, and runs with them.
+    /// A36: the eight-valve engine of the thesis's section 6.5 stops on its exhaust's area
+    /// steps without the junctions, and runs with them. At 6000 rpm its stop without them
+    /// was the original's sonic Mach bracket, not the steps (ISSUES.md B91): with B91 it
+    /// runs either way, and only the junctions' half of the claim is tested there.
     /// </summary>
     [Theory]
-    [InlineData(2500)]
-    [InlineData(4000)]
-    [InlineData(6000)]
-    public void TheEightValveEngineRunsWithJunctions(int rpm)
+    [InlineData(2500, true)]
+    [InlineData(4000, true)]
+    [InlineData(6000, false)]
+    public void TheEightValveEngineRunsWithJunctions(int rpm, bool stopsWithoutJunctions)
     {
         BaselinePaths.Require();
 
-        Assert.NotNull(Failure(rpm, junctions: false));
+        if (stopsWithoutJunctions)
+        {
+            Assert.Contains("Presssure negative", Failure(rpm, junctions: false));
+        }
+
         Assert.Null(Failure(rpm, junctions: true));
     }
 }
