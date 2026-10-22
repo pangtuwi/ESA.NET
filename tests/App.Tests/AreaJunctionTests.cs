@@ -367,6 +367,200 @@ public sealed class AreaJunctionTests
         Assert.Equal(5, u2, 0.01);
     }
 
+    /// <summary>
+    /// A38's oracle: steady flow leaving the smaller area as a sonic jet into a back pressure
+    /// lower than Borda-Carnot would recover is a fixed point of a choked junction. The
+    /// downstream state follows from mass and energy alone at that pressure; the subsonic
+    /// relations have no solution, and the junction once threw on it.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AChokedExpansionIsAFixedPoint(bool fromLeft)
+    {
+        var (small, large) = (707.0, 1164.0);
+        var (leftArea, rightArea) = fromLeft ? (small, large) : (large, small);
+        var (layout, current, next) = SteppedPipe(400, 200, leftArea, rightArea, points: 41);
+        var junction = layout.Junctions[0];
+
+        // Sonic in the small pipe.
+        var p1 = 2e5;
+        var r1 = p1 / 287 / 900;
+        var c1 = Math.Sqrt(Gamma * p1 / r1);
+        var h0 = (c1 * c1 / (Gamma - 1)) + (c1 * c1 / 2);
+
+        // Downstream at nine tenths of the pressure the momentum balance would give.
+        double DownstreamVelocity(double p2)
+        {
+            var b = Gamma / (Gamma - 1) * p2 * large / (r1 * c1 * small);
+            return -b + Math.Sqrt((b * b) + (2 * h0));
+        }
+
+        var low = 0.5 * p1;
+        var high = 2 * p1;
+
+        for (var i = 0; i < 200; i++)
+        {
+            var mid = (low + high) / 2;
+            var u = DownstreamVelocity(mid);
+            var r = r1 * c1 * small / (u * large);
+            var momentum = p1 + (r1 * c1 * c1 * small / large) - mid - (r * u * u);
+            (low, high) = momentum > 0 ? (mid, high) : (low, mid);
+        }
+
+        var p2 = 0.9 * low;
+        var u2 = DownstreamVelocity(p2);
+        var r2 = r1 * c1 * small / (u2 * large);
+        var sign = fromLeft ? 1 : -1;
+        var upstream = (U: sign * c1, P: p1, R: r1);
+        var downstream = (U: sign * u2, P: p2, R: r2);
+
+        for (var i = 0; i < current.ActiveCount; i++)
+        {
+            var (u, p, r) = (i <= junction) == fromLeft ? upstream : downstream;
+            (current.Velocity[i], current.Pressure[i], current.Density[i]) = (u, p, r);
+            current.SpeedOfSound[i] = Math.Sqrt(Gamma * p / r);
+        }
+
+        var diagnostics = new ManifoldDiagnostics();
+        JunctionBoundary.Apply(
+            current, next, layout.Geometry[junction], layout.Geometry[junction + 1], Gamma, 1e-9, junction, diagnostics);
+
+        Assert.Equal(1, diagnostics.JunctionChokes);
+
+        for (var face = junction; face <= junction + 1; face++)
+        {
+            Assert.Equal(current.Velocity[face], next.Velocity[face], 1e-3);
+            Assert.Equal(current.Pressure[face], next.Pressure[face], 1e-1);
+            Assert.Equal(current.Density[face], next.Density[face], 1e-6);
+        }
+
+        // The jet loses stagnation pressure; it never gains it.
+        double Stagnation(double u, double p, double r) =>
+            p * Math.Pow(1 + ((Gamma - 1) / 2 * u * u * r / (Gamma * p)), Gamma / (Gamma - 1));
+
+        Assert.True(Stagnation(u2, p2, r2) < Stagnation(c1, p1, r1));
+    }
+
+    /// <summary>
+    /// A38: a contraction fed at exactly the Mach number that chokes it, by the area-Mach
+    /// relation, is a fixed point with the smaller face sonic.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AJustChokedContractionIsAFixedPoint(bool fromLeft)
+    {
+        var (small, large) = (1000.0, 2000.0);
+        var (leftArea, rightArea) = fromLeft ? (large, small) : (small, large);
+        var (layout, current, next) = SteppedPipe(400, 200, leftArea, rightArea, points: 41);
+        var junction = layout.Junctions[0];
+
+        var k = (Gamma - 1) / 2;
+        double AreaRatio(double m) => 1 / m * Math.Pow(2 / (Gamma + 1) * (1 + (k * m * m)), (Gamma + 1) / (2 * (Gamma - 1)));
+
+        var low = 1e-6;
+        var high = 1.0;
+
+        for (var i = 0; i < 200; i++)
+        {
+            var mid = (low + high) / 2;
+            (low, high) = AreaRatio(mid) > large / small ? (mid, high) : (low, mid);
+        }
+
+        var m1 = low;
+        var c1 = SoundSpeed;
+        var temperatureRatio = (1 + (k * m1 * m1)) / (1 + k);
+        var p2 = Pressure * Math.Pow(temperatureRatio, Gamma / (Gamma - 1));
+        var r2 = Density * Math.Pow(p2 / Pressure, 1 / Gamma);
+        var c2 = Math.Sqrt(Gamma * p2 / r2);
+        var sign = fromLeft ? 1 : -1;
+        var upstream = (U: sign * m1 * c1, P: Pressure, R: Density);
+        var downstream = (U: sign * c2, P: p2, R: r2);
+
+        for (var i = 0; i < current.ActiveCount; i++)
+        {
+            var (u, p, r) = (i <= junction) == fromLeft ? upstream : downstream;
+            (current.Velocity[i], current.Pressure[i], current.Density[i]) = (u, p, r);
+            current.SpeedOfSound[i] = Math.Sqrt(Gamma * p / r);
+        }
+
+        JunctionBoundary.Apply(current, next, layout.Geometry[junction], layout.Geometry[junction + 1], Gamma, 1e-9, junction);
+
+        var sonicFace = fromLeft ? junction + 1 : junction;
+        Assert.Equal(1, Math.Abs(next.Velocity[sonicFace]) / next.SpeedOfSound[sonicFace], 1e-4);
+        Assert.Equal(current.Pressure[sonicFace], next.Pressure[sonicFace], Pressure * 1e-4);
+    }
+
+    /// <summary>
+    /// A38: a shock tube across the eight-valve engine's exhaust step, a hot high-pressure
+    /// runner discharging into the larger pipe, chokes the step and runs through it, mass
+    /// flux equal on the two faces and neither face past the speed of sound.
+    /// </summary>
+    [Fact]
+    public void AShockTubeThroughTheStepChokesAndRuns()
+    {
+        var (layout, current, next) = SteppedPipe(958, 243.5, 707, 1164, points: 40);
+        var junction = layout.Junctions[0];
+
+        for (var i = 0; i <= junction; i++)
+        {
+            current.Pressure[i] = 20e5;
+            current.Density[i] = 20e5 / 287 / 1200;
+            current.SpeedOfSound[i] = Math.Sqrt(Gamma * current.Pressure[i] / current.Density[i]);
+        }
+
+        var diagnostics = new ManifoldDiagnostics();
+
+        for (var step = 0; step < 150; step++)
+        {
+            var fastest = 0.0;
+
+            for (var i = 0; i < current.ActiveCount; i++)
+            {
+                fastest = Math.Max(fastest, Math.Abs(current.Velocity[i]) + current.SpeedOfSound[i]);
+            }
+
+            var dt = 0.4 * (0.958 / 39) / fastest;
+
+            for (var i = 1; i <= current.ActiveCount - 2; i++)
+            {
+                if (i == junction)
+                {
+                    JunctionBoundary.Apply(
+                        current, next, layout.Geometry[i], layout.Geometry[i + 1], Gamma, dt, i, diagnostics);
+                    i++;
+                    continue;
+                }
+
+                CharacteristicSolver.UpdateInteriorPoint(current, next, layout.Geometry[i], Gamma, dt, i);
+            }
+
+            foreach (var end in new[] { 0, current.ActiveCount - 1 })
+            {
+                (next.Velocity[end], next.Pressure[end], next.Density[end], next.SpeedOfSound[end]) =
+                    (current.Velocity[end], current.Pressure[end], current.Density[end], current.SpeedOfSound[end]);
+            }
+
+            for (var i = 0; i < current.ActiveCount; i++)
+            {
+                (current.Velocity[i], current.Pressure[i], current.Density[i], current.SpeedOfSound[i]) =
+                    (next.Velocity[i], next.Pressure[i], next.Density[i], next.SpeedOfSound[i]);
+            }
+
+            var leftFlux = current.Density[junction] * current.Velocity[junction] * 707;
+            var rightFlux = current.Density[junction + 1] * current.Velocity[junction + 1] * 1164;
+            Assert.Equal(leftFlux, rightFlux, Math.Abs(leftFlux) * 1e-6 + 1e-9);
+
+            for (var face = junction; face <= junction + 1; face++)
+            {
+                Assert.True(Math.Abs(current.Velocity[face]) <= current.SpeedOfSound[face] * (1 + 1e-6));
+            }
+        }
+
+        Assert.True(diagnostics.JunctionChokes > 0, $"{diagnostics.JunctionChokes}");
+    }
+
     private static Engine EightValveEngine(int rpm)
     {
         var loader = new EngineLoader(

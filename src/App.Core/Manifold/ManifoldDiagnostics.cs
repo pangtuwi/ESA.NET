@@ -73,6 +73,12 @@ public sealed class ManifoldDiagnostics
     /// </summary>
     public long JunctionOuterCapHits { get; internal set; }
 
+    /// <summary>
+    /// Area-junction solves in which the smaller face reached the speed of sound and was
+    /// solved as choked (ISSUES.md A38). Not a warning: a choked step is real flow.
+    /// </summary>
+    public long JunctionChokes { get; internal set; }
+
     /// <summary>Whether anything was counted that an operator should hear about.</summary>
     public bool HasWarnings =>
         FootLoopCapHits > 0 || OuterIterationCapHits > 0 || NegativeFootStates > 0
