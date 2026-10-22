@@ -298,10 +298,38 @@ public sealed class TwoZoneGas
         gas.DmbDTheta = 0;
     }
 
+    /// <summary>The Wiebe efficiency parameter <c>a</c>: 99.3 per cent burnt by the end of the burn angle (Heywood 1988, ch. 9).</summary>
+    public const double WiebeEfficiency = 5;
+
+    /// <summary>The Wiebe form factor <c>m</c> (Heywood 1988, ch. 9).</summary>
+    public const double WiebeForm = 2;
+
+    /// <summary>
+    /// Burn by a Wiebe law from the start of combustion, the spark plus
+    /// <see cref="Model.Fuel.CombustionDelay"/>, rather than the original's raised cosine
+    /// from the spark itself. Set from <c>CorrectionCatalogue.WiebeBurn</c>; ISSUES.md B89.
+    /// </summary>
+    public bool WiebeBurn { get; set; }
+
+    /// <summary>
+    /// The crank angle combustion starts at, in degrees: the spark, plus the delay to the
+    /// start of combustion under B89.
+    /// </summary>
+    public double StartOfCombustion =>
+        WiebeBurn ? State.ThetaSpark + State.Fuel.CombustionDelay : State.ThetaSpark;
+
     /// <summary>
     /// Fraction of the charge burnt at this crank angle. Port of the private
     /// <c>xburnt</c>: a raised cosine from the spark to the end of the burn angle.
     /// </summary>
+    /// <remarks>
+    /// Under B89 it is a Wiebe law, <c>1 - exp(-a u^(m+1))</c> with <c>u</c> the fraction
+    /// of the burn angle elapsed since the start of combustion, divided by its value at the
+    /// end, <c>1 - exp(-a)</c>, so that the burn is complete where the state map ends
+    /// combustion and expansion entry takes no unburnt charge at once. The raised cosine
+    /// burns from the spark at a finite rate straight away; the Wiebe law starts slowly, as
+    /// a flame kernel does (ISSUES.md B89).
+    /// </remarks>
     /// <param name="crankAngleRadians">
     /// Crank angle in <b>radians</b>, converted here because <c>ThetaSpark</c> and
     /// <c>BurnAngle</c> are both in degrees.
@@ -309,7 +337,7 @@ public sealed class TwoZoneGas
     public double BurntFraction(double crankAngleRadians)
     {
         var theta = crankAngleRadians * 180 / Math.PI;
-        var spark = State.ThetaSpark;
+        var spark = StartOfCombustion;
         var burnAngle = State.Fuel.BurnAngle;
 
         if (theta <= spark)
@@ -319,6 +347,13 @@ public sealed class TwoZoneGas
 
         if (theta < spark + burnAngle)
         {
+            if (WiebeBurn)
+            {
+                var u = (theta - spark) / burnAngle;
+                return (1 - Math.Exp(-WiebeEfficiency * Math.Pow(u, WiebeForm + 1)))
+                       / (1 - Math.Exp(-WiebeEfficiency));
+            }
+
             return 0.5 * (1 - Math.Cos(Math.PI * (theta - spark) / burnAngle));
         }
 
@@ -333,7 +368,7 @@ public sealed class TwoZoneGas
     public double BurnRate(double crankAngleRadians)
     {
         var theta = crankAngleRadians * 180 / Math.PI;
-        var spark = State.ThetaSpark;
+        var spark = StartOfCombustion;
         var burnAngle = State.Fuel.BurnAngle;
 
         if (theta <= spark)
@@ -343,6 +378,15 @@ public sealed class TwoZoneGas
 
         if (theta < spark + burnAngle)
         {
+            if (WiebeBurn)
+            {
+                var u = (theta - spark) / burnAngle;
+                return WiebeEfficiency * (WiebeForm + 1) * Math.Pow(u, WiebeForm)
+                       * Math.Exp(-WiebeEfficiency * Math.Pow(u, WiebeForm + 1))
+                       / (1 - Math.Exp(-WiebeEfficiency))
+                       / (burnAngle * Math.PI / 180);
+            }
+
             return 0.5 * Math.PI / (burnAngle * Math.PI / 180)
                 * Math.Sin(Math.PI * (theta - spark) / burnAngle);
         }

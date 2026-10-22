@@ -384,6 +384,12 @@ public abstract class EngineDefinition
     // stays byte-identical until someone edits it.
     // ---------------------------------------------------------------------------
 
+    /// <summary>
+    /// Degrees from the spark to the start of combustion, or null. No ESA file has the
+    /// key; it is read for the Wiebe burn of ISSUES.md B89 and never written.
+    /// </summary>
+    public double? CombustionDelay => GetOptionalDouble("Fuel", "CombustionDelay");
+
     /// <summary>Carbon atoms per fuel molecule. Delphi form default 7.</summary>
     public int FuelCarbon
     {

@@ -137,6 +137,8 @@ public sealed class CycleSolver
             }
         }
 
+        _cylinder.WiebeBurn = physics?.IsOn(CorrectionCatalogue.WiebeBurn) ?? false;
+
         Geometry = CylinderGeometry.FromEngine(engine);
         InletValve = ValveMotion.FromValve(engine.Manifold.InletValve);
         ExhaustValve = ValveMotion.FromValve(engine.Manifold.ExhaustValve);
@@ -438,8 +440,9 @@ public sealed class CycleSolver
 
         state.X = engine.CrankAngle * Math.PI / 180;
         // The cylinder's own spark and burn angle, not the map's copies: a multi-run row
-        // sets both after initialisation (ISSUES.md A37).
-        engine.State = States.StateAt(engine.CrankAngle, cylinder.ThetaSpark, cylinder.Fuel.BurnAngle);
+        // sets both after initialisation (ISSUES.md A37). Under B89 combustion starts at
+        // the spark plus the delay to the start of combustion.
+        engine.State = States.StateAt(engine.CrankAngle, _cylinder.StartOfCombustion, cylinder.Fuel.BurnAngle);
 
         Cylinder.State = engine.State;
         Cylinder.CrankAngleRadians = state.X;

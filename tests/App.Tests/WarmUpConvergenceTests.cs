@@ -71,6 +71,9 @@ public sealed class WarmUpConvergenceTests
 
         var physics = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
         physics.Overrides[CorrectionCatalogue.ThroatSolveFromZero.Entry] = false;
+
+        // B89 changes the warm-up cycle's burn, and with it the coincidence this rebuilds.
+        physics.Overrides[CorrectionCatalogue.WiebeBurn.Entry] = false;
         physics.Overrides[CorrectionCatalogue.WarmUpConvergence.Entry] = warmUpConvergence;
 
         var result = Run(1500, 1, physics);

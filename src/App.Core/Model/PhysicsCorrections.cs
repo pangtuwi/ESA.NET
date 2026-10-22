@@ -280,6 +280,13 @@ public static class CorrectionCatalogue
         new("B88", "Friction is a mechanical model from the engine's design, with pumping from the simulated cycle, not a total-friction curve in speed");
 
     /// <summary>
+    /// ISSUES.md B89: the burn is a Wiebe law from the start of combustion, the spark plus an
+    /// optional delay, not the original's raised cosine from the spark itself.
+    /// </summary>
+    public static Correction WiebeBurn { get; } =
+        new("B89", "The burn is a Wiebe law from the spark plus an optional delay, not a raised cosine from the spark");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -299,7 +306,7 @@ public static class CorrectionCatalogue
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
-        MechanicalFriction,
+        MechanicalFriction, WiebeBurn,
     ];
 }
 

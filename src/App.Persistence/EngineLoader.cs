@@ -99,6 +99,7 @@ public sealed class EngineLoader : IEngineLoader
             gas.Fuel.Q = definition.FuelCalorificValue * 1E6;
             gas.Fuel.Lambda = definition.Lambda;
             gas.Fuel.BurnAngle = definition.BurnAngle;
+            gas.Fuel.CombustionDelay = definition.CombustionDelay ?? 0;
             gas.Fuel.C = definition.FuelCarbon;
             gas.Fuel.H = definition.FuelHydrogen;
             gas.Fuel.O = definition.FuelOxygen;
