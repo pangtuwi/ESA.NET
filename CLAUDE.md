@@ -107,6 +107,10 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   `MultiRunner` rebuilds the row's engine on the files the grid names, as the original's
   `InitVars` reloaded them. The suite still keeps one manifold per `.eng`, so that each
   case's inputs are a single folder.
+- **A grid row's spark and burn angle (columns 12 and 13) reach the combustion window** since
+  A37: the state is decided from the cylinder's own `ThetaSpark` and `BurnAngle` each step, as the
+  original's `GetState` did. Before it, every spark sweep (Figures 6.7, 6.13) burnt against the
+  `.spk` spark's window.
 - `ThesisSuiteTests` keeps the suite loadable without running it.
 - **Run it** with `dotnet run --project tools/App.Validation -c Release`. It runs in
   Corrected by default, takes about half a minute, and writes `report.html`,

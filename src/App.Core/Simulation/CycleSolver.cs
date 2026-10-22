@@ -437,7 +437,9 @@ public sealed class CycleSolver
         var state = engine.Integration;
 
         state.X = engine.CrankAngle * Math.PI / 180;
-        engine.State = States.StateAt(engine.CrankAngle);
+        // The cylinder's own spark and burn angle, not the map's copies: a multi-run row
+        // sets both after initialisation (ISSUES.md A37).
+        engine.State = States.StateAt(engine.CrankAngle, cylinder.ThetaSpark, cylinder.Fuel.BurnAngle);
 
         Cylinder.State = engine.State;
         Cylinder.CrankAngleRadians = state.X;
