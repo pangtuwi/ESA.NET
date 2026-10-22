@@ -203,6 +203,10 @@ public sealed class ExhaustValveLatchTests
         var physics = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
         physics.Overrides[CorrectionCatalogue.ExhaustValveLatch.Entry] = release;
 
+        // The case the latch was found on burns from the spark. B90's later start of
+        // combustion changes the exhaust blowdown it depends on.
+        physics.Overrides[CorrectionCatalogue.FlameDevelopmentDelay.Entry] = false;
+
         var settings = new SimulationSettings
         {
             CycleCount = 8,

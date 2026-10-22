@@ -80,7 +80,8 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B88", CorrectionCatalogue.MechanicalFriction.Entry);
         Assert.Equal("B89", CorrectionCatalogue.WiebeBurn.Entry);
         Assert.Equal("B91", CorrectionCatalogue.SonicMachBracket.Entry);
-        Assert.Equal(35, CorrectionCatalogue.All.Count);
+        Assert.Equal("B90", CorrectionCatalogue.FlameDevelopmentDelay.Entry);
+        Assert.Equal(36, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections { Mode = PhysicsMode.Legacy }.Describe());
         Assert.Equal($"Corrected, all {CorrectionCatalogue.All.Count} corrections on", new PhysicsCorrections().Describe());

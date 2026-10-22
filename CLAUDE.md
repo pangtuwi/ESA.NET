@@ -258,7 +258,9 @@ work.
   reads optional `[Fuel]` `C`/`H`/`O`/`N` keys, defaults to 7/17/0/0, and writes
   them only when they change, so existing files stay byte-identical. Two more optional keys are
   read and never written: `[Fuel] CombustionDelay`, degrees from spark to start of combustion
-  under B89, and the `[Friction]` section of B88. No shipped file has either.
+  under B89, and the `[Friction]` section of B88. No shipped file has either. Without the key,
+  B90 starts the burn so that 10 % is burnt at Heywood's flame-development angle for the speed
+  (Fig. 9-17), about 17° after the spark at 4000 rpm (`FlameDevelopment`).
 - `Inlet.grd` and `Exhaust.grd` in `Example1` are **not dead**, though ESA 3.0 never
   reads them: the 1999 predecessor's `TGridSize.Load` took their second line, `35`, as a
   grid size and ignored the Pascal fragments after it. The port reads them the same way
@@ -292,13 +294,14 @@ work.
   fresh charge, and since B87 torque is the cycle's net work less friction, not the work from inlet
   closing to exhaust opening, and since B88 friction is a mechanical model from the engine's design
   (Sandoval and Heywood), about half the Barnes-Moss curve, with pumping from the cycle alone, and
-  since B89 the burn is a Wiebe law rather than a raised cosine, about 1.5 to 2 % more. With
-  every correction torque is about 22 % higher at 4000 rpm, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  since B89 the burn is a Wiebe law rather than a raised cosine, about 1.5 to 2 % more, and since
+  B90 it starts at Heywood's flame-development angle rather than at the spark, about 10 % less at
+  4000 rpm. With every correction torque is about 9 % higher at 4000 rpm, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 - **Legacy matches the dynamometer; Corrected over-predicts it since B88.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (20.8 %
-  since B89, bias +18.2 %, 184.9 Nm; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (17.3 %
+  since B90, bias +14.0 %, 165.9 Nm; 20.8 % and 184.9 Nm under B89; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
   speeds until A29 was fixed). The mechanical friction of B88 is about half the curve's, which had been
   hiding an over-prediction elsewhere in Corrected (`ISSUES.md` B88, F8). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A

@@ -287,6 +287,14 @@ public static class CorrectionCatalogue
         new("B89", "The burn is a Wiebe law from the spark plus an optional delay, not a raised cosine from the spark");
 
     /// <summary>
+    /// ISSUES.md B90: with no delay in the file, the Wiebe burn starts where its 10 per cent
+    /// point falls at Heywood's flame-development angle for the running speed, not at the
+    /// spark.
+    /// </summary>
+    public static Correction FlameDevelopmentDelay { get; } =
+        new("B90", "With no delay given, the burn starts so that 10 per cent is burnt at the flame-development angle for the speed");
+
+    /// <summary>
     /// ISSUES.md B91: the exhaust valve's choked reverse-flow Mach solve brackets the
     /// area-Mach relation's subsonic root on its analytic bounds, not 0.45 to 0.75 of the
     /// area ratio.
@@ -314,7 +322,7 @@ public static class CorrectionCatalogue
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
-        MechanicalFriction, WiebeBurn, SonicMachBracket,
+        MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay,
     ];
 }
 

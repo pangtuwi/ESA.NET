@@ -138,6 +138,9 @@ public sealed class CycleSolver
         }
 
         _cylinder.WiebeBurn = physics?.IsOn(CorrectionCatalogue.WiebeBurn) ?? false;
+        _cylinder.FlameDevelopmentAngle = physics?.IsOn(CorrectionCatalogue.FlameDevelopmentDelay) ?? false
+            ? FlameDevelopment.Angle(engine.Rpm)
+            : null;
 
         Geometry = CylinderGeometry.FromEngine(engine);
         InletValve = ValveMotion.FromValve(engine.Manifold.InletValve);
