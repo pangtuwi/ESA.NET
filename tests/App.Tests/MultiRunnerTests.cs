@@ -175,7 +175,7 @@ public sealed class MultiRunnerTests
     }
 
     [Fact]
-    public void AZeroBurnAngleRunsAndReportsNegativeWork()
+    public void AZeroBurnAngleFailsItsRowAndNotTheSweep()
     {
         BaselinePaths.Require();
 
@@ -186,14 +186,14 @@ public sealed class MultiRunnerTests
             BaselinePaths.File("A2China.eng"), grid, Settings(),
             cancellation: TestContext.Current.CancellationToken);
 
-        // Not a defect, and worth pinning so nobody "fixes" it: a burn angle of zero
-        // means no combustion, so the cycle is pure pumping loss and the reported torque
-        // is negative. Nothing validates the value, and nothing needs to - the answer is
-        // the right one for the question asked.
-        Assert.Null(results[0].Failure);
-        Assert.True(
-            results[0].Result!.Engine.Torque < 0,
-            $"Expected negative torque with no combustion, got {results[0].Result!.Engine.Torque:F1}.");
+        // A burn angle of zero leaves the original's GetState no combustion window: the
+        // cylinder goes from compression straight to expansion at the spark, which takes
+        // the unburnt charge as burnt with no burn temperature set, and the run fails. The
+        // row records it and the sweep goes on. Before A37 the row's burn angle never
+        // reached the state window, so the cycle ran 55 degrees of combustion with no burn
+        // in it and reported negative torque, which was not the original's behaviour.
+        Assert.NotNull(results[0].Failure);
+        Assert.Null(results[0].Result);
     }
 
     [Fact]

@@ -94,7 +94,19 @@ public sealed class CrankAngleStateMap
     }
 
     /// <summary>The state at a crank angle in <b>degrees</b>.</summary>
-    public EngineState StateAt(double crankAngleDegrees)
+    public EngineState StateAt(double crankAngleDegrees) =>
+        StateAt(crankAngleDegrees, SparkAngle, BurnAngle);
+
+    /// <summary>
+    /// The state at a crank angle in <b>degrees</b>, for the spark and burn angle the
+    /// cylinder has now. <c>GetState</c> reads <c>Cyl.ThetaSpark</c> and
+    /// <c>Cyl.Fuel.Burnangle</c> on every call, so a multi-run row that sets either after
+    /// initialisation moves the combustion window with it (ISSUES.md A37).
+    /// </summary>
+    /// <param name="crankAngleDegrees">The crank angle.</param>
+    /// <param name="sparkAngle">Delphi <c>Cyl.ThetaSpark</c>, negative before top dead centre.</param>
+    /// <param name="burnAngle">Delphi <c>Cyl.Fuel.BurnAngle</c>, in degrees.</param>
+    public EngineState StateAt(double crankAngleDegrees, double sparkAngle, double burnAngle)
     {
         if (crankAngleDegrees < ExhaustClose)
         {
@@ -106,12 +118,12 @@ public sealed class CrankAngleStateMap
             return EngineState.Intake;
         }
 
-        if (crankAngleDegrees < SparkAngle)
+        if (crankAngleDegrees < sparkAngle)
         {
             return EngineState.Compression;
         }
 
-        if (crankAngleDegrees < SparkAngle + BurnAngle)
+        if (crankAngleDegrees < sparkAngle + burnAngle)
         {
             return EngineState.Combustion;
         }
