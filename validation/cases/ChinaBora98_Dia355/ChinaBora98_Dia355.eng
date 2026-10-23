@@ -1,4 +1,4 @@
-; Validation case derived from legacy/ESA/Data/Example2/ChinaBora98.eng: [Inlet] AreaFile=A3TumbleInlet_M770_355.maf. Nothing else differs.
+; Validation case derived from legacy/ESA/Data/Example2/ChinaBora98.eng: [Inlet] AreaFile=A3TumbleInlet_M770_355.maf, [Fuel] Lambda=0.91. Nothing else differs.
 [Cylinders]
 Name=China Bora 1.6L 5V # 9.72:1
 NoCyls=4
@@ -47,7 +47,7 @@ SparkAngle=C:\CAEEng\ChinaBora98.spk
 AFRatio=14.5
 TFuel=25.0
 QFuel=43
-Lambda=1
+Lambda=0.91
 [Conditions]
 TAtm=25
 PAtm=101.325
