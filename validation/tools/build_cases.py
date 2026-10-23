@@ -42,6 +42,20 @@ CAM_A = dict(ivo=23, ivc=66, evo=51, evc=38, ilift=8.6, elift=8.6)    # Table 6.
 CAM_B = dict(ivo=29, ivc=75, evo=71, evc=33, ilift=10, elift=10)      # Table 6.3, 026 109 101L
 CAM_SPEEDS = [1500, 2000, 2500, 2800, 3000, 3500, 4000, 4500, 5000, 5300, 5500]
 
+# The spark advance the 6.14 tests recorded, °BTDC, 1500 to 6500 rpm in 250 rpm steps:
+# the MBT column of data/thesis/source/China_5V Model vs Test Diameters.xls, sheets
+# '35_5 Test Data' and '41 Test Data', rows 17 to 37.
+SPARK_355 = [15.3, 17.5, 16, 17.5, 19.8, 20.5, 21.3, 22.8, 19, 13, 13, 19, 29.5, 32.5, 33.3,
+             34, 31.8, 28.8, 29.5, 33.3, 40.8]
+SPARK_41 = [17.5, 16.8, 16.4, 16.8, 19.8, 21.3, 18.3, 21.3, 20.5, 19, 17.5, 14.5, 13.8, 17.5,
+            24.3, 31.4, 38.8, 34.8, 34.8, 30.7, 30.3]
+
+
+def spark_rows(speeds, sparks):
+    speeds = list(speeds)
+    assert len(speeds) == len(sparks)
+    return [dict(speed=s, spark=a) for s, a in zip(speeds, sparks)]
+
 CASES = {
     # 6.4: the Nissan test engine. Tests 4 to 7 of Table 6.1.
     'Nissan_290': dict(source=f'{NISSAN}/Nissan6.eng', grids={
@@ -70,12 +84,17 @@ CASES = {
                            grids={'timing4000': [dict(speed=4000, spark=a) for a in range(8, 25, 2)]}),
     'ChinaBora_CR103': dict(source=f'{EX2}/ChinaBora92.eng', derive={('Cylinders', 'CR'): '10.3'},
                             grids={'timing4000': [dict(speed=4000, spark=a) for a in range(8, 25, 2)]}),
+    # 6.14 runs at the test's own conditions (ISSUES.md F8): each row's spark is its
+    # sheet's MBT column, and lambda the sheet's mean, 0.913 on both, since a grid has no
+    # lambda column and the test's ran 0.89 to 0.93.
     'ChinaBora98_Dia355': dict(source=f'{EX2}/ChinaBora98.eng',
-                               derive={('Inlet', 'AreaFile'): 'A3TumbleInlet_M770_355.maf'},
-                               grids={'torque': rpm_rows(range(1500, 6501, 250))}),
+                               derive={('Inlet', 'AreaFile'): 'A3TumbleInlet_M770_355.maf',
+                                       ('Fuel', 'Lambda'): '0.91'},
+                               grids={'torque': spark_rows(range(1500, 6501, 250), SPARK_355)}),
     'ChinaBora98_Dia41': dict(source=f'{EX2}/ChinaBora98.eng',
-                              derive={('Inlet', 'AreaFile'): 'A3TumbleInlet_M770_41.maf'},
-                              grids={'torque': rpm_rows(range(1500, 6501, 250))}),
+                              derive={('Inlet', 'AreaFile'): 'A3TumbleInlet_M770_41.maf',
+                                      ('Fuel', 'Lambda'): '0.91'},
+                              grids={'torque': spark_rows(range(1500, 6501, 250), SPARK_41)}),
     'ChinaBora98_Final': dict(source=f'{EX2}/ChinaBora98.eng', grids={
         'torque': rpm_rows(range(1500, 6501, 250))}),
 }
