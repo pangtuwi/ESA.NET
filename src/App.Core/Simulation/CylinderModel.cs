@@ -123,6 +123,15 @@ public sealed class CylinderModel
     /// </summary>
     public bool GasExchangeZones { get; init; }
 
+    /// <summary>
+    /// ISSUES.md B34: during combustion each zone loses heat through its volume share of
+    /// every surface, piston, head and liner alike, so the two shares make the whole
+    /// chamber once. Off reproduces the original, which gives the burnt zone its share of
+    /// piston and head and no liner, and the unburnt zone its share of piston and head
+    /// and the whole liner.
+    /// </summary>
+    public bool CombustionWallShare { get; init; }
+
     /// <summary>The current crank-angle state, Delphi <c>State</c>.</summary>
     public EngineState State { get; set; }
 
@@ -265,9 +274,10 @@ public sealed class CylinderModel
     /// <remarks>
     /// The combustion branch scales the piston and head term by the burnt volume
     /// fraction and then <b>omits the liner term entirely</b>, where
-    /// <see cref="UnburntHeatLossRate"/>'s matching branch keeps it. Reproduced; the
-    /// asymmetry is defensible for a flame kernel near the head but it is not stated
-    /// anywhere. See ISSUES.md B34.
+    /// <see cref="UnburntHeatLossRate"/>'s matching branch keeps it whole, so the liner
+    /// is counted once for the unburnt gas alone however much has burnt. Reproduced in
+    /// Legacy; under <see cref="CombustionWallShare"/> each zone takes its volume share of
+    /// every surface, as two-zone models usually split the wall. See ISSUES.md B34.
     /// </remarks>
     public double BurntHeatLossRate(double crankAngleRadians)
     {
@@ -278,6 +288,11 @@ public sealed class CylinderModel
 
         var q = State switch
         {
+            EngineState.Combustion when CombustionWallShare =>
+                HeatTransferCoefficient(gas.PGas, gas.Tb, crankAngleRadians) * gas.Vb / gas.VGas
+                * ((pistonArea * (gas.Tb - Piston + gas.Tb - Head))
+                   + (wallArea * (gas.Tb - averageLiner))),
+
             EngineState.Combustion =>
                 HeatTransferCoefficient(gas.PGas, gas.Tb, crankAngleRadians) * gas.Vb / gas.VGas * pistonArea
                 * (gas.Tb - Piston + gas.Tb - Head),
@@ -312,6 +327,12 @@ public sealed class CylinderModel
 
         var q = State switch
         {
+            // B34: the unburnt zone's volume share of every surface. See BurntHeatLossRate.
+            EngineState.Combustion when CombustionWallShare =>
+                HeatTransferCoefficient(gas.PGas, gas.Tu, crankAngleRadians) * gas.Vu / gas.VGas
+                * ((pistonArea * (gas.Tu - Piston + gas.Tu - Head))
+                   + (wallArea * (gas.Tu - averageLiner))),
+
             EngineState.Combustion =>
                 HeatTransferCoefficient(gas.PGas, gas.Tu, crankAngleRadians)
                 * ((gas.Vu / gas.VGas * pistonArea * (gas.Tu - Piston + gas.Tu - Head))

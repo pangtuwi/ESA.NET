@@ -303,6 +303,14 @@ public static class CorrectionCatalogue
         new("B91", "The exhaust sonic Mach solve brackets the area-Mach root on its analytic bounds");
 
     /// <summary>
+    /// ISSUES.md B34: during combustion each zone loses heat through its volume share of
+    /// piston, head and liner, not the burnt zone through piston and head alone and the
+    /// unburnt zone through the whole liner.
+    /// </summary>
+    public static Correction CombustionWallShare { get; } =
+        new("B34", "During the burn each zone loses heat through its volume share of every surface, the liner included");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -322,7 +330,7 @@ public static class CorrectionCatalogue
         ResidualMolecularWeight, SingleZoneGamma, SingleZoneTrialState, EndOfStepState,
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
-        MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay,
+        MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay, CombustionWallShare,
     ];
 }
 

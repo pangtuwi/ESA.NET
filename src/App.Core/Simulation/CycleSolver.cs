@@ -164,6 +164,7 @@ public sealed class CycleSolver
             VariableGamma = engine.VariableGamma,
             SingleZoneTrialState = physics?.IsOn(CorrectionCatalogue.SingleZoneTrialState) ?? false,
             GasExchangeZones = physics?.IsOn(CorrectionCatalogue.GasExchangeZones) ?? false,
+            CombustionWallShare = physics?.IsOn(CorrectionCatalogue.CombustionWallShare) ?? false,
         };
     }
 
