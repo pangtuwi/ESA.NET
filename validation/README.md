@@ -13,9 +13,12 @@ suite covers all ten and draws them as the thesis did.
 | `../data/thesis/figures/` | What the thesis plotted: measured and 2002-model series per figure (`data/thesis/README.md`) |
 | `tools/build_cases.py` | Writes `cases/` from the legacy files |
 | `tools/digitise_thesis.py` | Writes `data/thesis/figures/` from the PDF |
+| `../data/thesis/tests/` | The test sheets and 2002 model runs in the source workbooks, for the channels beyond torque |
+| `tools/extract_tests.py` | Writes `data/thesis/tests/` from the workbooks |
 
-Both scripts are deterministic: re-running them must leave `git status` clean. They need
-Python 3, `pypdf` and poppler's `pdftotext`, and only when a source changes.
+The scripts are deterministic: re-running them must leave `git status` clean. They need
+Python 3, `pypdf` and poppler's `pdftotext` (`extract_tests.py`: `xlrd` 1.2, which reads
+`.xls`), and only when a source changes.
 `tests/App.Tests/ThesisSuiteTests.cs` checks without running a simulation that every case
 loads with every side file resolved, that every grid reads, and that every series in
 `suite.json` names data that exists.
@@ -55,7 +58,7 @@ instead of a line drawn through it. Figures 6.10 and 6.12 are compared from 2500
 as the thesis does.
 
 Reproducing `ThesisCorrelationTests` is a check that the runner is wired the same way as
-that test: `--figure 6.12 --mode legacy --set B4=1` gives 5.3 % rms, a bias of -3.3 Nm and
+that test: `--figure 6.12 --mode legacy --set B4=1` gives 5.3 % rms, a bias of -3.3 % and
 151.8 Nm at 4000 rpm.
 
 ## Cases
@@ -125,6 +128,28 @@ The cams are not swapped. The original counted torque from the work between inle
 (V3). Nothing in the suite substitutes inputs to make it run, because that would be
 fitting.
 
+## Measured channels beyond torque
+
+Torque is the product of how much air the engine draws and how much brake work it gets from
+each kilogram, so a torque error can hide two that cancel. The test figures, whose ids start
+with `T`, compare those two separately wherever a test sheet records fuel flow and lambda
+(`CORRELATION.md`, step 1):
+
+| Figure | Case | Test sheets | 2002 model |
+|---|---|---|---|
+| T1 | `ChinaBora98_Dia355`, the 35.5 mm runners of Figure 6.14 | `35_5 Test Data` | `Model_770_355` |
+| T2 | `VW8V_A4LowCost`, cams A and B of Figure 6.11 | `101M`, `101L` | `026109101M`, `026109101L` |
+
+- **Air flow**, kg/h: measured as fuel flow x lambda x 14.5; ESA.NET's as its fuel flow x its
+  lambda x the `.eng`'s `AFRatio`, which divides a charge the same way; the 2002 model's as its
+  mixture inducted (`MIn`) less its fuel.
+- **Brake work per kilogram of air**, kJ/kg: brake power over air flow. Unlike SFC it barely
+  depends on lambda (within 1 % from lambda 1 to 0.92, `ISSUES.md` F8), so it is the efficiency
+  channel even where a case and its test ran different mixtures.
+
+Both are compared in per cent, at every speed, like torque. `data/thesis/README.md` describes
+the files.
+
 ## Assumptions
 
 The thesis text leaves some inputs open. Each case uses the reading the evidence supports
@@ -148,3 +173,4 @@ measured curve. Each figure in `suite.json` lists the entries it depends on.
 | C3 | The timing loops are at 4000 rpm | Not recorded anywhere that survives. The measured torque (143-153 Nm) is the engine's level at its 4000 rpm peak |
 | C4 | Figure 6.14 is `ChinaBora98.eng` (CR 9.72) with `A3TumbleInlet_M770_355.maf` and `A3TumbleInlet_M770_41.maf`, run at the tests' own spark and lambda | `China_5V Model vs Test Diameters.xls` names exactly these, and the engine tested measured CR 9.715. The thesis text's 686 mm and 10.3:1 describe the project, not this run. Its `35_5 Test Data` and `41 Test Data` sheets record each test's lambda (0.89 to 0.93) and spark advance per speed, and the first fuel flow and SFC too. `ChinaBora98.eng` runs lambda 1 and `ChinaBora98.spk`, which are neither test's, so each grid row carries its test's spark (the sheet's `MBT` column; the sheets do not say which advance was run, and it is at or below the `KLSA` column where both are given) and the derived `.eng` the sheets' mean lambda, 0.91, a grid having no lambda column. Measured with the rest of the suite unchanged: 35.5 mm 19.2 to 19.3 per cent rms (bias +13.0 to +11.7), 41 mm 17.8 to 17.0 (+11.2 to +7.8). The inputs are the tests', not a fit (`ISSUES.md` F8) |
 | C5 | Figure 6.15 is `ChinaBora98.eng` with its own `A3TumbleInlet_M770_36.maf` | `China_5V Final Model vs Test.xls`, whose first model sheet is `Model_770_36`, could not be saved (`data/thesis/README.md`). `ChinaBora103N.eng` (CR 10.3, the same manifold) is the alternative |
+| M1 | The test sheets' fuel was at the stoichiometric air-fuel ratio the cases declare, 14.5, so measured air is fuel flow x lambda x 14.5 | Every case's `.eng` has `AFRatio=14.5`; the sheets record fuel flow and lambda but no air flow. The test fuel was 95 RON gasoline (`35_5 Test Data`) |

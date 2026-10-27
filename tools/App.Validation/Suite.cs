@@ -12,9 +12,13 @@ internal sealed record Suite(string Description, int Cycles, IReadOnlyList<Figur
         ?? throw new InvalidDataException($"{path} is empty.");
 }
 
-/// <summary>One thesis figure.</summary>
+/// <summary>
+/// One thesis figure, or one test figure: a channel beyond torque from the test sheets in the
+/// thesis's source workbooks (<c>CORRELATION.md</c>, step 1), whose id starts with <c>T</c>.
+/// </summary>
 /// <param name="Data">The thesis's plotted series, relative to the repository root.</param>
 /// <param name="CorrelateFrom">The speed below which the thesis discounts its own correlation.</param>
+/// <param name="Source">For a test figure, the workbook and sheets its data comes from.</param>
 internal sealed record FigureSpec(
     string Id,
     string Section,
@@ -26,13 +30,21 @@ internal sealed record FigureSpec(
     AxisSpec? Y2,
     double? CorrelateFrom,
     IReadOnlyList<string> Assumptions,
-    IReadOnlyList<SeriesSpec> Series);
+    IReadOnlyList<SeriesSpec> Series,
+    string? Source = null)
+{
+    /// <summary>"Figure 6.12" for a thesis figure, "Test 1" for test figure T1.</summary>
+    public string Label => Id.StartsWith('T') ? "Test " + Id[1..] : "Figure " + Id;
+}
 
 /// <param name="Variable"><c>rpm</c>, <c>spark</c> or <c>crank</c>; x axes only.</param>
 internal sealed record AxisSpec(string? Variable, string Label, double Min, double Max);
 
 /// <summary>One simulated series and the two thesis series it is compared with.</summary>
-/// <param name="Output"><c>torque</c>, <c>power</c>, <c>torque_delta</c> or <c>inlet_pressure</c>.</param>
+/// <param name="Output">
+/// <c>torque</c>, <c>power</c>, <c>torque_delta</c>, <c>inlet_pressure</c>, <c>air_flow</c>
+/// (kg/h: fuel flow x lambda x AFRatio) or <c>work_per_air</c> (brake power over air flow, kJ/kg).
+/// </param>
 /// <param name="Baseline">For <c>torque_delta</c>, the grid subtracted.</param>
 /// <param name="Station">For <c>inlet_pressure</c>, where along the pipe; only <c>valve</c>.</param>
 internal sealed record SeriesSpec(

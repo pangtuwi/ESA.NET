@@ -24,12 +24,14 @@ internal sealed record SeriesResult(
     Comparison? VersusThesis,
     Comparison? PreviousVersusMeasured)
 {
-    public bool Relative => Spec.Output is "torque" or "power";
+    public bool Relative => Evaluation.IsRelative(Spec.Output);
 
     public string Unit => Spec.Output switch
     {
         "power" => "kW",
         "inlet_pressure" => "bar",
+        "air_flow" => "kg/h",
+        "work_per_air" => "kJ/kg",
         _ => "Nm",
     };
 
@@ -45,6 +47,9 @@ internal sealed record FigureResult(FigureSpec Spec, IReadOnlyList<SeriesResult>
 /// <summary>Turns grid rows into each figure's series and compares them.</summary>
 internal static class Evaluation
 {
+    /// <summary>Whether an output is compared in per cent of the reference rather than in its units.</summary>
+    public static bool IsRelative(string output) => output is "torque" or "power" or "air_flow" or "work_per_air";
+
     public static FigureResult Evaluate(
         FigureSpec figure,
         ThesisData thesis,
@@ -68,7 +73,7 @@ internal static class Evaluation
             var measured = thesis.Measured(spec.Measured);
             var model = thesis.ThesisModel(spec.ThesisModel);
             var before = previous(figure.Id, spec.Name);
-            var relative = spec.Output is "torque" or "power";
+            var relative = IsRelative(spec.Output);
 
             series.Add(new SeriesResult(
                 spec, slot, measured, model, esa, before, failures, rows.Count,
@@ -114,7 +119,13 @@ internal static class Evaluation
 
             default:
                 return ([.. rows.Where(r => r.Failure is null)
-                    .Select(r => new Point(X(r), spec.Output == "power" ? r.PowerKw : r.Torque))
+                    .Select(r => new Point(X(r), spec.Output switch
+                    {
+                        "power" => r.PowerKw,
+                        "air_flow" => r.AirFlowKgH,
+                        "work_per_air" => r.PowerKw / (r.AirFlowKgH / 3600),
+                        _ => r.Torque,
+                    }))
                     .OrderBy(p => p.X)], failures);
         }
     }

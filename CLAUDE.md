@@ -87,9 +87,9 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
 
 - **`validation/cases/`** holds one folder per engine configuration: byte copies of legacy
   files, plus a derived `.eng` where a case changes a value, which opens with a `;` comment
-  naming its source. `.msr` grids hold the run points. `validation/suite.json` maps figures to
-  cases. Both are written by `validation/tools/build_cases.py`; edit the script, not the
-  folder.
+  naming its source. `.msr` grids hold the run points. They are written by
+  `validation/tools/build_cases.py`; edit the script, not the folder. `validation/suite.json`,
+  edited by hand, maps figures to cases.
 - **`data/thesis/figures/`** holds what the thesis plotted, measured and 2002-model,
   extracted from the PDF's vector graphics by `validation/tools/digitise_thesis.py`.
   **`data/thesis/source/`** holds the author's original spreadsheets they were drawn from.
@@ -111,6 +111,10 @@ Figures 6.5 to 6.15), not just the 6.12 that `ThesisCorrelationTests` gates.
   A37: the state is decided from the cylinder's own `ThetaSpark` and `BurnAngle` each step, as the
   original's `GetState` did. Before it, every spark sweep (Figures 6.7, 6.13) burnt against the
   `.spk` spark's window.
+- **Test figures T1 and T2** compare air flow and brake work per kilogram of air, not torque,
+  against the test sheets in the source workbooks (`data/thesis/tests/`, written by
+  `validation/tools/extract_tests.py`). Torque is their product, so they show which of the two a
+  torque error is in. `CORRELATION.md` is the plan they serve.
 - `ThesisSuiteTests` keeps the suite loadable without running it.
 - **Run it** with `dotnet run --project tools/App.Validation -c Release`. It runs in
   Corrected by default, takes about half a minute, and writes `report.html`,

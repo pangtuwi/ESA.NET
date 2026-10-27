@@ -1,0 +1,99 @@
+series,role,x,y
+Cam A air flow,measured,1492.0875,69.0476
+Cam A work per air,measured,1492.0875,931.0586
+Cam A air flow,measured,2008.9975,100.3871
+Cam A work per air,measured,2008.9975,960.1501
+Cam A air flow,measured,2503.545714,127.8127
+Cam A work per air,measured,2503.545714,963.4896
+Cam A air flow,measured,3003.2625,160.6672
+Cam A work per air,measured,3003.2625,973.4346
+Cam A air flow,measured,3505.64,198.9951
+Cam A work per air,measured,3505.64,949.1407
+Cam A air flow,measured,3793.463,208.7281
+Cam A work per air,measured,3793.463,979.2418
+Cam A air flow,measured,3804.914545,208.7281
+Cam A work per air,measured,3804.914545,979.2418
+Cam A air flow,measured,4001.077778,221.1042
+Cam A work per air,measured,4001.077778,967.9217
+Cam A air flow,measured,4509.3225,261.1485
+Cam A work per air,measured,4509.3225,900.7287
+Cam A air flow,measured,5001.902222,265.7283
+Cam A work per air,measured,5001.902222,875.9291
+Cam A air flow,measured,5300.92,259.3807
+Cam A work per air,measured,5300.92,875.8576
+Cam A air flow,measured,5502.781667,261.8640
+Cam A work per air,measured,5502.781667,843.3796
+Cam A air flow,thesis_model,1000,39.6468
+Cam A work per air,thesis_model,1000,790.3387
+Cam A air flow,thesis_model,1500,65.5612
+Cam A work per air,thesis_model,1500,879.6666
+Cam A air flow,thesis_model,2000,90.0804
+Cam A work per air,thesis_model,2000,920.8973
+Cam A air flow,thesis_model,2500,139.3430
+Cam A work per air,thesis_model,2500,944.1852
+Cam A air flow,thesis_model,2800,157.9870
+Cam A work per air,thesis_model,2800,951.8680
+Cam A air flow,thesis_model,3000,187.6808
+Cam A work per air,thesis_model,3000,953.4934
+Cam A air flow,thesis_model,3500,204.2428
+Cam A work per air,thesis_model,3500,950.7508
+Cam A air flow,thesis_model,4000,237.2720
+Cam A work per air,thesis_model,4000,963.6940
+Cam A air flow,thesis_model,4500,244.3534
+Cam A work per air,thesis_model,4500,947.4343
+Cam A air flow,thesis_model,5000,275.3400
+Cam A work per air,thesis_model,5000,914.1338
+Cam A air flow,thesis_model,5300,265.5713
+Cam A work per air,thesis_model,5300,875.4259
+Cam A air flow,thesis_model,5500,260.2004
+Cam A work per air,thesis_model,5500,855.2546
+Cam A air flow,thesis_model,6000,280.6020
+Cam A work per air,thesis_model,6000,803.0534
+Cam B air flow,measured,1503.83625,68.1210
+Cam B work per air,measured,1503.83625,917.2489
+Cam B air flow,measured,1998.758,89.5320
+Cam B work per air,measured,1998.758,1024.5207
+Cam B air flow,measured,2501.627143,109.2986
+Cam B work per air,measured,2501.627143,1088.0653
+Cam B air flow,measured,2800.235556,135.2817
+Cam B work per air,measured,2800.235556,1016.1404
+Cam B air flow,measured,3006.77,147.3997
+Cam B work per air,measured,3006.77,1027.2402
+Cam B air flow,measured,3504.108889,193.0104
+Cam B work per air,measured,3504.108889,987.3125
+Cam B air flow,measured,4001.198889,208.1794
+Cam B work per air,measured,4001.198889,1034.6521
+Cam B air flow,measured,4504.8825,262.4554
+Cam B work per air,measured,4504.8825,927.4612
+Cam B air flow,measured,5005.12125,269.1450
+Cam B work per air,measured,5005.12125,944.1507
+Cam B air flow,measured,5330.1425,270.9354
+Cam B work per air,measured,5330.1425,940.5936
+Cam B air flow,measured,5501.54875,278.5327
+Cam B work per air,measured,5501.54875,908.0615
+Cam B air flow,thesis_model,1000,37.8492
+Cam B work per air,thesis_model,1000,758.3463
+Cam B air flow,thesis_model,1500,62.7084
+Cam B work per air,thesis_model,1500,847.2932
+Cam B air flow,thesis_model,2000,89.2452
+Cam B work per air,thesis_model,2000,893.9775
+Cam B air flow,thesis_model,2500,133.4820
+Cam B work per air,thesis_model,2500,915.7639
+Cam B air flow,thesis_model,2800,155.5967
+Cam B work per air,thesis_model,2800,925.9321
+Cam B air flow,thesis_model,3000,185.2488
+Cam B work per air,thesis_model,3000,925.2789
+Cam B air flow,thesis_model,3500,213.2618
+Cam B work per air,thesis_model,3500,933.3992
+Cam B air flow,thesis_model,4000,242.6808
+Cam B work per air,thesis_model,4000,947.6893
+Cam B air flow,thesis_model,4500,249.7946
+Cam B work per air,thesis_model,4500,943.6441
+Cam B air flow,thesis_model,5000,291.3900
+Cam B work per air,thesis_model,5000,919.6747
+Cam B air flow,thesis_model,5300,282.8698
+Cam B work per air,thesis_model,5300,890.4491
+Cam B air flow,thesis_model,5500,279.0832
+Cam B work per air,thesis_model,5500,877.7125
+Cam B air flow,thesis_model,6000,297.0040
+Cam B work per air,thesis_model,6000,836.0736

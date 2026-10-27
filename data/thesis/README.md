@@ -94,3 +94,33 @@ Timing.xls` (Figure 6.13; its sheets are 9.3:1 and 9.8:1, with series 9.3, 9.8 a
 Simulated) and `China_5V Final Model vs Test.xls` (Figure 6.15; its model sheets are
 `Model_770_36`, `Model_770_37` and `Model_760_37`). Figures 6.13 and 6.15 are taken from
 the PDF alone.
+
+## `tests/`: the test sheets, beyond torque
+
+Written from `source/` by `validation/tools/extract_tests.py`; re-running it reproduces the
+files exactly. Used by the validation report's test figures T1 and T2 (`validation/README.md`,
+"Measured channels beyond torque"; `CORRELATION.md`, step 1).
+
+**One table per test sheet**, a row per speed in rpm order, the sheet's own values under common
+columns, blank where the sheet has none: `rpm`, `torque_nm`, `torque_corrected_nm`,
+`power_kw`, `fuel_kg_h`, `sfc_g_kwh`, `lambda`, `spark_btdc` (the sheets' `MBT` column, the
+advance run), `knock_limit_btdc`, `exhaust_t_c`, `exhaust_p_mbar`, `blowby` (units not recorded).
+
+| File | Sheet | Engine and test |
+|---|---|---|
+| `FiveValve_355.csv` | `China_5V Model vs Test Diameters.xls`, `35_5 Test Data` | Five-valve engine AHP 061466, 35.5 mm runners, 31/03/00: fuel, SFC, lambda, spark, exhaust |
+| `FiveValve_41.csv` | the same, `41 Test Data` | The same engine, 41 mm runners: lambda, MBT and knock-limited spark, exhaust, blow-by; no fuel flow |
+| `EightValve_101M.csv` | `China Cam Effect Modelling.xls`, `101M` | Eight-valve engine, camshaft 101M (cam A): fuel, SFC, lambda |
+| `EightValve_101L.csv` | the same, `101L` | Camshaft 101L (cam B) |
+
+The power column is the sheet's: corrected (`Power.DI`, `Power ECE`) on the five-valve sheets,
+as recorded on the eight-valve ones. The eight-valve sheets list 3805 and 3793 rpm with
+identical values; both are kept.
+
+**One chart file per test figure**, `T1.csv` and `T2.csv`, in the `figures/` columns: air flow,
+kg/h, and brake work per kilogram of air, kJ/kg, measured and from the 2002 model runs
+(`Model_770_355`, `026109101M`, `026109101L`). Measured air is fuel flow x lambda x 14.5
+(`validation/README.md`, M1), and measured work per air uses the uncorrected torque on the
+five-valve sheet, so that power and air are at the same conditions, and the recorded power
+on the eight-valve sheets. The 2002 model's air is its mixture inducted (`MIn`) less its
+fuel; its runs were at lambda 1.
