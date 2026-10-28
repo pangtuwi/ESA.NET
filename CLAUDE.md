@@ -262,7 +262,8 @@ work.
   reads optional `[Fuel]` `C`/`H`/`O`/`N` keys, defaults to 7/17/0/0, and writes
   them only when they change, so existing files stay byte-identical. Two more optional keys are
   read and never written: `[Fuel] CombustionDelay`, degrees from spark to start of combustion
-  under B89, and the `[Friction]` section of B88. No shipped file has either. Without the key the
+  under B89, and the `[Friction]` section of B88. No shipped file has either, nor B92's optional `[Fuel] CombustionEfficiency` (default 0.965,
+  Heywood Fig. 3-9). Without the delay key the
   burn starts at the spark. B90, which instead starts it so that 10 % is burnt at Heywood's
   part-load flame-development angle (Fig. 9-17, `FlameDevelopment`), is **off in Corrected**: at
   full throttle it put the best-torque spark 10 to 26° beyond the engines' measured one
@@ -302,12 +303,13 @@ work.
   closing to exhaust opening, and since B88 friction is a mechanical model from the engine's design
   (Sandoval and Heywood), about half the Barnes-Moss curve, with pumping from the cycle alone, and
   since B89 the burn is a Wiebe law rather than a raised cosine, about 1.5 to 2 % more, and since B34 each zone loses heat through its volume share of the walls during the
-  burn, about 0.7 % less. With every correction torque is about 9 % higher at 4000 rpm, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  burn, about 0.7 % less, and since B92 the burn releases Heywood's 96.5 % combustion efficiency of
+  the fuel's energy, not all of it, about 3 % less. With every correction torque is about 9 % higher at 4000 rpm, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 - **Legacy matches the dynamometer; Corrected over-predicts it since B88.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (19.8 %
-  since A40 turned B90 off, bias +17.0 %, 183.3 Nm; 16.8 % and 164.8 Nm with B90 and B34; 17.3 % and 165.9 Nm under B90; 20.8 % and 184.9 Nm under B89; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (16.7 %
+  since B92, bias +13.5 %, 177.5 Nm; 19.8 % and 183.3 Nm once A40 turned B90 off; 16.8 % and 164.8 Nm with B90 and B34; 17.3 % and 165.9 Nm under B90; 20.8 % and 184.9 Nm under B89; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
   speeds until A29 was fixed). The mechanical friction of B88 is about half the curve's, which had been
   hiding an over-prediction elsewhere in Corrected (`ISSUES.md` B88, F8). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A

@@ -31,6 +31,14 @@ public sealed class Fuel
     /// </summary>
     public double? CombustionDelay { get; set; }
 
+    /// <summary>
+    /// The fraction of the fuel's energy the burn releases, or null for
+    /// <see cref="App.Core.Simulation.CombustionLoss.DefaultEfficiency"/>. No Delphi counterpart; read from
+    /// an optional <c>[Fuel] CombustionEfficiency</c> key, never written, and used only under
+    /// B92 (ISSUES.md B92).
+    /// </summary>
+    public double? CombustionEfficiency { get; set; }
+
     /// <summary>Fuel mass, <c>m</c>.</summary>
     public double M { get; set; }
 

@@ -207,6 +207,10 @@ public sealed class ExhaustValveLatchTests
         // combustion changes the exhaust blowdown it depends on.
         physics.Overrides[CorrectionCatalogue.FlameDevelopmentDelay.Entry] = false;
 
+        // And it released all the fuel's energy: B92's cooler, lower-pressure exhaust no longer
+        // drives the boundary into the latch.
+        physics.Overrides[CorrectionCatalogue.CombustionEfficiency.Entry] = false;
+
         var settings = new SimulationSettings
         {
             CycleCount = 8,

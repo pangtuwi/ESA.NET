@@ -132,6 +132,30 @@ public sealed class CylinderModel
     /// </summary>
     public bool CombustionWallShare { get; init; }
 
+    /// <summary>
+    /// ISSUES.md B92: the share of the fuel's energy the burn releases. One, the original's,
+    /// releases all of it; under B92 the rest leaves the gas as the burn proceeds and so reaches
+    /// the exhaust, uncounted as heat to the walls. See <see cref="CombustionLoss"/>.
+    /// </summary>
+    public double CombustionEfficiency { get; init; } = 1;
+
+    /// <summary>
+    /// The fuel energy the burn does not release, per radian, negative as a loss is: the
+    /// unreleased share of the fuel's energy, in step with the burn rate. Zero unless B92 sets
+    /// <see cref="CombustionEfficiency"/> below one.
+    /// </summary>
+    public double CombustionLossRate(double crankAngleRadians)
+    {
+        if (CombustionEfficiency == 1)
+        {
+            return 0;
+        }
+
+        var fuel = Cylinder.State.Fuel;
+
+        return -(1 - CombustionEfficiency) * fuel.M * fuel.Q * Cylinder.BurnRate(crankAngleRadians);
+    }
+
     /// <summary>The current crank-angle state, Delphi <c>State</c>.</summary>
     public EngineState State { get; set; }
 
@@ -431,7 +455,7 @@ public sealed class CylinderModel
 
         return (-localGamma * pressure / volume * _geometry.VolumeRatePerRadian(crankAngleRadians))
                + ((localGamma - 1) / volume
-                  * ((gas.Fuel.M * gas.Fuel.Q * Cylinder.BurnRate(crankAngleRadians))
+                  * ((CombustionEfficiency * gas.Fuel.M * gas.Fuel.Q * Cylinder.BurnRate(crankAngleRadians))
                      + SingleZoneHeatLossRate(crankAngleRadians)));
     }
 
@@ -528,6 +552,7 @@ public sealed class CylinderModel
         var s = (gas.DmbDTheta * gas.Vu / gas.Mu) + gas.DvDTheta;
         var r = (-gas.PGas * gas.DvDTheta * (1 + (gas.DuDtb / gas.Rb)))
                 + BurntHeatLossRate(crankAngleRadians)
+                + CombustionLossRate(crankAngleRadians)
                 - (gas.DmbDTheta
                    * (gas.Ub - gas.Uu + (((gas.Ru * gas.Tu / gas.Rb) - gas.Tb) * gas.DuDtb)));
         var b = -gas.Tu / gas.PGas;
@@ -569,7 +594,8 @@ public sealed class CylinderModel
 
         // The original marks this line "//## Was T", so it was changed at some point and
         // the previous form is gone.
-        var t = BurntHeatLossRate(crankAngleRadians) + (gas.DmbDTheta * (gas.Hu - gas.Ub));
+        var t = BurntHeatLossRate(crankAngleRadians) + CombustionLossRate(crankAngleRadians)
+                + (gas.DmbDTheta * (gas.Hu - gas.Ub));
 
         return -((-q * n * h) - (q * m * f * l) + (q * m * h * j) + (r * n * d) + (r * m * b * l)
                  - (r * m * d * j) - (s * m * b * h) + (s * m * d * f) + (t * b * h) - (t * d * f))

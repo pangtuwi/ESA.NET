@@ -165,6 +165,9 @@ public sealed class CycleSolver
             SingleZoneTrialState = physics?.IsOn(CorrectionCatalogue.SingleZoneTrialState) ?? false,
             GasExchangeZones = physics?.IsOn(CorrectionCatalogue.GasExchangeZones) ?? false,
             CombustionWallShare = physics?.IsOn(CorrectionCatalogue.CombustionWallShare) ?? false,
+            CombustionEfficiency = physics?.IsOn(CorrectionCatalogue.CombustionEfficiency) ?? false
+                ? engine.Cylinder.Fuel.CombustionEfficiency ?? CombustionLoss.DefaultEfficiency
+                : 1,
         };
     }
 

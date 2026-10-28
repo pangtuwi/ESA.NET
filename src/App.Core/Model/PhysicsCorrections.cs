@@ -317,6 +317,14 @@ public static class CorrectionCatalogue
         new("B34", "During the burn each zone loses heat through its volume share of every surface, the liner included");
 
     /// <summary>
+    /// ISSUES.md B92: the burn releases a combustion efficiency's share of the fuel's energy,
+    /// Heywood's 95 to 98 per cent for a spark-ignition engine, not all of it; the rest leaves
+    /// with the exhaust as unburnt fuel.
+    /// </summary>
+    public static Correction CombustionEfficiency { get; } =
+        new("B92", "The burn releases a combustion efficiency's share of the fuel energy, not all of it");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -337,6 +345,7 @@ public static class CorrectionCatalogue
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
         MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay, CombustionWallShare,
+        CombustionEfficiency,
     ];
 }
 

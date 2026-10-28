@@ -6,21 +6,21 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After A40 turned B90 off, the validation suite in Corrected gives (rms against the dynamometer,
-bias in brackets):
+After B92, the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 16 to 18 % (+16 to +18) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 6.9 % (+3.6) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 19.8 % (+17.0) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 23.7 and 22.1 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 22.0 and 19.3 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 17.5 % | 5.8 % |
-| T1, T2 | work per kilogram of air | +8.8, +12.6 and +6.0 % bias | |
+| 6.5 to 6.7 | 2.4 L Nissan | 13 to 14 % (+12 to +14) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 5.6 % (−0.1) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 16.7 % (+13.4) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 19.8 and 18.2 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 18.0 and 16.1 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 14.8 % | 5.8 % |
+| T1, T2 | work per kilogram of air | +5.4, +8.4 and +2.2 % bias | |
 
-These are further from the dynamometer than with B90 (6.12 was 16.7 %), and that is the point:
-B90's late burn was offsetting the conversion excess that step 3 now has to find.
+Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
+conversion excess. Step 3's combustion efficiency (B92) brought back about 3.5 points of it,
+from physics the model lacked.
 
 Legacy, the original's physics, is 5.3 % on 6.12. It sits close to the dynamometer only because
 its defects and its calibration offset each other (F6). Corrected removes the defects, so its
@@ -147,15 +147,27 @@ fixed, so every row runs. Steps 3 and the friction check face a conversion exces
 10 %, uniform with speed below 5000 rpm. That shape suits a loss proportional to the fuel burnt,
 such as crevices and unburnt fuel, more than friction, which grows with speed.
 
-### 3. Losses the model does not have
+### 3. Losses the model does not have — *combustion efficiency done; friction next*
 
-Each is a few per cent, which is the scale this plan expects:
-- **Crevices and unburnt fuel.** Namazian and Heywood (SAE 820088) put the crevice flow's cost at
-  2 to 7 % of power and efficiency. Heywood (1988, ch. 4) gives combustion efficiency against
-  equivalence ratio. The candidate is a combustion efficiency below one, taken from that source.
-- **Blow-by.** The 41 mm sheet measures it. If its column is cm³/min it is roughly 2 to 3 % of the
-  charge at 1500 rpm, falling to under 0.5 % at 6500, which would bear on the low-speed end. The
-  units have to be established before anything uses it.
+After step 2 the conversion excess was about +5 to +10 % of brake work per kilogram of air,
+roughly constant to 4500 rpm on both engines, plus 5 to 10 points more above it.
+
+- **Combustion efficiency — done (`ISSUES.md` B92).** Heywood (1988, §3.5.5, Fig. 3-9, p. 82):
+  a spark-ignition engine's combustion efficiency is "usually in the range 95 to 98 percent" with
+  excess air, and is "little affected by other engine operating and design variables". The
+  model's equilibrium burnt gas already has the fall on the rich side; what it lacked was that 2
+  to 5 % shortfall. The burn now releases 96.5 % of the fuel's energy, the midpoint of the range,
+  and the rest reaches the exhaust. It accounts for about 3.5 points of the constant part. Work
+  per kilogram of air is now T1 +5.4 %, cam A +8.4 % and cam B +2.2 %; 6.10 is 5.6 % rms with a
+  bias of −0.1.
+- **Friction at speed — next.** The excess still grows above 4500 rpm. The test implies 0.7 to
+  1.7 bar more friction there than B88 gives, and B88's bearing sizes and ring factors are
+  unsourced defaults. The check is against measured motored friction (Heywood ch. 13, or
+  Sandoval's thesis, which B88 is built on).
+- **Crevices** are part of the combustion efficiency above; Namazian and Heywood (SAE 820088) is
+  not needed separately.
+- **Blow-by.** The thesis left it out as negligible for an engine in good condition (§2.7.5). The
+  41 mm sheet measures it, in units it does not state, so it stays out until they are known.
 
 ### 4. The charge error
 
@@ -198,7 +210,7 @@ cheap to settle.
 |---|---|
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
-| 3. Missing losses | Next |
+| 3. Missing losses | Combustion efficiency done (B92); friction at speed next |
 | 4. Charge error | Not started |
 | 5. Correction convention | Not started |
 | 6. Correctness fixes | Not started |
