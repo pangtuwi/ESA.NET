@@ -95,7 +95,7 @@ error changes sign with the spark the test ran. The model loses more than the en
 advance and less at a large one, which points step 2 at the burn's duration and how it scales with
 speed before friction.
 
-### 2. Where the high-speed efficiency excess comes from: MBT
+### 2. Where the high-speed efficiency excess comes from: MBT — *measured; a decision is open*
 
 The test needs 13 to 19° of advance at 4000 to 4500 rpm and 30 to 41° above 5000. The model
 burns over a fixed 55°, starting at Heywood's flame-development angle (B90). Two candidates fit
@@ -110,6 +110,38 @@ an efficiency excess that grows with speed:
 measure MBT too). If the model's MBT is earlier or later than the engine's, the burn rate is
 wrong. If it matches, the remaining excess is friction, to be checked against Sandoval's
 measured motoring friction (the source of B88).
+
+**Measured** (`ISSUES.md` A40). Spark was swept from 4 to 56° at every speed on the 41 mm case,
+over 8 cycles:
+
+| | Model's MBT to 5000 rpm | Torque lost at the test's spark | Spark to 50 % burnt |
+|---|---|---|---|
+| The engine | 14 to 21° | — | about 22 to 31°, taking 50 % burnt at 7 to 10° ATDC at MBT (US 6,609,497; US 7,086,382) |
+| Corrected | 27 to 40° | 4 to 18 % | 36 to 51° |
+| Corrected with `B90=0` | within about 3° of the engine's, 2000 to 5000 rpm | under 2 % | 28° |
+| Legacy | within 2 to 4° | — | 27.5° |
+
+The timing loops of 6.7 and 6.13 agree: the engines peak at 15 to 20°, and Corrected is still
+rising at the top of each sweep. So the first candidate was right but turned the other way.
+**Corrected's burn is too slow, not too short.** B90's flame-development delay comes from a
+part-load measurement and is far too long at full throttle. Its late burn has been costing torque
+at the test's spark, which hid about half of the real conversion excess.
+
+With `B90=0` the picture is simpler (validation suite, Corrected):
+- work per air is 6 to 13 % high on both engines (T1 +8.8 %, cam A +12.6 %, cam B +6.0 %),
+  roughly uniform below 5000 rpm;
+- torque is +15 to +24 % on most figures;
+- 6.10 is +3.6 %.
+
+**Above 5250 rpm** the engine needs 31 to 39° to the model's 24 to 25°. The real burn lengthens
+at high speed and the fixed 55° does not. That is a second, smaller burn-duration error, and no
+full-load source has been found for it yet.
+
+**Decision open**: turn B90 off in Corrected (its burn then matches the measured MBT to 5000
+rpm), or replace it with a sourced full-load correlation. Either way, steps 3 and the friction
+check then face a conversion excess of about 10 %, uniform with speed below 5000 rpm. That shape
+suits a loss proportional to the fuel burnt, such as crevices and unburnt fuel, more than
+friction, which grows with speed.
 
 ### 3. Losses the model does not have
 
@@ -161,7 +193,7 @@ cheap to settle.
 | Step | State |
 |---|---|
 | 1. Measured channels | Done: T1, T2 |
-| 2. MBT | Next |
+| 2. MBT | Measured (A40): B90 burns too slowly at full load; decision open |
 | 3. Missing losses | Not started |
 | 4. Charge error | Not started |
 | 5. Correction convention | Not started |
