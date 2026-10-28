@@ -6,17 +6,21 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-On `main` after B34, the validation suite in Corrected gives (rms against the dynamometer, bias
-in brackets):
+After A40 turned B90 off, the validation suite in Corrected gives (rms against the dynamometer,
+bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 9 to 12 % (+9 to +12) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 14.0 % (−13.6) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 16.7 % (+13.2) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 4.9 and 4.3 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 18.9 and 16.7 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 14.5 % | 5.8 % |
+| 6.5 to 6.7 | 2.4 L Nissan | 16 to 18 % (+16 to +18) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 6.9 % (+3.6) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 19.8 % (+17.0) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 23.7 and 22.1 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 22.0 and 19.3 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 17.5 % | 5.8 % |
+| T1, T2 | work per kilogram of air | +8.8, +12.6 and +6.0 % bias | |
+
+These are further from the dynamometer than with B90 (6.12 was 16.7 %), and that is the point:
+B90's late burn was offsetting the conversion excess that step 3 now has to find.
 
 Legacy, the original's physics, is 5.3 % on 6.12. It sits close to the dynamometer only because
 its defects and its calibration offset each other (F6). Corrected removes the defects, so its
@@ -95,7 +99,7 @@ error changes sign with the spark the test ran. The model loses more than the en
 advance and less at a large one, which points step 2 at the burn's duration and how it scales with
 speed before friction.
 
-### 2. Where the high-speed efficiency excess comes from: MBT — *measured; a decision is open*
+### 2. Where the high-speed efficiency excess comes from: MBT — *done*
 
 The test needs 13 to 19° of advance at 4000 to 4500 rpm and 30 to 41° above 5000. The model
 burns over a fixed 55°, starting at Heywood's flame-development angle (B90). Two candidates fit
@@ -137,11 +141,11 @@ With `B90=0` the picture is simpler (validation suite, Corrected):
 at high speed and the fixed 55° does not. That is a second, smaller burn-duration error, and no
 full-load source has been found for it yet.
 
-**Decision open**: turn B90 off in Corrected (its burn then matches the measured MBT to 5000
-rpm), or replace it with a sourced full-load correlation. Either way, steps 3 and the friction
-check then face a conversion excess of about 10 %, uniform with speed below 5000 rpm. That shape
-suits a loss proportional to the fuel burnt, such as crevices and unburnt fuel, more than
-friction, which grows with speed.
+**Decided**: B90 is off in Corrected and on only by name (`B90=1`), recorded as `ISSUES.md` A40.
+Running without it exposed A41: a NaN equilibrium solve was being accepted as resolved. Now
+fixed, so every row runs. Steps 3 and the friction check face a conversion excess of about
+10 %, uniform with speed below 5000 rpm. That shape suits a loss proportional to the fuel burnt,
+such as crevices and unburnt fuel, more than friction, which grows with speed.
 
 ### 3. Losses the model does not have
 
@@ -193,8 +197,8 @@ cheap to settle.
 | Step | State |
 |---|---|
 | 1. Measured channels | Done: T1, T2 |
-| 2. MBT | Measured (A40): B90 burns too slowly at full load; decision open |
-| 3. Missing losses | Not started |
+| 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
+| 3. Missing losses | Next |
 | 4. Charge error | Not started |
 | 5. Correction convention | Not started |
 | 6. Correctness fixes | Not started |

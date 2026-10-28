@@ -20,7 +20,11 @@ public enum PhysicsMode
 /// </summary>
 /// <param name="Entry">The <c>ISSUES.md</c> number, such as <c>B14</c>, and its <c>ESA.ini</c> key.</param>
 /// <param name="Summary">What the correction changes, in a line.</param>
-public sealed record Correction(string Entry, string Summary);
+/// <param name="InCorrected">
+/// Whether Corrected runs it. False for a correction that is sound physics somewhere but fails a
+/// measured oracle where the suite runs, which <c>ESA.ini</c> can still turn on (B90, ISSUES.md A40).
+/// </param>
+public sealed record Correction(string Entry, string Summary, bool InCorrected = true);
 
 /// <summary>
 /// The corrections that exist. Each tier 3 correction adds its entry here when it lands,
@@ -289,10 +293,12 @@ public static class CorrectionCatalogue
     /// <summary>
     /// ISSUES.md B90: with no delay in the file, the Wiebe burn starts where its 10 per cent
     /// point falls at Heywood's flame-development angle for the running speed, not at the
-    /// spark.
+    /// spark. Not run by Corrected: the angle was measured at part throttle, and at full
+    /// throttle it puts the best-torque spark 10 to 26 degrees beyond the engines' measured
+    /// one (ISSUES.md A40). <c>B90=1</c> in <c>ESA.ini</c> turns it on.
     /// </summary>
     public static Correction FlameDevelopmentDelay { get; } =
-        new("B90", "With no delay given, the burn starts so that 10 per cent is burnt at the flame-development angle for the speed");
+        new("B90", "With no delay given, the burn starts so that 10 per cent is burnt at the flame-development angle for the speed", InCorrected: false);
 
     /// <summary>
     /// ISSUES.md B91: the exhaust valve's choked reverse-flow Mach solve brackets the
@@ -368,12 +374,17 @@ public sealed class PhysicsCorrections
     public IDictionary<string, bool> Overrides { get; } =
         new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Whether <paramref name="correction"/> applies: its override if there is one, otherwise the mode.</summary>
+    /// <summary>
+    /// Whether <paramref name="correction"/> applies: its override if there is one, otherwise
+    /// the mode, Corrected running every correction it is meant to.
+    /// </summary>
     public bool IsOn(Correction correction)
     {
         ArgumentNullException.ThrowIfNull(correction);
 
-        return Overrides.TryGetValue(correction.Entry, out var on) ? on : Mode == PhysicsMode.Corrected;
+        return Overrides.TryGetValue(correction.Entry, out var on)
+            ? on
+            : Mode == PhysicsMode.Corrected && correction.InCorrected;
     }
 
     /// <summary>The corrections that apply, in catalogue order.</summary>
@@ -381,7 +392,7 @@ public sealed class PhysicsCorrections
 
     /// <summary>
     /// The physics in a line, for <c>run.txt</c>: the mode, and which corrections were on
-    /// when that is not simply all or none of them.
+    /// when that is not simply the mode's own set.
     /// </summary>
     public string Describe()
     {
@@ -402,8 +413,15 @@ public sealed class PhysicsCorrections
             return $"{mode}, no corrections on";
         }
 
-        return active.Count == all.Count
-            ? $"{mode}, all {all.Count} corrections on"
+        if (active.Count == all.Count)
+        {
+            return $"{mode}, all {all.Count} corrections on";
+        }
+
+        var corrected = all.Where(c => c.InCorrected).ToList();
+
+        return active.SequenceEqual(corrected)
+            ? $"{mode}, all {corrected.Count} of its corrections on; off: {string.Join(", ", all.Except(corrected).Select(c => c.Entry))}"
             : $"{mode}, corrections on: {string.Join(", ", active.Select(c => c.Entry))}";
     }
 

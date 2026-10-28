@@ -21,7 +21,7 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal(PhysicsMode.Corrected, new PhysicsCorrections().Mode);
         Assert.Equal(PhysicsMode.Corrected, new SimulationSettings().Physics.Mode);
         Assert.True(new PhysicsCorrections().IsOn(Example));
-        Assert.Equal(CorrectionCatalogue.All.Count, new PhysicsCorrections().Active.Count);
+        Assert.Equal(CorrectionCatalogue.All.Count(c => c.InCorrected), new PhysicsCorrections().Active.Count);
     }
 
     [Fact]
@@ -85,15 +85,40 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal(37, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections { Mode = PhysicsMode.Legacy }.Describe());
-        Assert.Equal($"Corrected, all {CorrectionCatalogue.All.Count} corrections on", new PhysicsCorrections().Describe());
+        Assert.Equal(
+            $"Corrected, all {CorrectionCatalogue.All.Count - 1} of its corrections on; off: B90",
+            new PhysicsCorrections().Describe());
 
         var corrected = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
         Assert.Equal(
-            $"Corrected, all {CorrectionCatalogue.All.Count} corrections on", corrected.Describe());
+            $"Corrected, all {CorrectionCatalogue.All.Count - 1} of its corrections on; off: B90", corrected.Describe());
 
         // An override that switches B14 back off is named, not hidden.
         corrected.Overrides["B14"] = false;
         Assert.DoesNotContain(CorrectionCatalogue.Rkf5Coefficient, corrected.Active);
+    }
+
+    /// <summary>
+    /// ISSUES.md A40: B90 fails the measured best-torque spark at full throttle, so Corrected
+    /// does not run it; ESA.ini can still turn it on, in either mode.
+    /// </summary>
+    [Fact]
+    public void B90IsOffInCorrectedUnlessTurnedOn()
+    {
+        Assert.False(CorrectionCatalogue.FlameDevelopmentDelay.InCorrected);
+        Assert.All(CorrectionCatalogue.All.Where(c => c != CorrectionCatalogue.FlameDevelopmentDelay), c => Assert.True(c.InCorrected));
+
+        var corrected = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
+        Assert.False(corrected.IsOn(CorrectionCatalogue.FlameDevelopmentDelay));
+        Assert.True(corrected.IsOn(CorrectionCatalogue.WiebeBurn));
+
+        corrected.Overrides["B90"] = true;
+        Assert.True(corrected.IsOn(CorrectionCatalogue.FlameDevelopmentDelay));
+        Assert.Equal($"Corrected, all {CorrectionCatalogue.All.Count} corrections on", corrected.Describe());
+
+        var legacy = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
+        legacy.Overrides["B90"] = true;
+        Assert.Equal("Legacy, corrections on: B90", legacy.Describe());
     }
 
     [Fact]

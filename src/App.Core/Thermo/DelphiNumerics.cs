@@ -92,7 +92,12 @@ public static class DelphiNumerics
 
             residual = Math.Abs(residual - originalRhs[row]);
 
-            if (residual > accuracy)
+            // Not "residual > accuracy": a solution gone NaN has a NaN residual, which that
+            // test skips, and the solve would report full accuracy. NaN is kept instead, and
+            // SciExp gives it a resolution of 0, as GaussReduceExtended's Math.Max does. The
+            // original's x87 arithmetic would have stopped at the invalid operation.
+            // See ISSUES.md A41.
+            if (!(residual <= accuracy))
             {
                 accuracy = residual;
             }
