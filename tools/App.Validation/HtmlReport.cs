@@ -38,7 +38,7 @@ internal static partial class HtmlReport
 
         html.Append("<h2 id=\"summary\">Summary</h2>");
         html.Append(Summary(figures, previous is not null));
-        html.Append("<p class=\"note\">Differences are per cent of the reference for torque and power, and in the figure's own units for the torque change of Figure 6.11 and the pressure trace of Figure 6.8. ");
+        html.Append("<p class=\"note\">Differences are per cent of the reference for torque, power, air flow and work per kilogram of air, and in the figure's own units for the torque change of Figure 6.11 and the pressure trace of Figure 6.8. ");
         html.Append("rms is the root mean square of the differences at the reference's own points, the simulated curve interpolated between its runs; bias is their mean. ");
         html.Append("“2002 model” is the thesis's own simulation, the bar the port is measured against.</p>");
 
@@ -103,7 +103,7 @@ internal static partial class HtmlReport
         var columns = withPrevious ? 7 : 5;
         foreach (var f in figures)
         {
-            t.Append(Inv($"<tr class=\"group\"><th colspan=\"{columns}\"><a href=\"#f{f.Spec.Id.Replace('.', '-')}\">Figure {H(f.Spec.Id)}</a> <span class=\"muted\">{H(f.Spec.Title)}</span></th></tr>"));
+            t.Append(Inv($"<tr class=\"group\"><th colspan=\"{columns}\"><a href=\"#f{f.Spec.Id.Replace('.', '-')}\">{H(f.Spec.Label)}</a> <span class=\"muted\">{H(f.Spec.Title)}</span></th></tr>"));
             foreach (var s in f.Series)
             {
                 t.Append(Inv($"<tr><td><span class=\"swatch\" style=\"background:var(--series-{s.Slot})\"></span>{H(s.Spec.Name)}</td><td>{Status(s)}</td>"));
@@ -140,10 +140,13 @@ internal static partial class HtmlReport
     {
         var spec = f.Spec;
         var html = new StringBuilder();
-        html.Append(Inv($"<section id=\"f{spec.Id.Replace('.', '-')}\"><h2>Figure {H(spec.Id)} · {H(spec.Title)}</h2>"));
+        html.Append(Inv($"<section id=\"f{spec.Id.Replace('.', '-')}\"><h2>{H(spec.Label)} · {H(spec.Title)}</h2>"));
 
         var caseNames = f.Series.Select(s => s.Spec.Case).Distinct().Select(c => cases.TryGetValue(c, out var d) ? $"<code>{H(c)}</code> ({H(d)})" : $"<code>{H(c)}</code>");
-        html.Append(Inv($"<p class=\"meta\">Thesis section {H(spec.Section)}, page {spec.Page} · {string.Join(", ", caseNames)}</p>"));
+        var where = spec.Source is { } source
+            ? $"Test sheets: {H(source)}; the thesis's section {H(spec.Section)}, page {spec.Page}"
+            : $"Thesis section {H(spec.Section)}, page {spec.Page}";
+        html.Append(Inv($"<p class=\"meta\">{where} · {string.Join(", ", caseNames)}</p>"));
 
         if (spec.CorrelateFrom is { } from)
         {
@@ -190,7 +193,7 @@ internal static partial class HtmlReport
                 chart.Add(s.Slot, s.Spec.Name, Source.Measured, s.Measured);
             }
 
-            html.Append("<figure>").Append(chart.Render($"Figure {spec.Id}: {ySpec.Label} against {spec.X.Label}")).Append("</figure>");
+            html.Append("<figure>").Append(chart.Render($"{spec.Label}: {ySpec.Label} against {spec.X.Label}")).Append("</figure>");
         }
 
         html.Append("</div>");

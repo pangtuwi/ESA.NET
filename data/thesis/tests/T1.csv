@@ -1,0 +1,91 @@
+series,role,x,y
+35.5 mm air flow,measured,1500,65.8996
+35.5 mm work per air,measured,1500,953.3528
+35.5 mm air flow,measured,1749,79.9066
+35.5 mm work per air,measured,1749,964.6123
+35.5 mm air flow,measured,1999,99.7890
+35.5 mm work per air,measured,1999,968.1648
+35.5 mm air flow,measured,2248,108.7210
+35.5 mm work per air,measured,2248,983.7242
+35.5 mm air flow,measured,2501,117.3036
+35.5 mm work per air,measured,2501,982.2112
+35.5 mm air flow,measured,2748,139.4030
+35.5 mm work per air,measured,2748,991.3604
+35.5 mm air flow,measured,2999,150.3418
+35.5 mm work per air,measured,2999,1002.4391
+35.5 mm air flow,measured,3250,173.1844
+35.5 mm work per air,measured,3250,987.6230
+35.5 mm air flow,measured,3498,191.8292
+35.5 mm work per air,measured,3498,997.4787
+35.5 mm air flow,measured,3750,213.8402
+35.5 mm work per air,measured,3750,979.1024
+35.5 mm air flow,measured,3998,234.2504
+35.5 mm work per air,measured,3998,965.7712
+35.5 mm air flow,measured,4248,242.4545
+35.5 mm work per air,measured,4248,974.9262
+35.5 mm air flow,measured,4505,249.5175
+35.5 mm work per air,measured,4505,974.6934
+35.5 mm air flow,measured,4751,253.8602
+35.5 mm work per air,measured,4751,957.4175
+35.5 mm air flow,measured,5015,260.1256
+35.5 mm work per air,measured,5015,950.6631
+35.5 mm air flow,measured,5251,274.0500
+35.5 mm work per air,measured,5251,939.7679
+35.5 mm air flow,measured,5502,283.7809
+35.5 mm work per air,measured,5502,931.1891
+35.5 mm air flow,measured,5749,288.6660
+35.5 mm work per air,measured,5749,915.2326
+35.5 mm air flow,measured,6004,291.0150
+35.5 mm work per air,measured,6004,878.1129
+35.5 mm air flow,measured,6258,285.0120
+35.5 mm work per air,measured,6258,843.4857
+35.5 mm air flow,measured,6499,275.7799
+35.5 mm work per air,measured,6499,804.0142
+35.5 mm air flow,thesis_model,1500,68.9078
+35.5 mm work per air,thesis_model,1500,921.2658
+35.5 mm air flow,thesis_model,1750,82.0255
+35.5 mm work per air,thesis_model,1750,944.3551
+35.5 mm air flow,thesis_model,2000,93.0408
+35.5 mm work per air,thesis_model,2000,908.9690
+35.5 mm air flow,thesis_model,2250,100.7773
+35.5 mm work per air,thesis_model,2250,916.5993
+35.5 mm air flow,thesis_model,2500,111.9140
+35.5 mm work per air,thesis_model,2500,951.3233
+35.5 mm air flow,thesis_model,2750,129.1521
+35.5 mm work per air,thesis_model,2750,977.2106
+35.5 mm air flow,thesis_model,3000,155.4416
+35.5 mm work per air,thesis_model,3000,963.4255
+35.5 mm air flow,thesis_model,3250,187.7557
+35.5 mm work per air,thesis_model,3250,894.3452
+35.5 mm air flow,thesis_model,3500,196.1104
+35.5 mm work per air,thesis_model,3500,914.6746
+35.5 mm air flow,thesis_model,3750,215.8745
+35.5 mm work per air,thesis_model,3750,917.5164
+35.5 mm air flow,thesis_model,4000,254.1596
+35.5 mm work per air,thesis_model,4000,885.7804
+35.5 mm air flow,thesis_model,4250,267.5580
+35.5 mm work per air,thesis_model,4250,881.9770
+35.5 mm air flow,thesis_model,4500,256.8422
+35.5 mm work per air,thesis_model,4500,892.4375
+35.5 mm air flow,thesis_model,4750,262.3799
+35.5 mm work per air,thesis_model,4750,900.9608
+35.5 mm air flow,thesis_model,5000,279.8000
+35.5 mm work per air,thesis_model,5000,862.5718
+35.5 mm air flow,thesis_model,5250,305.6947
+35.5 mm work per air,thesis_model,5250,825.5177
+35.5 mm air flow,thesis_model,5500,317.7754
+35.5 mm work per air,thesis_model,5500,807.8196
+35.5 mm air flow,thesis_model,5750,330.0960
+35.5 mm work per air,thesis_model,5750,772.7388
+35.5 mm air flow,thesis_model,5800,330.2730
+35.5 mm work per air,thesis_model,5800,776.2706
+35.5 mm air flow,thesis_model,6000,321.0840
+35.5 mm work per air,thesis_model,6000,773.2145
+35.5 mm air flow,thesis_model,6250,299.8400
+35.5 mm work per air,thesis_model,6250,763.6313
+35.5 mm air flow,thesis_model,6500,279.6160
+35.5 mm work per air,thesis_model,6500,721.9673
+35.5 mm air flow,thesis_model,6750,283.1184
+35.5 mm work per air,thesis_model,6750,682.0228
+35.5 mm air flow,thesis_model,6800,284.6727
+35.5 mm work per air,thesis_model,6800,671.1412

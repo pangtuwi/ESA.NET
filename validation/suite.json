@@ -410,6 +410,122 @@
           "thesisModel": "Modeled Power"
         }
       ]
+    },
+    {
+      "id": "T1",
+      "section": "6.6",
+      "page": 120,
+      "title": "Air flow and brake work per kilogram of air, five-valve engine with 35.5 mm runners",
+      "data": "data/thesis/tests/T1.csv",
+      "source": "China_5V Model vs Test Diameters.xls, 35_5 Test Data and Model_770_355",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1000,
+        "max": 7000
+      },
+      "y": {
+        "label": "Air flow [kg/h]",
+        "min": 0,
+        "max": 300
+      },
+      "y2": {
+        "label": "Brake work per kilogram of air [kJ/kg]",
+        "min": 600,
+        "max": 1200
+      },
+      "assumptions": [
+        "C4",
+        "M1"
+      ],
+      "series": [
+        {
+          "name": "35.5 mm air flow",
+          "case": "ChinaBora98_Dia355",
+          "grid": "torque",
+          "output": "air_flow",
+          "axis": "y",
+          "measured": "35.5 mm air flow",
+          "thesisModel": "35.5 mm air flow"
+        },
+        {
+          "name": "35.5 mm work per air",
+          "case": "ChinaBora98_Dia355",
+          "grid": "torque",
+          "output": "work_per_air",
+          "axis": "y2",
+          "measured": "35.5 mm work per air",
+          "thesisModel": "35.5 mm work per air"
+        }
+      ]
+    },
+    {
+      "id": "T2",
+      "section": "6.5",
+      "page": 115,
+      "title": "Air flow and brake work per kilogram of air, eight-valve engine, cams A and B",
+      "data": "data/thesis/tests/T2.csv",
+      "source": "China Cam Effect Modelling.xls, 101M and 101L, 026109101M and 026109101L",
+      "x": {
+        "variable": "rpm",
+        "label": "Speed [rpm]",
+        "min": 1000,
+        "max": 7000
+      },
+      "y": {
+        "label": "Air flow [kg/h]",
+        "min": 0,
+        "max": 300
+      },
+      "y2": {
+        "label": "Brake work per kilogram of air [kJ/kg]",
+        "min": 600,
+        "max": 1200
+      },
+      "assumptions": [
+        "V1",
+        "V2",
+        "V4",
+        "M1"
+      ],
+      "series": [
+        {
+          "name": "Cam A air flow",
+          "case": "VW8V_A4LowCost",
+          "grid": "camA",
+          "output": "air_flow",
+          "axis": "y",
+          "measured": "Cam A air flow",
+          "thesisModel": "Cam A air flow"
+        },
+        {
+          "name": "Cam A work per air",
+          "case": "VW8V_A4LowCost",
+          "grid": "camA",
+          "output": "work_per_air",
+          "axis": "y2",
+          "measured": "Cam A work per air",
+          "thesisModel": "Cam A work per air"
+        },
+        {
+          "name": "Cam B air flow",
+          "case": "VW8V_A4LowCost",
+          "grid": "camB",
+          "output": "air_flow",
+          "axis": "y",
+          "measured": "Cam B air flow",
+          "thesisModel": "Cam B air flow"
+        },
+        {
+          "name": "Cam B work per air",
+          "case": "VW8V_A4LowCost",
+          "grid": "camB",
+          "output": "work_per_air",
+          "axis": "y2",
+          "measured": "Cam B work per air",
+          "thesisModel": "Cam B work per air"
+        }
+      ]
     }
   ]
 }

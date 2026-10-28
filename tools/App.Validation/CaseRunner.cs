@@ -11,6 +11,10 @@ namespace App.Validation;
 /// <summary>One grid row's outcome.</summary>
 /// <param name="Spark">The grid's spark advance, °BTDC, where it sets one.</param>
 /// <param name="Trace">Valve-end inlet pressure through the last cycle, in bar, where asked for.</param>
+/// <param name="AirFlowKgH">
+/// Air through the engine: the fuel flow times lambda times the AFRatio, as the measured air flow is
+/// taken from the test sheets' fuel flow and lambda (validation/tools/extract_tests.py).
+/// </param>
 internal sealed record RowResult(
     int Row,
     double Speed,
@@ -19,7 +23,8 @@ internal sealed record RowResult(
     double PowerKw,
     string? Failure,
     IReadOnlyList<Point>? Trace,
-    TimeSpan Elapsed);
+    TimeSpan Elapsed,
+    double AirFlowKgH = double.NaN);
 
 /// <summary>
 /// Runs the grids the suite names, every row from a freshly loaded engine through
@@ -99,7 +104,8 @@ internal sealed class CaseRunner(string casesDirectory, PhysicsCorrections physi
 
         return result.Result is { } run
             ? new RowResult(row, result.Speed, spark, run.Engine.Torque, run.Engine.BrakePower / 1000,
-                null, recorder?.Trace, clock.Elapsed)
+                null, recorder?.Trace, clock.Elapsed,
+                run.Engine.FuelMassFlow * run.Engine.Cylinder.Fuel.Lambda * run.Engine.Cylinder.Fuel.AFRatio)
             : new RowResult(row, result.Speed, spark, double.NaN, double.NaN,
                 result.Failure ?? "failed", null, clock.Elapsed);
     }
