@@ -6,17 +6,17 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After B92, and with B34 out of Corrected, the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
+After B93 (and B92, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 14 to 16 % (+13 to +16) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 5.5 % (+0.7) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 17.5 % (+14.6) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 20.8 and 19.2 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 19.3 and 16.8 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 15.5 % | 5.8 % |
-| T1, T2 | work per kilogram of air | +6.6, +9.5 and +3.1 % bias | |
+| 6.5 to 6.7 | 2.4 L Nissan | 10.5 to 15.5 % (+3 to +15) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 3.8 % (−0.7) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 18.9 % (+18.0) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 22.2 and 20.8 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 16.8 and 18.1 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 17.5 % | 5.8 % |
+| T1, T2 | work per kilogram of air | +5.5, +9.3 and +2.8 % bias | |
 
 Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
 conversion excess. Step 3's combustion efficiency (B92) brought back about 3.5 points of it,
@@ -198,6 +198,32 @@ Suspects:
 - the inlet charge temperature (B65: without it, low-speed air goes from short to over);
 - pipe friction (B49).
 
+**Measured air flow, by speed** (Corrected after B34, against the test sheets): the five-valve
+engine 6 to 16 % short from 1750 to 2750 rpm, then 3 to 16 % over from 3250 up; the eight-valve
+14 to 22 % short above 4000 rpm, with work per kilogram of air 6 to 15 % over. So 6.10's good
+torque was two errors cancelling, and the two engines breathed wrong in opposite directions.
+
+**Which correction moves it.** The suite was run with each gas-exchange correction off in turn
+(B4, B37, B46, B50, B54-B56, B59, B61, B62, B64, B65, B77, B79, B81-B85, B91). Only B65 moves
+air flow materially: off, the five-valve goes from -10 to +5 % below 3100 rpm and the eight-valve
+from -1 to +15 %. With B65 the charge comes in too hot, without it too cold, so the question was
+the temperature of the inflowing charge.
+
+**Found: mass created at the valves (`ISSUES.md` B93).** The inlet pipe is adiabatic, yet over a
+converged cycle the stagnation temperature it delivered was 9 to 38 K above what it drew from the
+plenum. Following the mass rather than the energy: the cylinder took up to 1.8 times what the
+pipe's last node passed, because the boundaries solve with the valve area capped at the port's
+and the mass flow used the whole valve area. Every validation engine's valves are larger than
+their ports, inlet and exhaust. Fixed behind the switch; the cylinder now takes exactly what the
+pipe delivered. Nissan 6.5 and 6.6 fall from 14 to 16 % to 10 to 12 %, 6.10 from 5.5 to 3.8 %;
+the five-valve engine now over-breathes from 2500 to 4000 rpm (up to +27 % at 3000), which moves
+6.12 to 18.9 % (+18.0). What remains there is a tuning resonance too strong, not a conservation
+error.
+
+**Found: blowdown carries too little into the exhaust (`ISSUES.md` B94).** While the exhaust flow
+is choked, the pipe's first node receives a third to a half of what the cylinder discharges.
+Open: next in this step, since a weak blowdown pulse changes exhaust tuning and scavenging.
+
 ### 5. The dynamometer's correction convention
 
 The figures plot torque corrected to a standard atmosphere (the sheets' `CorrFact` is 0.98 to
@@ -226,6 +252,6 @@ cheap to settle.
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
 | 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause |
-| 4. Charge error | Not started |
+| 4. Charge error | In progress: B93 fixed (mass created at the valves); B94, the choked exhaust blowdown, next |
 | 5. Correction convention | Not started |
 | 6. Correctness fixes | Not started |

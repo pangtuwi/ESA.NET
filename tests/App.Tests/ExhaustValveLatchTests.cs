@@ -211,6 +211,10 @@ public sealed class ExhaustValveLatchTests
         // drives the boundary into the latch.
         physics.Overrides[CorrectionCatalogue.CombustionEfficiency.Entry] = false;
 
+        // And it credited the cylinder with mass the exhaust pipe never received: B93's
+        // conserved flow no longer drives the boundary into the latch either.
+        physics.Overrides[CorrectionCatalogue.ValveFlowContinuity.Entry] = false;
+
         var settings = new SimulationSettings
         {
             CycleCount = 8,
