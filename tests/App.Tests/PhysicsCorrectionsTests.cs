@@ -21,7 +21,7 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal(PhysicsMode.Corrected, new PhysicsCorrections().Mode);
         Assert.Equal(PhysicsMode.Corrected, new SimulationSettings().Physics.Mode);
         Assert.True(new PhysicsCorrections().IsOn(Example));
-        Assert.Equal(CorrectionCatalogue.All.Count, new PhysicsCorrections().Active.Count);
+        Assert.Equal(CorrectionCatalogue.All.Count(c => c.InCorrected), new PhysicsCorrections().Active.Count);
     }
 
     [Fact]
@@ -82,18 +82,51 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B91", CorrectionCatalogue.SonicMachBracket.Entry);
         Assert.Equal("B90", CorrectionCatalogue.FlameDevelopmentDelay.Entry);
         Assert.Equal("B34", CorrectionCatalogue.CombustionWallShare.Entry);
-        Assert.Equal(37, CorrectionCatalogue.All.Count);
+        Assert.Equal("B92", CorrectionCatalogue.CombustionEfficiency.Entry);
+        Assert.Equal(38, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections { Mode = PhysicsMode.Legacy }.Describe());
-        Assert.Equal($"Corrected, all {CorrectionCatalogue.All.Count} corrections on", new PhysicsCorrections().Describe());
+        Assert.Equal(
+            $"Corrected, all {CorrectionCatalogue.All.Count - 2} of its corrections on; off: B90, B34",
+            new PhysicsCorrections().Describe());
 
         var corrected = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
         Assert.Equal(
-            $"Corrected, all {CorrectionCatalogue.All.Count} corrections on", corrected.Describe());
+            $"Corrected, all {CorrectionCatalogue.All.Count - 2} of its corrections on; off: B90, B34", corrected.Describe());
 
         // An override that switches B14 back off is named, not hidden.
         corrected.Overrides["B14"] = false;
         Assert.DoesNotContain(CorrectionCatalogue.Rkf5Coefficient, corrected.Active);
+    }
+
+    /// <summary>
+    /// ISSUES.md A40: B90 fails the measured best-torque spark at full throttle, and B34 replaces
+    /// the thesis's own wall split (Table 2.1), so Corrected runs neither; ESA.ini can still turn
+    /// either on, in either mode.
+    /// </summary>
+    [Fact]
+    public void B90AndB34AreOffInCorrectedUnlessTurnedOn()
+    {
+        Assert.False(CorrectionCatalogue.FlameDevelopmentDelay.InCorrected);
+        Assert.False(CorrectionCatalogue.CombustionWallShare.InCorrected);
+        Assert.All(
+            CorrectionCatalogue.All.Where(c => c != CorrectionCatalogue.FlameDevelopmentDelay && c != CorrectionCatalogue.CombustionWallShare),
+            c => Assert.True(c.InCorrected));
+
+        var corrected = new PhysicsCorrections { Mode = PhysicsMode.Corrected };
+        Assert.False(corrected.IsOn(CorrectionCatalogue.FlameDevelopmentDelay));
+        Assert.False(corrected.IsOn(CorrectionCatalogue.CombustionWallShare));
+        Assert.True(corrected.IsOn(CorrectionCatalogue.WiebeBurn));
+
+        corrected.Overrides["B90"] = true;
+        corrected.Overrides["B34"] = true;
+        Assert.True(corrected.IsOn(CorrectionCatalogue.FlameDevelopmentDelay));
+        Assert.True(corrected.IsOn(CorrectionCatalogue.CombustionWallShare));
+        Assert.Equal($"Corrected, all {CorrectionCatalogue.All.Count} corrections on", corrected.Describe());
+
+        var legacy = new PhysicsCorrections { Mode = PhysicsMode.Legacy };
+        legacy.Overrides["B90"] = true;
+        Assert.Equal("Legacy, corrections on: B90", legacy.Describe());
     }
 
     [Fact]

@@ -100,6 +100,7 @@ public sealed class EngineLoader : IEngineLoader
             gas.Fuel.Lambda = definition.Lambda;
             gas.Fuel.BurnAngle = definition.BurnAngle;
             gas.Fuel.CombustionDelay = definition.CombustionDelay;
+            gas.Fuel.CombustionEfficiency = definition.CombustionEfficiency;
             gas.Fuel.C = definition.FuelCarbon;
             gas.Fuel.H = definition.FuelHydrogen;
             gas.Fuel.O = definition.FuelOxygen;

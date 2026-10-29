@@ -390,6 +390,12 @@ public abstract class EngineDefinition
     /// </summary>
     public double? CombustionDelay => GetOptionalDouble("Fuel", "CombustionDelay");
 
+    /// <summary>
+    /// The fraction of the fuel's energy the burn releases, or null. No ESA file has the key;
+    /// it is read for ISSUES.md B92 and never written.
+    /// </summary>
+    public double? CombustionEfficiency => GetOptionalDouble("Fuel", "CombustionEfficiency");
+
     /// <summary>Carbon atoms per fuel molecule. Delphi form default 7.</summary>
     public int FuelCarbon
     {

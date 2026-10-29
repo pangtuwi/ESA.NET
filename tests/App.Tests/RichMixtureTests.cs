@@ -182,4 +182,44 @@ public sealed class RichMixtureTests
         Assert.InRange(result.Engine.Torque, 145, 195);
         Assert.True(diagnostics.EquilibriumExtendedPrecisionReductions > 0);
     }
+
+    /// <summary>
+    /// ISSUES.md A41: a reduction whose solution has gone NaN reports a failing resolution.
+    /// The residual test was <c>residual &gt; accuracy</c>, which a NaN residual never passes,
+    /// so such a solution reported full accuracy and was used. A zero first pivot divides
+    /// by zero and turns the whole solution NaN.
+    /// </summary>
+    [Fact]
+    public void ANaNSolutionIsNotResolved()
+    {
+        var matrix = new double[,] { { 0, 1, 0, 0 }, { 1, 0, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } };
+        double[] rhs = [1, 2, 3, 4];
+
+        var resolution = DelphiNumerics.GaussReduce(matrix, rhs);
+
+        Assert.Contains(rhs, double.IsNaN);
+        Assert.True(resolution < 5, $"resolution {resolution}");
+    }
+
+    /// <summary>
+    /// The state that ended the 41 mm five-valve case at 5250 rpm in Corrected: rich burnt gas
+    /// under the 1000 K floor near the end of the exhaust stroke. At exactly this pressure the
+    /// derivative solves went NaN in double and were accepted; now they fall back to the wider
+    /// reduction like A34's, and every derivative is finite.
+    /// </summary>
+    [Fact]
+    public void TheDerivativesAreFiniteWhereDoubleGoesNaN()
+    {
+        var solver = new EquilibriumSolver();
+        solver.Solve(1 / 0.91, 7, 17, 0, 0, 151607.03254272408, 994.37);
+
+        for (var i = 1; i <= EsaLimits.SpeciesCount; i++)
+        {
+            Assert.True(double.IsFinite(solver.State.DxDt[i]), $"dxdT[{i}]");
+            Assert.True(double.IsFinite(solver.State.DxDp[i]), $"dxdp[{i}]");
+        }
+
+        Assert.True(solver.Diagnostics.ExtendedPrecisionReductions > 0);
+        Assert.Equal(0, solver.Diagnostics.ResolutionErrors);
+    }
 }
