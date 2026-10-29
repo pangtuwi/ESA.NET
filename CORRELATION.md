@@ -6,21 +6,22 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After B92, the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
+After B92, and with B34 out of Corrected, the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 13 to 14 % (+12 to +14) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 5.6 % (−0.1) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 16.7 % (+13.4) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 19.8 and 18.2 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 18.0 and 16.1 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 14.8 % | 5.8 % |
-| T1, T2 | work per kilogram of air | +5.4, +8.4 and +2.2 % bias | |
+| 6.5 to 6.7 | 2.4 L Nissan | 14 to 16 % (+13 to +16) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 5.5 % (+0.7) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 17.5 % (+14.6) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 20.8 and 19.2 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 19.3 and 16.8 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 15.5 % | 5.8 % |
+| T1, T2 | work per kilogram of air | +6.6, +9.5 and +3.1 % bias | |
 
 Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
 conversion excess. Step 3's combustion efficiency (B92) brought back about 3.5 points of it,
-from physics the model lacked.
+from physics the model lacked. Taking B34 out of Corrected, because its "defect" is the
+thesis's own flame-geometry wall split (Table 2.1), gave about 1 point back.
 
 Legacy, the original's physics, is 5.3 % on 6.12. It sits close to the dynamometer only because
 its defects and its calibration offset each other (F6). Corrected removes the defects, so its

@@ -22,7 +22,8 @@ public enum PhysicsMode
 /// <param name="Summary">What the correction changes, in a line.</param>
 /// <param name="InCorrected">
 /// Whether Corrected runs it. False for a correction that is sound physics somewhere but fails a
-/// measured oracle where the suite runs, which <c>ESA.ini</c> can still turn on (B90, ISSUES.md A40).
+/// measured oracle where the suite runs (B90, ISSUES.md A40), or that replaces what turned out to
+/// be the thesis's own design (B34); <c>ESA.ini</c> can still turn either on.
 /// </param>
 public sealed record Correction(string Entry, string Summary, bool InCorrected = true);
 
@@ -311,10 +312,13 @@ public static class CorrectionCatalogue
     /// <summary>
     /// ISSUES.md B34: during combustion each zone loses heat through its volume share of
     /// piston, head and liner, not the burnt zone through piston and head alone and the
-    /// unburnt zone through the whole liner.
+    /// unburnt zone through the whole liner. Not run by Corrected: the original's split
+    /// approximates the thesis's own flame-geometry model (section 2.7.4.3, Table 2.1), which
+    /// gives the burnt zone no liner until its radius reaches the bore, so it was a design,
+    /// not a defect. <c>B34=1</c> in <c>ESA.ini</c> turns the volume split on.
     /// </summary>
     public static Correction CombustionWallShare { get; } =
-        new("B34", "During the burn each zone loses heat through its volume share of every surface, the liner included");
+        new("B34", "During the burn each zone loses heat through its volume share of every surface, the liner included", InCorrected: false);
 
     /// <summary>
     /// ISSUES.md B92: the burn releases a combustion efficiency's share of the fuel's energy,
