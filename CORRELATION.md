@@ -148,7 +148,7 @@ fixed, so every row runs. Steps 3 and the friction check face a conversion exces
 10 %, uniform with speed below 5000 rpm. That shape suits a loss proportional to the fuel burnt,
 such as crevices and unburnt fuel, more than friction, which grows with speed.
 
-### 3. Losses the model does not have — *combustion efficiency done; friction next*
+### 3. Losses the model does not have — *done*
 
 After step 2 the conversion excess was about +5 to +10 % of brake work per kilogram of air,
 roughly constant to 4500 rpm on both engines, plus 5 to 10 points more above it.
@@ -161,10 +161,24 @@ roughly constant to 4500 rpm on both engines, plus 5 to 10 points more above it.
   and the rest reaches the exhaust. It accounts for about 3.5 points of the constant part. Work
   per kilogram of air is now T1 +5.4 %, cam A +8.4 % and cam B +2.2 %; 6.10 is 5.6 % rms with a
   bias of −0.1.
-- **Friction at speed — next.** The excess still grows above 4500 rpm. The test implies 0.7 to
-  1.7 bar more friction there than B88 gives, and B88's bearing sizes and ring factors are
-  unsourced defaults. The check is against measured motored friction (Heywood ch. 13, or
-  Sandoval's thesis, which B88 is built on).
+- **Friction at speed — checked, not the cause; no change.** Heywood's Fig. 13-14a (p. 726, from
+  Kovach, Tsakiris and Wong, SAE 820085) breaks down the motored friction of a 1.6 L
+  four-cylinder spark-ignition engine, pumping excluded: read off the figure, about 69, 83, 108
+  and 143 kPa at 1000, 2000, 3000 and 4000 rpm, of which crankshaft and seals 6 to 22, pistons,
+  rings, pins and rods 27 to 70, valve train 24 to 22, oil pump about 4 to 6, water pump and
+  alternator 8 to 18. B88 on the baseline engine, a 1.6 L four at wide-open throttle, gives 89,
+  100, 116 and 134 kPa (crankshaft 21, reciprocating and ring gas loading 63, valvetrain 27,
+  auxiliary 24 at 4000 rpm): within about 6 per cent of the measured total at 4000 rpm, the
+  components each within a few kPa. The 8-valve case gives 81 to 125 kPa. Heywood's accessory
+  figures (§13.7: water pump under 7 kPa, oil pump 4 to 10, alternator 7 to 10 at 1500 rpm) and
+  its Eq. 13.6, the Barnes-Moss curve as a motored total *with* pumping, raise no objection.
+  Against that, 6.12's excess is not a friction shape: about +2 bar of BMEP from 3250 rpm up
+  (2.2 at 4000, 1.9 to 2.4 from 4500 to 6000), and within ±0.8 bar below 3000. To close 2 bar at
+  4000 rpm friction would have to be two and a half times Kovach's measured 1.6 L engine. The
+  figure stops at 4000 rpm; extrapolating its curve quadratically puts it 30 and 70 kPa above
+  B88 at 5000 and 6000, worth 4 and 9 Nm, but that is extrapolation, not data, so it is no
+  ground for a change. The step in the excess at 3250 rpm, where the inlet tuning comes in,
+  points at the charge (step 4).
 - **Crevices** are part of the combustion efficiency above; Namazian and Heywood (SAE 820088) is
   not needed separately.
 - **Blow-by.** The thesis left it out as negligible for an engine in good condition (§2.7.5). The
@@ -211,7 +225,7 @@ cheap to settle.
 |---|---|
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
-| 3. Missing losses | Combustion efficiency done (B92); friction at speed next |
+| 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause |
 | 4. Charge error | Not started |
 | 5. Correction convention | Not started |
 | 6. Correctness fixes | Not started |
