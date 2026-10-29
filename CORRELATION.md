@@ -6,16 +6,16 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After B93 (and B92, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
+After B94 (and B92, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 10.5 to 15.5 % (+3 to +15) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 3.8 % (−0.7) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 18.9 % (+18.0) | 6.6 % |
+| 6.5 to 6.7 | 2.4 L Nissan | 10.4 to 15.4 % (+3 to +15) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 3.8 % (−0.8) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 18.5 % (+17.6) | 6.6 % |
 | 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 22.2 and 20.8 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 16.8 and 18.1 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 17.5 % | 5.8 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 16.7 and 17.9 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 17.3 % | 5.8 % |
 | T1, T2 | work per kilogram of air | +5.5, +9.3 and +2.8 % bias | |
 
 Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
@@ -221,8 +221,17 @@ the five-valve engine now over-breathes from 2500 to 4000 rpm (up to +27 % at 30
 error.
 
 **Found: blowdown carries too little into the exhaust (`ISSUES.md` B94).** While the exhaust flow
-is choked, the pipe's first node receives a third to a half of what the cylinder discharges.
-Open: next in this step, since a weak blowdown pulse changes exhaust tuning and scavenging.
+is choked, the pipe's first node received a third to a half of what the cylinder discharges: the
+choked branch took its velocity from a momentum balance and its pressure from the characteristic,
+and continuity gave. Fixed behind the switch, with continuity and the characteristic, the throat
+unchoking when momentum asks for more than `p*`. The exhaust balances to 0.0 % on every engine;
+the suite moves by 0.4 points or less (6.12 18.5 %, +17.6), so the blowdown pulse was not where
+the five-valve's mid-speed over-breathing comes from.
+
+**Next in this step.** With mass conserved at both valves, the five-valve engine still breathes 5
+to 27 % too much from 2500 to 4000 rpm and the eight-valve 10 to 22 % too little from 3500 to
+5000: a resonance too strong on one, too weak or mistimed on the other. The inlet pressure trace
+(Figure 6.8, 0.136 bar rms against the 2002 model's 0.096) and the Courant number (F5) are next.
 
 ### 5. The dynamometer's correction convention
 
@@ -252,6 +261,6 @@ cheap to settle.
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
 | 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause |
-| 4. Charge error | In progress: B93 fixed (mass created at the valves); B94, the choked exhaust blowdown, next |
+| 4. Charge error | In progress: B93 and B94 fixed (mass at the valves now conserved); the tuning resonance next |
 | 5. Correction convention | Not started |
 | 6. Correctness fixes | Not started |

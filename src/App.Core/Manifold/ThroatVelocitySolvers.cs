@@ -159,6 +159,80 @@ public static class ThroatVelocitySolvers
     }
 
     /// <summary>
+    /// Entrance velocity of choked flow from the cylinder into a pipe that satisfies
+    /// continuity with the sonic throat, energy, and the characteristic arriving from the pipe.
+    /// No Delphi counterpart: ISSUES.md B94.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The original takes the entrance velocity from <see cref="ExhaustSonic"/> or
+    /// <see cref="InletSonic"/>, whose residual is the sudden expansion's momentum balance
+    /// with the throat pressure on the base. Continuity, energy and that momentum balance fix
+    /// the entrance state from the cylinder alone; the boundary then also puts the pressure
+    /// on the pipe's characteristic, a fourth relation for three unknowns, and continuity is
+    /// the one that gives. On the baseline engine's blowdown the pipe received a third to a
+    /// half of the cylinder's outflow.
+    /// </para>
+    /// <para>
+    /// With the throat choked the cylinder cannot feel the pipe, so the closure is continuity
+    /// and energy against the sonic throat plus the characteristic: the entrance pressure
+    /// <c>t + q u</c> on the characteristic equals the pressure continuity needs,
+    /// <c>Cd Ar p0 (2/(gamma+1))^((gamma+1)/(2(gamma-1))) (1 - (gamma-1)/2 (u/a0)^2) / (u/a0)</c>,
+    /// with <c>a0</c> the cylinder's speed of sound. The first rises with <c>u</c> and the
+    /// second falls, from infinity at zero to <c>Cd Ar p*</c> at the critical speed
+    /// <c>a* = a0 sqrt(2/(gamma+1))</c>, where the entrance itself would be sonic; so there is
+    /// one root below <c>a*</c>, found by bisection, or none, when the pipe's pressure is too low
+    /// for a subsonic entrance, and then the entrance is sonic. Momentum across the expansion
+    /// is then met by the jet's mixing loss, which the entrance entropy carries.
+    /// </para>
+    /// </remarks>
+    /// <param name="characteristicIntercept">
+    /// <c>t</c>: the entrance pressure on the arriving characteristic at zero velocity.
+    /// </param>
+    /// <param name="characteristicSlope">
+    /// <c>q</c>: the characteristic's rise in pressure per unit of entrance velocity.
+    /// </param>
+    public static double ChokedEntranceOnCharacteristic(
+        double gamma, double dischargeCoefficient, double areaRatio, double cylinderPressure,
+        double cylinderSpeedOfSound, double characteristicIntercept, double characteristicSlope)
+    {
+        var flowFactor = dischargeCoefficient * areaRatio * cylinderPressure
+                         * ManifoldNumerics.Power(2 / (gamma + 1), (gamma + 1) / 2 / (gamma - 1));
+
+        double Residual(double u)
+        {
+            var ratio = u / cylinderSpeedOfSound;
+            var continuity = flowFactor * (1 - ((gamma - 1) / 2 * ratio * ratio)) / ratio;
+            return characteristicIntercept + (characteristicSlope * u) - continuity;
+        }
+
+        var high = cylinderSpeedOfSound * Math.Sqrt(2 / (gamma + 1));
+
+        if (Residual(high) <= 0)
+        {
+            return high;
+        }
+
+        var low = 0.0;
+
+        for (var i = 0; i < 200 && high - low > Tolerance * high; i++)
+        {
+            var middle = (low + high) / 2;
+
+            if (middle == 0 || Residual(middle) < 0)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return (low + high) / 2;
+    }
+
+    /// <summary>
     /// The lower end of the sonic and subsonic brackets: the original's millionth of the
     /// throat velocity, or under ISSUES.md B85 zero.
     /// </summary>

@@ -147,6 +147,7 @@ its own check:
 | Each zone losing its volume share of a whole-surface loss through the burn, the two together the whole surface at one temperature (`CombustionWallShareTests`) | B34 |
 | The burn's loss adding to exactly the unreleased share of the fuel energy, and reaching the exhaust, not the walls (`CombustionEfficiencyTests`) | B92 |
 | The cylinder taking through each valve what the pipe passed through its valve end (`ValveFlowContinuityTests`) | B93 |
+| A choked discharge entering the pipe on its characteristic with continuity, and meeting the momentum solution at the choking limit (`ChokedDischargeTests`) | B94 |
 | No flow terms in a closed cylinder | B46 |
 | Energy-balance closure (heat + work + exhaust + pumping + friction against fuel energy) | B35 |
 | The Woschni correlation's own terms: no combustion term at the motored pressure, the displacement in the pressure-rise term, no negative term, and the term only where Woschni published it (`CylinderHeatTransferTests`) | B31, B32, B33, B75 |
@@ -247,7 +248,7 @@ Both items were done with the first tier 1 change:
 | Tier 1, later | [B80](https://github.com/pangtuwi/ESA.NET/issues/192), found after tier 3: the equivalence-ratio derivatives, which nothing reads | **Done**, with the fingerprint bit-identical under Legacy and Corrected |
 | Tier 2 | B1, B6, B20 fixed; A19 found and fixed on the way | **Done**, with the fingerprint bit-identical |
 | The switch | — | **Done**, with nothing behind it yet; the fingerprint is bit-identical |
-| Tier 3 | Every entry | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64, B65, B4, B16, B18, B35, B76, B77, B78, B37, B79, B81, B82, B83, B84, B85, B86, B87, B88, B89, B90 (off in Corrected since A40, section 5), B91, B34 (off in Corrected since 2026-10-29, section 5), B92 and B93 **done** (B59 repaired with B82, A29), B17 resolved with B16; B36 fixed directly, bit-identical everywhere; B60 and B5 closed as not defects — the fingerprint bit-identical under Legacy throughout. Corrected matches the thesis's dynamometer curve as closely as Legacy (5.3 against 5.3 % rms, [F6](https://github.com/pangtuwi/ESA.NET/issues/178)) |
+| Tier 3 | Every entry | B14, B46, B32, B33, B31, B38, B75, B50, B54, B55, B56, B59, B61, B62, B64, B65, B4, B16, B18, B35, B76, B77, B78, B37, B79, B81, B82, B83, B84, B85, B86, B87, B88, B89, B90 (off in Corrected since A40, section 5), B91, B34 (off in Corrected since 2026-10-29, section 5), B92, B93 and B94 **done** (B59 repaired with B82, A29), B17 resolved with B16; B36 fixed directly, bit-identical everywhere; B60 and B5 closed as not defects — the fingerprint bit-identical under Legacy throughout. Corrected matches the thesis's dynamometer curve as closely as Legacy (5.3 against 5.3 % rms, [F6](https://github.com/pangtuwi/ESA.NET/issues/178)) |
 | The default | — | **Corrected**, with Legacy opt-in (section 5); the fingerprint bit-identical with Legacy named |
 
 Tier 1b was grouped because all five entries needed the same new piece: somewhere for a solver

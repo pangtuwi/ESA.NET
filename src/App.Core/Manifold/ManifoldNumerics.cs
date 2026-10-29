@@ -132,6 +132,35 @@ public static class ManifoldNumerics
     }
 
     /// <summary>
+    /// Whether a valve's throat is choked: the cylinder over the throat at or above the
+    /// critical ratio. No Delphi counterpart; the original writes the comparison inline.
+    /// </summary>
+    /// <remarks>
+    /// Once choked the throat pressure is set to <c>p*</c>, so the next pass compares the
+    /// critical ratio with itself and rounding decides it; the boundary can then alternate
+    /// between branches until its iteration cap. Under ISSUES.md B94 the choked branch keeps
+    /// continuity and the subsonic branch's throat pressure is a separate unknown, so the
+    /// alternation shows: the test there accepts <c>p*</c> itself, within a relative 1e-9.
+    /// </remarks>
+    public static bool IsChoked(double cylinderPressure, double throatPressure, double criticalRatio, bool tolerant) =>
+        tolerant
+            ? cylinderPressure / throatPressure >= criticalRatio * (1 - 1e-9)
+            : cylinderPressure / throatPressure >= criticalRatio;
+
+    /// <summary>
+    /// The throat pressure the sudden expansion's momentum balance asks for, given the entrance
+    /// state: <c>p4 + rho4 u4^2 - gamma pt Cd Ar</c>, with the base of the expansion at throat
+    /// pressure and the throat sonic, so that <c>rho_t u_t^2 = gamma pt</c>. No Delphi
+    /// counterpart: ISSUES.md B94, where the choked branch keeps continuity and leaves momentum
+    /// to decide whether the throat is still choked.
+    /// </summary>
+    public static double MomentumThroatPressure(
+        double gamma, double entrancePressure, double entranceDensity, double entranceVelocity,
+        double throatPressure, double dischargeCoefficient, double areaRatio) =>
+        entrancePressure + (entranceDensity * entranceVelocity * entranceVelocity)
+        - (gamma * throatPressure * dischargeCoefficient * areaRatio);
+
+    /// <summary>
     /// Critical pressure ratio for sonic flow, found by false position. Port of
     /// <c>CritPress</c>, which brackets on [0.5, 1] and iterates to 1e-7.
     /// </summary>

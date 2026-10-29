@@ -77,7 +77,8 @@ public static class InletValveReverseBoundary
         double gamma = CharacteristicSolver.InletGamma,
         bool wholeSubsonicBracket = false,
         bool stallBelowThroat = false,
-        bool bracketFromZero = false)
+        bool bracketFromZero = false,
+        bool chokedContinuity = false)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(pipe);
@@ -250,7 +251,7 @@ public static class InletValveReverseBoundary
                 double entranceVelocity;
                 double entranceMach;
 
-                if (cylinderPressure / throatPressure >= criticalRatio)
+                if (ManifoldNumerics.IsChoked(cylinderPressure, throatPressure, criticalRatio, chokedContinuity))
                 {
                     // ---- Choked ----
                     throatMach = 1;
@@ -264,9 +265,15 @@ public static class InletValveReverseBoundary
                     dischargeCoefficient = valve.FlowCoefficient(
                         crankAngle - 360, cylinderPressure / throatPressure, reverse: true);
 
-                    entranceVelocity = ThroatVelocitySolvers.InletSonic(
-                        gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
-                        wholeSubsonicBracket, bracketFromZero);
+                    // B94: on the characteristic with continuity. The backflow's speed is
+                    // counted positive here, so C+ reads p = t + q u.
+                    entranceVelocity = chokedContinuity
+                        ? ThroatVelocitySolvers.ChokedEntranceOnCharacteristic(
+                            gamma, dischargeCoefficient, areaRatio, cylinderPressure,
+                            cylinderSpeedOfSound, tPlus, qPlus)
+                        : ThroatVelocitySolvers.InletSonic(
+                            gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
+                            wholeSubsonicBracket, bracketFromZero);
 
                     var machRatio = entranceVelocity / cylinderSpeedOfSound;
 
@@ -349,10 +356,21 @@ public static class InletValveReverseBoundary
                     }
                 }
 
+                // B94: as at the exhaust valve, a choked throat stays choked only while the
+                // momentum balance asks for no more than p* at the throat.
+                if (chokedContinuity && throatMach == 1)
+                {
+                    throatPressure = Math.Max(
+                        throatPressure,
+                        ManifoldNumerics.MomentumThroatPressure(
+                            gamma, p4, r4, u4, throatPressure, dischargeCoefficient, areaRatio));
+                }
+
                 // Reverse flow runs the other way along the pipe.
                 u4 = -u4;
 
-                if (cylinderPressure / throatPressure < criticalRatio)
+                if (!(chokedContinuity && throatMach == 1)
+                    && !ManifoldNumerics.IsChoked(cylinderPressure, throatPressure, criticalRatio, chokedContinuity))
                 {
                     // Relaxed rather than replaced: five per cent of the newly implied
                     // throat pressure per pass. The choked branch leaves it alone, through

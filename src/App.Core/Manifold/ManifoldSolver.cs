@@ -94,6 +94,9 @@ public sealed class ManifoldSolver : IManifoldSource
     /// <summary>B93: mass through a valve over the area its boundary solved, capped at the port's.</summary>
     private readonly bool _valveFlowContinuity;
 
+    /// <summary>B94: choked flow from the cylinder enters the pipe on its characteristic with continuity.</summary>
+    private readonly bool _chokedContinuity;
+
     /// <summary>B84: a valve that has just opened starts from a throat at rest at cylinder pressure.</summary>
     private readonly bool _freshValveThroat;
 
@@ -164,6 +167,7 @@ public sealed class ManifoldSolver : IManifoldSource
         _bracketFromZero = physics?.IsOn(CorrectionCatalogue.ThroatSolveFromZero) ?? false;
         _sonicMachBracket = physics?.IsOn(CorrectionCatalogue.SonicMachBracket) ?? false;
         _valveFlowContinuity = physics?.IsOn(CorrectionCatalogue.ValveFlowContinuity) ?? false;
+        _chokedContinuity = physics?.IsOn(CorrectionCatalogue.ChokedDischargeContinuity) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -402,7 +406,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _inletPipe.Area(_inletPipe.Length), request.InletValveArea,
                 _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket, _inletReverseStall,
-                _inletReleaseLatch, Diagnostics, _bracketFromZero);
+                _inletReleaseLatch, Diagnostics, _bracketFromZero, _chokedContinuity);
         }
         else
         {
@@ -441,7 +445,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
                 _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket,
                 _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke, _exhaustUpwardProbe,
-                _exhaustReleaseLatch, Diagnostics, _bracketFromZero, _sonicMachBracket);
+                _exhaustReleaseLatch, Diagnostics, _bracketFromZero, _sonicMachBracket, _chokedContinuity);
         }
         else
         {
