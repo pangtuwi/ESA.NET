@@ -230,8 +230,30 @@ the five-valve's mid-speed over-breathing comes from.
 
 **Next in this step.** With mass conserved at both valves, the five-valve engine still breathes 5
 to 27 % too much from 2500 to 4000 rpm and the eight-valve 10 to 22 % too little from 3500 to
-5000: a resonance too strong on one, too weak or mistimed on the other. The inlet pressure trace
-(Figure 6.8, 0.136 bar rms against the 2002 model's 0.096) and the Courant number (F5) are next.
+5000: a resonance too strong on one, too weak or mistimed on the other.
+
+**The inlet pressure trace (Figure 6.8: Nissan, 310 mm runner, 5000 rpm, point A at the valve).**
+Over the window ESA.NET records (0 to 579°) every model has the measured mean, 0.93 to 0.94 bar,
+and the phase, to within about 10°, but not the amplitude. Standard deviation against the
+measured trace's 0.145 bar: the 2002 model 1.39 times, Legacy 1.53, Corrected 1.71 (rms 0.076,
+0.094 and 0.132 bar). Run with each gas-exchange correction off in turn, only B93 moves it (1.58
+without), and physically: once the cylinder no longer gets mass for nothing, it draws harder on
+the runner. So the waves are under-damped in the model's structure, the thesis's own included,
+and conserving mass made that show.
+
+**What damps them, checked.**
+- The open end already follows Benson: inflow isentropic from the reservoir, outflow at its
+  static pressure, so a wave reflecting there loses energy.
+- Viscosity is air's (18.5 μPa·s at 300 K).
+- The friction factor above Re = 10⁵, `0.04 Re^-0.16`, jumps 42 % above the Blasius branch it
+  replaces (`ISSUES.md` B49). Runner flow is above 10⁵ much of the time, but the jump adds damping.
+- The Courant number (F5) averages 0.72 to 0.85 on every validation case at 2000 to 6000 rpm,
+  peaking at 1.02 to 1.09 for a few steps of peak flow: little numerical damping, and not
+  where the excess comes from.
+
+The pipe's only loss is quasi-steady wall friction, and it has no heat transfer. Adding damping
+needs a published unsteady-friction or pipe heat-transfer model to cite, not a factor fitted to
+6.8. That is the next decision in this step.
 
 ### 5. The dynamometer's correction convention
 
@@ -261,6 +283,6 @@ cheap to settle.
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
 | 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause |
-| 4. Charge error | In progress: B93 and B94 fixed (mass at the valves now conserved); the tuning resonance next |
+| 4. Charge error | In progress: B93 and B94 fixed (mass at the valves now conserved); waves 1.7 times too strong, damping model needs a source |
 | 5. Correction convention | Not started |
 | 6. Correctness fixes | Not started |
