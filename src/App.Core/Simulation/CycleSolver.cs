@@ -45,6 +45,9 @@ public sealed class CycleSolver
     /// <summary>B50: compute the manifold gammas, as <c>InitVars</c> does, for the wave solver.</summary>
     private readonly bool _computeManifoldGammas;
 
+    /// <summary>B66: the <c>.exh</c> temperature is Celsius, converted to kelvin on reading.</summary>
+    private readonly bool _exhaustCelsius;
+
     /// <summary>
     /// B77: update the gas at the angle the step finished at, and integrate work and heat
     /// by the trapezoid of the step's two ends.
@@ -114,6 +117,7 @@ public sealed class CycleSolver
 
         _updateIvcReference = physics?.IsOn(CorrectionCatalogue.IvcReference) ?? false;
         _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
+        _exhaustCelsius = physics?.IsOn(CorrectionCatalogue.ExhaustTemperatureCelsius) ?? false;
         _endOfStepState = physics?.IsOn(CorrectionCatalogue.EndOfStepState) ?? false;
         _resetBurntVolume = physics?.IsOn(CorrectionCatalogue.BurntVolumeReset) ?? false;
         _countValveFlowsOnce = physics?.IsOn(CorrectionCatalogue.OverlapValveTotals) ?? false;
@@ -264,9 +268,10 @@ public sealed class CycleSolver
 
             // The original asks at Exh.TGas, which is the unburnt 293.15 K because the
             // exhaust holds no burnt mass yet, and so gets cold products. The exhaust
-            // temperature is in Tb, raw from the .exh table and therefore Celsius (B66).
+            // temperature is in Tb, raw from the .exh table and therefore Celsius, unless B66
+            // has already converted it to kelvin.
             engine.Manifold.GammaEx = _cylinder.Burnt.Gamma(
-                engine.Exhaust.PGas, engine.Exhaust.Tb + 273.15);
+                engine.Exhaust.PGas, _exhaustCelsius ? engine.Exhaust.Tb : engine.Exhaust.Tb + 273.15);
         }
 
         // InitVars calls no update on the cylinder, so its gamma is the field's zero until
@@ -365,10 +370,11 @@ public sealed class CycleSolver
 
         exhaust.Tu = 293.15;
 
-        // Deliberately not converted. The .exh column is headed TEMP[C] and
-        // TExhaustPandT.Temp returns it raw, so the original uses Celsius wherever a
-        // temperature in kelvin is wanted. See ISSUES.md B66.
-        exhaust.Tb = LegacyInterpolation.AtSpeed(table.Rpm, table.Temperature, engine.Rpm);
+        // The .exh column is headed TEMP[C] and TExhaustPandT.Temp returns it raw, so the
+        // original uses Celsius wherever a temperature in kelvin is wanted. Under B66 it is
+        // converted. See ISSUES.md B66.
+        exhaust.Tb = LegacyInterpolation.AtSpeed(table.Rpm, table.Temperature, engine.Rpm)
+                     + (_exhaustCelsius ? 273.15 : 0);
 
         Setup(_exhaust);
 

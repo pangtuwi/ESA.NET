@@ -214,7 +214,9 @@ work.
 - `Round` in Delphi is round-half-to-even, which .NET's `Math.Round` matches but a
   cast or `Floor(x + 0.5)` would not.
 - **`.exh` columns are RPM, temperature, pressure** — temperature first. SPEC.md
-  section 3 has them the other way round and is wrong.
+  section 3 has them the other way round and is wrong. The temperature is Celsius, as the header
+  says and the five-valve test sheets measured it; the original used it raw as kelvin, which Legacy
+  keeps, and Corrected converts it (B66).
 - **The exhaust valve's Cd tables are crossed.** `ICEngine2Z.pas:998-1005` assigns
   `EV.CdForward` from `CdEvOut` and `EV.CdReverse` from `CdEvIn`, because forward
   flow through an exhaust valve is outward. The inlet valve is wired the obvious
@@ -310,7 +312,7 @@ work.
 - **Legacy matches the dynamometer; Corrected over-predicts it since B88.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
   against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (18.6 %
-  since B94, bias +17.7 %, 184.2 Nm; 18.9 % and 184.3 Nm under B93; 17.6 % and 179.1 Nm once B34 left it; 16.7 % and 177.5 Nm under B92; 19.8 % and 183.3 Nm once A40 turned B90 off; 16.8 % and 164.8 Nm with B90 and B34; 17.3 % and 165.9 Nm under B90; 20.8 % and 184.9 Nm under B89; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
+  since B66, bias +17.8 %, 185.2 Nm; 18.6 % and 184.2 Nm under B94; 18.9 % and 184.3 Nm under B93; 17.6 % and 179.1 Nm once B34 left it; 16.7 % and 177.5 Nm under B92; 19.8 % and 183.3 Nm once A40 turned B90 off; 16.8 % and 164.8 Nm with B90 and B34; 17.3 % and 165.9 Nm under B90; 20.8 % and 184.9 Nm under B89; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
   speeds until A29 was fixed). The mechanical friction of B88 is about half the curve's, which had been
   hiding an over-prediction elsewhere in Corrected (`ISSUES.md` B88, F8). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A
