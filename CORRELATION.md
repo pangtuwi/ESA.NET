@@ -255,12 +255,34 @@ The pipe's only loss is quasi-steady wall friction, and it has no heat transfer.
 needs a published unsteady-friction or pipe heat-transfer model to cite, not a factor fitted to
 6.8. That is the next decision in this step.
 
-### 5. The dynamometer's correction convention
+### 5. The dynamometer's correction convention — *done: consistent, no change*
 
-The figures plot torque corrected to a standard atmosphere (the sheets' `CorrFact` is 0.98 to
-0.985). Each case runs at its own ambient (25 °C, 101.325 kPa). Establish the standard's
-reference conditions from a source and run the cases at them. Likely 1 to 2 %, systematic, and
-cheap to settle.
+**The standard.** The five-valve sheets' `CorrFact` is Directive 80/1269/EEC's factor for a naturally
+aspirated spark-ignition engine (as amended to 25 July 1989, Annex I, 6.2 and 6.4.1):
+`αa = (99/Ps)^1.2 (T/298)^0.6`, with `Ps` the dry pressure in kPa, barometric less water vapour,
+and reference conditions of 298 K and 99 kPa dry (a total of 100 kPa with 1 kPa of vapour). With
+the vapour pressure from each row's humidity and air temperature (Buck's saturation curve) it
+reproduces `CorrFact` on every row of both sheets to 1e-5, which is also what "replaced with new
+PH2O" in their header means. The 41 mm sheet calls its corrected column `Torque ECE`.
+
+**What the figures plot.** The corrected torque: Figure 6.14's measured curves are the sheets'
+`TorqueDI` and `Torque ECE` to 0.01 Nm on average, against 2.0 and 2.5 Nm from the raw `Torque`.
+
+**What the cases run at.** Already the reference: every five-valve case sets its plenum to
+`FPlenumP=(99000)`, the standard's dry pressure, at `TAtm=25`, and the eight-valve's
+`PlenumP=99` is the same in its older schema's kPa. The model's air is dry, so 99 kPa of it is
+the reference charge. The thesis set its runs to the standard; the plan's premise that each case
+ran at its own ambient was wrong. The one remaining difference is `PAtm=101.325`, which sets the
+exhaust's absolute back pressure and B88's plenum-to-atmosphere ratio where the standard's total is
+100 kPa: measured on the baseline engine in Corrected, 100 kPa raises torque 0.64, 0.28, 0.12,
+0.24 and 0.40 % at 2000 to 6000 rpm, away from the dynamometer and inside every figure's noise,
+so the cases are left as they are.
+
+**The Nissan cases** (6.5 to 6.8) have no correction factor in `ModellingPerformance_Final.xls`;
+`Test Config Data.xls` gives 25 °C and 1013 mbar as their conditions, and their plenum is a curve
+in speed (`FPlenumP`, about 94 to 99 kPa). Whether their torque was corrected is not recorded.
+
+So the correction convention is not where Corrected's excess comes from.
 
 ### 6. Correctness fixes that will not move the correlation
 
@@ -284,5 +306,5 @@ cheap to settle.
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
 | 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause |
 | 4. Charge error | In progress: B93 and B94 fixed (mass at the valves now conserved); waves 1.7 times too strong, damping model needs a source |
-| 5. Correction convention | Not started |
+| 5. Correction convention | Done: the figures are 80/1269/EEC-corrected and the five-valve cases already run at its reference; no change |
 | 6. Correctness fixes | Not started |
