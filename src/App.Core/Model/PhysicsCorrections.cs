@@ -329,6 +329,24 @@ public static class CorrectionCatalogue
         new("B92", "The burn releases a combustion efficiency's share of the fuel energy, not all of it");
 
     /// <summary>
+    /// ISSUES.md B93: the mass through a valve is the throat flow over the area the valve
+    /// boundary solved for, the valve's flow area capped at the port's, not over the whole
+    /// valve area. The boundaries cap the area ratio at one, so the original credited the
+    /// cylinder with mass the pipe never delivered whenever the valve's area exceeded the port's.
+    /// </summary>
+    public static Correction ValveFlowContinuity { get; } =
+        new("B93", "Mass through a valve is the throat flow over the area its boundary solved, capped at the port's");
+
+    /// <summary>
+    /// ISSUES.md B94: choked flow from the cylinder into a pipe enters it at the velocity that
+    /// satisfies continuity with the sonic throat on the pipe's characteristic, not at the
+    /// sudden expansion's momentum-balance velocity, which left the pipe a third to a half of
+    /// the exhaust blowdown.
+    /// </summary>
+    public static Correction ChokedDischargeContinuity { get; } =
+        new("B94", "Choked flow from the cylinder enters the pipe on its characteristic with continuity, not at the momentum-balance velocity");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -349,7 +367,7 @@ public static class CorrectionCatalogue
         BurntVolumeReset, GasExchangeZones, OverlapValveTotals, ExhaustValveLatch, InletValveLatch,
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
         MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay, CombustionWallShare,
-        CombustionEfficiency,
+        CombustionEfficiency, ValveFlowContinuity, ChokedDischargeContinuity,
     ];
 }
 

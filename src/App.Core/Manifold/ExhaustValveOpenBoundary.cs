@@ -62,7 +62,8 @@ public static class ExhaustValveOpenBoundary
         bool releaseLatch = false,
         ManifoldDiagnostics? diagnostics = null,
         bool bracketFromZero = false,
-        bool sonicMachBracket = false)
+        bool sonicMachBracket = false,
+        bool chokedContinuity = false)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -199,7 +200,7 @@ public static class ExhaustValveOpenBoundary
                 double entranceVelocity;
                 double entranceMach;
 
-                if (cylinderPressure / throatPressure >= criticalRatio)
+                if (ManifoldNumerics.IsChoked(cylinderPressure, throatPressure, criticalRatio, chokedContinuity))
                 {
                     // ---- Choked ----
                     throatMach = 1;
@@ -213,9 +214,15 @@ public static class ExhaustValveOpenBoundary
                     dischargeCoefficient = valve.FlowCoefficient(
                         crankAngle - 360, cylinderPressure / throatPressure, reverse: false);
 
-                    entranceVelocity = ThroatVelocitySolvers.ExhaustSonic(
-                        gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
-                        wholeSubsonicBracket, bracketFromZero);
+                    // B94: on the characteristic with continuity, rather than the momentum
+                    // balance that leaves the pipe a third of the blowdown. C-: p = t + q u.
+                    entranceVelocity = chokedContinuity
+                        ? ThroatVelocitySolvers.ChokedEntranceOnCharacteristic(
+                            gamma, dischargeCoefficient, areaRatio, cylinderPressure,
+                            cylinderSpeedOfSound, tMinus, qMinus)
+                        : ThroatVelocitySolvers.ExhaustSonic(
+                            gamma, dischargeCoefficient, areaRatio, throatVelocity, cylinderSpeedOfSound,
+                            wholeSubsonicBracket, bracketFromZero);
 
                     var machRatio = entranceVelocity / cylinderSpeedOfSound;
 
@@ -302,7 +309,17 @@ public static class ExhaustValveOpenBoundary
 
                 c4 = Math.Sqrt(gamma * p4 / r4);
 
-                if (cylinderPressure / throatPressure < criticalRatio)
+                // B94: a choked throat stays choked only while the jet is under-expanded, the
+                // momentum balance asking for no more than p* at the throat; past that the
+                // flow has unchoked, and the subsonic branch starts from what it asks for.
+                if (chokedContinuity && throatMach == 1)
+                {
+                    throatPressure = Math.Max(
+                        throatPressure,
+                        ManifoldNumerics.MomentumThroatPressure(
+                            gamma, p4, r4, u4, throatPressure, dischargeCoefficient, areaRatio));
+                }
+                else if (!ManifoldNumerics.IsChoked(cylinderPressure, throatPressure, criticalRatio, chokedContinuity))
                 {
                     var implied = 1 / dischargeCoefficient / areaRatio
                                   * (u4 / throatVelocity)

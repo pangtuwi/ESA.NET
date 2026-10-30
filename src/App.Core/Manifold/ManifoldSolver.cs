@@ -91,6 +91,12 @@ public sealed class ManifoldSolver : IManifoldSource
 
     private readonly bool _sonicMachBracket;
 
+    /// <summary>B93: mass through a valve over the area its boundary solved, capped at the port's.</summary>
+    private readonly bool _valveFlowContinuity;
+
+    /// <summary>B94: choked flow from the cylinder enters the pipe on its characteristic with continuity.</summary>
+    private readonly bool _chokedContinuity;
+
     /// <summary>B84: a valve that has just opened starts from a throat at rest at cylinder pressure.</summary>
     private readonly bool _freshValveThroat;
 
@@ -160,6 +166,8 @@ public sealed class ManifoldSolver : IManifoldSource
         _freshValveThroat = physics?.IsOn(CorrectionCatalogue.FreshValveThroat) ?? false;
         _bracketFromZero = physics?.IsOn(CorrectionCatalogue.ThroatSolveFromZero) ?? false;
         _sonicMachBracket = physics?.IsOn(CorrectionCatalogue.SonicMachBracket) ?? false;
+        _valveFlowContinuity = physics?.IsOn(CorrectionCatalogue.ValveFlowContinuity) ?? false;
+        _chokedContinuity = physics?.IsOn(CorrectionCatalogue.ChokedDischargeContinuity) ?? false;
         var expressions = evaluator ?? new CachingExpressionEvaluator();
         var manifold = engine.Manifold;
         var rpm = engine.Rpm;
@@ -398,7 +406,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 request.CylinderPressure, request.CylinderTemperature, crankAngle,
                 _inletPipe.Area(_inletPipe.Length), request.InletValveArea,
                 _inletThroat, _inletTuning, _inletGamma, _wholeSubsonicBracket, _inletReverseStall,
-                _inletReleaseLatch, Diagnostics, _bracketFromZero);
+                _inletReleaseLatch, Diagnostics, _bracketFromZero, _chokedContinuity);
         }
         else
         {
@@ -437,7 +445,7 @@ public sealed class ManifoldSolver : IManifoldSource
                 _exhaustPipe.Area(0), request.ExhaustValveArea,
                 _exhaustThroat, _exhaustTuning, _exhaustGamma, _wholeSubsonicBracket,
                 _exhaustReverseSingleRelaxation, _exhaustReverseStagnationChoke, _exhaustUpwardProbe,
-                _exhaustReleaseLatch, Diagnostics, _bracketFromZero, _sonicMachBracket);
+                _exhaustReleaseLatch, Diagnostics, _bracketFromZero, _sonicMachBracket, _chokedContinuity);
         }
         else
         {
@@ -506,11 +514,24 @@ public sealed class ManifoldSolver : IManifoldSource
         var inletGamma = _computedGammas ? _inletGamma : MassFlowGamma;
         var exhaustGamma = _computedGammas ? _exhaustGamma : MassFlowGamma;
 
+        // The boundaries solve continuity between the pipe end and the throat with the area
+        // ratio capped at one (Manifolds.pas:490, 732, 1038, 1338), so the pipe end passes the
+        // throat flow over the smaller of valve and port. Main_Prog multiplies by the whole
+        // valve area (Manifolds.pas:424-426), which credits the cylinder with mass the pipe
+        // never delivered once the valve's area exceeds the port's. Under B93 the mass is
+        // what the boundary solved for. See ISSUES.md B93.
+        var inletArea = _valveFlowContinuity
+            ? Math.Min(request.InletValveArea, _inletPipe.Area(_inletPipe.Length))
+            : request.InletValveArea;
+        var exhaustArea = _valveFlowContinuity
+            ? Math.Min(request.ExhaustValveArea, _exhaustPipe.Area(0))
+            : request.ExhaustValveArea;
+
         var massIn = _inletThroat.Velocity * _inletThroat.Density
-                     * _inletThroat.DischargeCoefficient * request.InletValveArea * dt;
+                     * _inletThroat.DischargeCoefficient * inletArea * dt;
 
         var massOut = _exhaustThroat.Velocity * _exhaustThroat.Density
-                      * _exhaustThroat.DischargeCoefficient * request.ExhaustValveArea * dt;
+                      * _exhaustThroat.DischargeCoefficient * exhaustArea * dt;
 
         var inletStagnation = Math.Sqrt(
             (_inletThroat.SpeedOfSound * _inletThroat.SpeedOfSound)

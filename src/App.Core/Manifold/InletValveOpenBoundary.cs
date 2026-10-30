@@ -58,7 +58,8 @@ public static class InletValveOpenBoundary
         bool stallBelowThroat = false,
         bool releaseLatch = false,
         ManifoldDiagnostics? diagnostics = null,
-        bool bracketFromZero = false)
+        bool bracketFromZero = false,
+        bool chokedContinuity = false)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
@@ -266,7 +267,8 @@ public static class InletValveOpenBoundary
                     gamma,
                     wholeSubsonicBracket,
                     stallBelowThroat,
-                    bracketFromZero);
+                    bracketFromZero,
+                    chokedContinuity);
 
                 throatMach = reverseResult.MachNumber;
                 throatVelocity = reverseResult.Velocity;
