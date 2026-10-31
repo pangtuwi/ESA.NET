@@ -215,6 +215,10 @@ public sealed class ExhaustValveLatchTests
         // conserved flow no longer drives the boundary into the latch either.
         physics.Overrides[CorrectionCatalogue.ValveFlowContinuity.Entry] = false;
 
+        // And it counted fuel on the declared 14.5: B96's formula ratio moves the rich exhaust
+        // off the latch too.
+        physics.Overrides[CorrectionCatalogue.FuelFromFormula.Entry] = false;
+
         var settings = new SimulationSettings
         {
             CycleCount = 8,

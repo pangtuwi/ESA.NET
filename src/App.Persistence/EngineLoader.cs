@@ -105,6 +105,7 @@ public sealed class EngineLoader : IEngineLoader
             gas.Fuel.H = definition.FuelHydrogen;
             gas.Fuel.O = definition.FuelOxygen;
             gas.Fuel.N = definition.FuelNitrogen;
+            gas.Fuel.CompositionGiven = definition.HasFuelComposition;
         }
 
         // SI on the engine, like everything else loaded here (ISSUES.md A6). PGas and Tu

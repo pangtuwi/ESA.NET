@@ -119,8 +119,8 @@ identical values; both are kept.
 
 **One chart file per test figure**, `T1.csv` and `T2.csv`, in the `figures/` columns: air flow,
 kg/h, and brake work per kilogram of air, kJ/kg, measured and from the 2002 model runs
-(`Model_770_355`, `026109101M`, `026109101L`). Measured air is fuel flow x lambda x 14.5
-(`validation/README.md`, M1), and measured work per air uses the uncorrected torque on the
+(`Model_770_355`, `026109101M`, `026109101L`). Measured air is fuel flow x lambda x 14.605,
+Heywood's gasoline's stoichiometric ratio (`validation/README.md`, M1; 14.5 until B96), and measured work per air uses the uncorrected torque on the
 five-valve sheet, so that power and air are at the same conditions, and the recorded power
 on the eight-valve sheets. The 2002 model's air is its mixture inducted (`MIn`) less its
 fuel; its runs were at lambda 1.

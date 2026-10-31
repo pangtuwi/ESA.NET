@@ -397,43 +397,48 @@ public abstract class EngineDefinition
     public double? CombustionEfficiency => GetOptionalDouble("Fuel", "CombustionEfficiency");
 
     /// <summary>Carbon atoms per fuel molecule. Delphi form default 7.</summary>
-    public int FuelCarbon
+    public double FuelCarbon
     {
-        get => GetInt32("Fuel", "C", DefaultFuelCarbon);
-        set => SetInt32("Fuel", "C", value);
+        get => GetDouble("Fuel", "C", DefaultFuelCarbon);
+        set => SetDouble("Fuel", "C", value);
     }
 
     /// <summary>Hydrogen atoms per fuel molecule. Delphi form default 17.</summary>
-    public int FuelHydrogen
+    public double FuelHydrogen
     {
-        get => GetInt32("Fuel", "H", DefaultFuelHydrogen);
-        set => SetInt32("Fuel", "H", value);
+        get => GetDouble("Fuel", "H", DefaultFuelHydrogen);
+        set => SetDouble("Fuel", "H", value);
     }
 
     /// <summary>Oxygen atoms per fuel molecule. Delphi form default 0.</summary>
-    public int FuelOxygen
+    public double FuelOxygen
     {
-        get => GetInt32("Fuel", "O", DefaultFuelOxygen);
-        set => SetInt32("Fuel", "O", value);
+        get => GetDouble("Fuel", "O", DefaultFuelOxygen);
+        set => SetDouble("Fuel", "O", value);
     }
 
     /// <summary>Nitrogen atoms per fuel molecule. Delphi form default 0.</summary>
-    public int FuelNitrogen
+    public double FuelNitrogen
     {
-        get => GetInt32("Fuel", "N", DefaultFuelNitrogen);
-        set => SetInt32("Fuel", "N", value);
+        get => GetDouble("Fuel", "N", DefaultFuelNitrogen);
+        set => SetDouble("Fuel", "N", value);
     }
 
     /// <summary>The composition the Delphi Edit form starts with: a C7H17 petrol surrogate.</summary>
-    public const int DefaultFuelCarbon = 7;
+    public const double DefaultFuelCarbon = 7;
 
-    public const int DefaultFuelHydrogen = 17;
+    public const double DefaultFuelHydrogen = 17;
 
-    public const int DefaultFuelOxygen = 0;
+    public const double DefaultFuelOxygen = 0;
 
-    public const int DefaultFuelNitrogen = 0;
+    public const double DefaultFuelNitrogen = 0;
 
-    /// <summary>True when the file carries any explicit fuel composition.</summary>
+    /// <summary>
+    /// True when the file carries any explicit fuel composition. Without it the fuel is the
+    /// default: the original's C7H17 surrogate in Legacy and Heywood's gasoline in Corrected
+    /// (ISSUES.md B95). The composition may be fractional, which the Delphi form's integer fields
+    /// could not hold (ISSUES.md B96).
+    /// </summary>
     public bool HasFuelComposition =>
         GetValue("Fuel", "C") is not null || GetValue("Fuel", "H") is not null
         || GetValue("Fuel", "O") is not null || GetValue("Fuel", "N") is not null;

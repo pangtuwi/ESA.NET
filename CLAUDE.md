@@ -261,10 +261,13 @@ work.
   speed; no baseline run goes that slow. See `ISSUES.md` B6.
 - No `.eng` file has ever stored fuel composition, so the Delphi form reset it to
   C7H17 on every load even though the equilibrium model depends on it. C7H17 is a paraffin's
-  H/C, not a gasoline's: Corrected (B95) burns Heywood's gasoline C8.26H15.5 instead, at the
-  declared air-fuel ratio and heating value, while Legacy keeps the surrogate. The port
-  reads optional `[Fuel]` `C`/`H`/`O`/`N` keys, defaults to 7/17/0/0, and writes
-  them only when they change, so existing files stay byte-identical. Two more optional keys are
+  H/C, not a gasoline's: Corrected (B95) burns Heywood's gasoline C8.26H15.5 instead when a file
+  gives no composition, while Legacy keeps the surrogate. The port reads optional `[Fuel]`
+  `C`/`H`/`O`/`N` keys, fractional since B96, defaults to 7/17/0/0, and writes them only when they
+  change, so existing files stay byte-identical. **In Corrected the fuel is defined by its
+  composition (B96)**: the stoichiometric air-fuel ratio is the formula's, not `AFRatio`, which
+  only Legacy reads; the heating value is `QFuel` when given, else the fuel's own; and a given
+  formula borrows the petrol or diesel fit per kilogram, not per mole. Two more optional keys are
   read and never written: `[Fuel] CombustionDelay`, degrees from spark to start of combustion
   under B89, and the `[Friction]` section of B88. No shipped file has either, nor B92's optional `[Fuel] CombustionEfficiency` (default 0.965,
   Heywood Fig. 3-9). Without the delay key the
@@ -310,12 +313,13 @@ work.
   the fuel's energy, not all of it, about 3 % less, and since B93 the mass through a valve is what its pipe delivered,
   not the throat flow over a valve area larger than the port the boundary solved for, and since B94 a choked
   discharge enters its pipe with continuity, not at a momentum-balance velocity that left the exhaust a third of its blowdown, and since B95 the fuel is
-  Heywood's gasoline burnt at the declared air-fuel ratio and heating value, not the C7H17 surrogate at its own. With every correction torque is about 9 % higher at 4000 rpm, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
+  Heywood's gasoline burnt at the declared air-fuel ratio and heating value, not the C7H17 surrogate at its own, and since
+  B96 at its own formula's air-fuel ratio, not the `AFRatio` input. With every correction torque is about 9 % higher at 4000 rpm, because the reference reproduces the defects. Baseline comparisons are Legacy's; a correction is
   checked against its physical oracle.
 - **Legacy matches the dynamometer; Corrected over-predicts it since B88.** `data/thesis/` holds the baseline engine's measured
   torque curve from the thesis (Figure 6.12), and `ThesisCorrelationTests` gates Legacy
-  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (19.3 %
-  since B95, bias +18.5 %, 186.1 Nm; 18.6 % and 185.2 Nm under B66; 18.6 % and 184.2 Nm under B94; 18.9 % and 184.3 Nm under B93; 17.6 % and 179.1 Nm once B34 left it; 16.7 % and 177.5 Nm under B92; 19.8 % and 183.3 Nm once A40 turned B90 off; 16.8 % and 164.8 Nm with B90 and B34; 17.3 % and 165.9 Nm under B90; 20.8 % and 184.9 Nm under B89; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
+  against it (5.3 % rms, 151.8 Nm at the 151.5 Nm peak) and reports Corrected (19.1 %
+  since B96, bias +18.2 %, 185.7 Nm; 19.3 % and 186.1 Nm under B95; 18.6 % and 185.2 Nm under B66; 18.6 % and 184.2 Nm under B94; 18.9 % and 184.3 Nm under B93; 17.6 % and 179.1 Nm once B34 left it; 16.7 % and 177.5 Nm under B92; 19.8 % and 183.3 Nm once A40 turned B90 off; 16.8 % and 164.8 Nm with B90 and B34; 17.3 % and 165.9 Nm under B90; 20.8 % and 184.9 Nm under B89; 19.1 % and 182.8 Nm under B88; 8.7 % and 169.8 Nm under B87 with the Barnes-Moss curve, 7.4 % and 163.3 Nm before that; it ran only fourteen
   speeds until A29 was fixed). The mechanical friction of B88 is about half the curve's, which had been
   hiding an over-prediction elsewhere in Corrected (`ISSUES.md` B88, F8). Before B78 Corrected was 13.4 %: the original's burns created about 15 % of the fuel
   energy, which its calibration absorbed through defects the earlier corrections removed. A

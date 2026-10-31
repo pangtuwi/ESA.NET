@@ -1,8 +1,8 @@
 namespace App.Core.Model;
 
 /// <summary>
-/// Port of Delphi <c>TFuel</c> (Fuel.pas). Elemental composition is integer, all
-/// other quantities are double.
+/// Port of Delphi <c>TFuel</c> (Fuel.pas). The Delphi composition is integer; here it is
+/// double, so that a fuel such as Heywood's gasoline, C8.26H15.5, can be given (ISSUES.md B96).
 /// </summary>
 public sealed class Fuel
 {
@@ -42,11 +42,18 @@ public sealed class Fuel
     /// <summary>Fuel mass, <c>m</c>.</summary>
     public double M { get; set; }
 
-    public int C { get; set; }
+    public double C { get; set; }
 
-    public int H { get; set; }
+    public double H { get; set; }
 
-    public int O { get; set; }
+    public double O { get; set; }
 
-    public int N { get; set; }
+    public double N { get; set; }
+
+    /// <summary>
+    /// Whether the engine file gave the composition. Without it the fuel is the default, the
+    /// C7H17 surrogate in Legacy and Heywood's gasoline in Corrected (ISSUES.md B95). No Delphi
+    /// counterpart.
+    /// </summary>
+    public bool CompositionGiven { get; set; }
 }

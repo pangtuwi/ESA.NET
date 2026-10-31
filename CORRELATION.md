@@ -6,17 +6,17 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After B95 (and B66, B92 to B94, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
+After B96 (and B66, B92 to B95, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 10.5 to 16.7 % (+3 to +17) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 4.2 % (−0.7) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 19.3 % (+18.5) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 25.2 and 23.7 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 17.1 and 18.1 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 17.8 % | 5.8 % |
-| T1, T2 | work per kilogram of air | +6.0, +9.9 and +3.2 % bias | |
+| 6.5 to 6.7 | 2.4 L Nissan | 10.2 to 16.0 % (+3 to +16) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 4.1 % (−0.6) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 19.1 % (+18.2) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 24.9 and 23.4 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 17.3 and 18.3 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 17.6 % | 5.8 % |
+| T1, T2 | work per kilogram of air | +7.0, +10.7 and +4.1 % bias (air +5.3, −12.8, −8.3) | |
 
 Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
 conversion excess. Step 3's combustion efficiency (B92) brought back about 3.5 points of it,
@@ -190,7 +190,9 @@ roughly constant to 4500 rpm on both engines, plus 5 to 10 points more above it.
   ratio and heating value. A first attempt matched only the heating value and appeared to close
   T1's work per air to +0.4 %; it did so by leaving the charge 5 to 7 % short of any gasoline's
   energy per kilogram of air, and was withdrawn. Done properly the fuel moves Corrected 0.1 to
-  0.7 points further over the dynamometer: the fuel is not the over-prediction.
+  0.7 points further over the dynamometer: the fuel is not the over-prediction. Since B96 the fuel
+  is defined by its composition, its ratio the formula's 14.605, not 14.5, which moves Corrected
+  0.3 to 0.7 points back; M1's measured air uses the same ratio.
 
 ### 4. The charge error
 
