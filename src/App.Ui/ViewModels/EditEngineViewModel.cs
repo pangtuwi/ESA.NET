@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using App.Core;
+using App.Core.Thermo;
 using App.Ui.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -268,23 +269,44 @@ public sealed partial class EditEngineViewModel : ObservableValidator
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
-    [Range(0, 100, ErrorMessage = "Carbon atoms per molecule.")]
-    private int _fuelCarbon;
+    [Range(0.0, 100.0, ErrorMessage = "Carbon atoms per molecule.")]
+    [NotifyPropertyChangedFor(nameof(FormulaAirFuelRatio))]
+    private double _fuelCarbon;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
-    [Range(0, 100, ErrorMessage = "Hydrogen atoms per molecule.")]
-    private int _fuelHydrogen;
+    [Range(0.0, 100.0, ErrorMessage = "Hydrogen atoms per molecule.")]
+    [NotifyPropertyChangedFor(nameof(FormulaAirFuelRatio))]
+    private double _fuelHydrogen;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
-    [Range(0, 100, ErrorMessage = "Nitrogen atoms per molecule.")]
-    private int _fuelNitrogen;
+    [Range(0.0, 100.0, ErrorMessage = "Nitrogen atoms per molecule.")]
+    [NotifyPropertyChangedFor(nameof(FormulaAirFuelRatio))]
+    private double _fuelNitrogen;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
-    [Range(0, 100, ErrorMessage = "Oxygen atoms per molecule.")]
-    private int _fuelOxygen;
+    [Range(0.0, 100.0, ErrorMessage = "Oxygen atoms per molecule.")]
+    [NotifyPropertyChangedFor(nameof(FormulaAirFuelRatio))]
+    private double _fuelOxygen;
+
+    /// <summary>Whether the file being edited gives the fuel composition (ISSUES.md B95).</summary>
+    private bool _compositionGiven;
+
+    /// <summary>
+    /// The stoichiometric air-fuel ratio Corrected burns at (ISSUES.md B96): the formula's own,
+    /// from the composition shown once it is given or changed, and Heywood's gasoline's while it
+    /// is left at the default. Legacy uses the <see cref="AirFuelRatio"/> input instead.
+    /// </summary>
+    public double FormulaAirFuelRatio =>
+        _compositionGiven
+        || FuelCarbon != EngineDefinition.DefaultFuelCarbon || FuelHydrogen != EngineDefinition.DefaultFuelHydrogen
+        || FuelOxygen != EngineDefinition.DefaultFuelOxygen || FuelNitrogen != EngineDefinition.DefaultFuelNitrogen
+            ? Math.Round(GasPropertyModel.StoichiometricAirFuelRatio(FuelCarbon, FuelHydrogen, FuelOxygen, FuelNitrogen), 2)
+            : Math.Round(GasPropertyModel.StoichiometricAirFuelRatio(
+                GasPropertyModel.HeywoodGasolineCarbon, GasPropertyModel.HeywoodGasolineHydrogen, 0, 0,
+                GasPropertyModel.HeywoodGasolineMolecularWeight), 2);
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
@@ -411,6 +433,7 @@ public sealed partial class EditEngineViewModel : ObservableValidator
         FuelCalorificValue = definition.FuelCalorificValue;
         FuelTemperature = definition.FuelTemperature;
         Lambda = definition.Lambda;
+        _compositionGiven = definition.HasFuelComposition;
         FuelCarbon = definition.FuelCarbon;
         FuelHydrogen = definition.FuelHydrogen;
         FuelNitrogen = definition.FuelNitrogen;

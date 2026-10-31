@@ -46,6 +46,15 @@ public sealed class GasPropertyModel
     /// </summary>
     public const int HeywoodGasoline = 7;
 
+    /// <summary>Heywood's gasoline's carbon atoms, Table 4.11.</summary>
+    public const double HeywoodGasolineCarbon = ThermoTables.HeywoodGasolineCarbon;
+
+    /// <summary>Heywood's gasoline's hydrogen atoms, Table 4.11.</summary>
+    public const double HeywoodGasolineHydrogen = ThermoTables.HeywoodGasolineHydrogen;
+
+    /// <summary>Heywood's gasoline's molecular weight, Table 4.11.</summary>
+    public const double HeywoodGasolineMolecularWeight = ThermoTables.HeywoodGasolineMolecularWeight;
+
     /// <summary>
     /// ISSUES.md B95: a shift to the fuel's formation enthalpy, J/kmol, that brings its fit's
     /// heating value to the engine's declared one. Zero unless <see cref="MatchHeatingValue"/>
@@ -560,7 +569,7 @@ public sealed class GasPropertyModel
         return gasTemperature > 5000 ? 5000 : 300;
     }
 
-    private double FuelSpecificHeat(double gasTemperature)
+    internal double FuelSpecificHeat(double gasTemperature)
     {
         if (_fuelType == HeywoodGasoline)
         {
@@ -573,10 +582,10 @@ public sealed class GasPropertyModel
         var row = FuelThermoRow();
         var t = gasTemperature;
 
-        return (row[1] + (row[2] * t) + (row[3] * t * t)) * ThermoTables.UniversalGasConstant;
+        return (row[1] + (row[2] * t) + (row[3] * t * t)) * ThermoTables.UniversalGasConstant * BorrowedFitScale();
     }
 
-    private double FuelEnthalpy(double gasTemperature)
+    internal double FuelEnthalpy(double gasTemperature)
     {
         if (_fuelType == HeywoodGasoline)
         {
@@ -589,12 +598,24 @@ public sealed class GasPropertyModel
         }
 
         var row = FuelThermoRow();
-        var t = gasTemperature;
 
-        var value = row[1] + (row[2] * t / 2) + (row[3] * t * t / 3) + (row[6] / t);
-        value += (row[4] * t * t * t / 4) + (row[5] * t * t * t * t / 5);
+        double Fit(double t)
+        {
+            var value = row[1] + (row[2] * t / 2) + (row[3] * t * t / 3) + (row[6] / t);
+            value += (row[4] * t * t * t / 4) + (row[5] * t * t * t * t / 5);
+            return value * ThermoTables.UniversalGasConstant * t;
+        }
 
-        return (value * ThermoTables.UniversalGasConstant * t) + _fuelFormationShift;
+        var scale = BorrowedFitScale();
+
+        if (scale == 1)
+        {
+            return Fit(gasTemperature) + _fuelFormationShift;
+        }
+
+        // B96: the formation enthalpy per mole, the sensible enthalpy per kilogram.
+        var reference = Fit(HeatingValueTemperature);
+        return reference + (scale * (Fit(gasTemperature) - reference)) + _fuelFormationShift;
     }
 
     /// <summary>The reference temperature heating values are defined at, 298.15 K.</summary>
@@ -652,7 +673,15 @@ public sealed class GasPropertyModel
     /// their share of the other constituents, over the fuel's molecular weight (Heywood 1988,
     /// eq. 3.6 in general form). No Delphi counterpart: ISSUES.md B95.
     /// </summary>
-    public double StoichiometricAirFuelRatio()
+    public double StoichiometricAirFuelRatio() =>
+        StoichiometricAirFuelRatio(_n, _m, _l, _k, FuelMolecularWeight());
+
+    /// <summary>
+    /// The stoichiometric air-fuel mass ratio of a fuel C<paramref name="n"/>H<paramref name="m"/>O<paramref name="l"/>N<paramref name="k"/>
+    /// of molecular weight <paramref name="molecularWeight"/>, or of its atoms' weight when that
+    /// is not given. No Delphi counterpart: ISSUES.md B95, B96.
+    /// </summary>
+    public static double StoichiometricAirFuelRatio(double n, double m, double l, double k, double? molecularWeight = null)
     {
         var air = ThermoTables.AirComposition;
         var airMass = 0.0;
@@ -663,7 +692,35 @@ public sealed class GasPropertyModel
         }
 
         var airPerOxygen = airMass / air[(int)Species.O2];
-        return (_n + (_m / 4) - (_l / 2)) * airPerOxygen / FuelMolecularWeight();
+        var weight = molecularWeight ?? AtomicWeight(n, m, l, k);
+        return (n + (m / 4) - (l / 2)) * airPerOxygen / weight;
+    }
+
+    /// <summary>The molecular weight of C<paramref name="n"/>H<paramref name="m"/>O<paramref name="l"/>N<paramref name="k"/>, as <c>SetUp</c> computes a user fuel's.</summary>
+    public static double AtomicWeight(double n, double m, double l, double k) =>
+        (n * 12.0112) + (m * 1.008) + (l * 15.9994) + (k * 14.0067);
+
+    /// <summary>
+    /// ISSUES.md B96: a fuel described by its composition borrows the petrol or diesel fit, and
+    /// with this set takes that fit's specific heat and sensible enthalpy per kilogram rather than
+    /// per mole, keeping its formation enthalpy per mole. False is the original's per-mole borrowing,
+    /// which gives a C8H15 the diesel molecule's heat capacity, nearly twice its own per kilogram.
+    /// </summary>
+    public bool ScaleBorrowedFit { get; set; }
+
+    /// <summary>
+    /// The user fuel's molecular weight over that of the library fuel whose fit it borrows, when
+    /// <see cref="ScaleBorrowedFit"/> applies; otherwise 1.
+    /// </summary>
+    private double BorrowedFitScale()
+    {
+        if (!ScaleBorrowedFit || _fuelType != 0)
+        {
+            return 1;
+        }
+
+        var template = _m / _n > 2.1 ? 5 : 6;
+        return _userFuelMolecularWeight / ThermoTables.FuelMolecularWeight[template];
     }
 
     private double[] FuelThermoRow()
@@ -683,7 +740,7 @@ public sealed class GasPropertyModel
         return row;
     }
 
-    private double FuelMolecularWeight() => _fuelType switch
+    internal double FuelMolecularWeight() => _fuelType switch
     {
         0 => _userFuelMolecularWeight,
         HeywoodGasoline => ThermoTables.HeywoodGasolineMolecularWeight,

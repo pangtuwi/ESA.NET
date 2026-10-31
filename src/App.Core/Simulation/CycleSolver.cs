@@ -51,6 +51,9 @@ public sealed class CycleSolver
     /// <summary>B95: Heywood's gasoline, burnt at the declared air-fuel ratio and heating value.</summary>
     private readonly bool _gasolineFuel;
 
+    /// <summary>B96: the fuel is defined by its composition.</summary>
+    private readonly bool _fuelFromFormula;
+
     /// <summary>
     /// B77: update the gas at the angle the step finished at, and integrate work and heat
     /// by the trapezoid of the step's two ends.
@@ -122,6 +125,7 @@ public sealed class CycleSolver
         _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
         _exhaustCelsius = physics?.IsOn(CorrectionCatalogue.ExhaustTemperatureCelsius) ?? false;
         _gasolineFuel = physics?.IsOn(CorrectionCatalogue.GasolineFuel) ?? false;
+        _fuelFromFormula = physics?.IsOn(CorrectionCatalogue.FuelFromFormula) ?? false;
         _endOfStepState = physics?.IsOn(CorrectionCatalogue.EndOfStepState) ?? false;
         _resetBurntVolume = physics?.IsOn(CorrectionCatalogue.BurntVolumeReset) ?? false;
         _countValveFlowsOnce = physics?.IsOn(CorrectionCatalogue.OverlapValveTotals) ?? false;
@@ -389,28 +393,50 @@ public sealed class CycleSolver
     {
         var fuel = gas.State.Fuel;
 
-        if (!_gasolineFuel)
-        {
-            gas.Unburnt.Setup(0, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
-            gas.Burnt.Setup(0, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
-            return;
-        }
+        // Under B95 a file that gives no composition burns Heywood's gasoline; the original's
+        // form always reset it to the C7H17 surrogate, which Legacy keeps. A composition a file
+        // does give is burnt as given. See ISSUES.md B95.
+        var type = _gasolineFuel && !fuel.CompositionGiven ? GasPropertyModel.HeywoodGasoline : 0;
 
-        // Under B95 the C7H17 surrogate, which no file stores and the original's form always
-        // reset to, is Heywood's gasoline; a fuel a file does give keeps its own formula. Either
-        // is burnt at the equivalence ratio that puts the declared mixture's fuel in each
-        // kilogram of air, and releases the declared heating value. See ISSUES.md B95.
-        var type = fuel is { C: 7, H: 17, O: 0, N: 0 } ? GasPropertyModel.HeywoodGasoline : 0;
+        gas.Unburnt.ScaleBorrowedFit = _fuelFromFormula;
+        gas.Burnt.ScaleBorrowedFit = _fuelFromFormula;
 
         gas.Unburnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
-        var equivalenceRatio = FuelMixture.EquivalenceRatio(fuel, gas.Unburnt.StoichiometricAirFuelRatio());
 
-        gas.Unburnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, equivalenceRatio, _engine.ForcedEgr);
-        gas.Burnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, equivalenceRatio, _engine.ForcedEgr);
+        // Under B96 the formula's own stoichiometric ratio replaces the AFRatio input, so the fuel
+        // per kilogram of air is 1/(lambda (A/F)s) and the chemistry burns at 1/lambda. The engine
+        // file is untouched: this is the run's copy. See ISSUES.md B96.
+        if (_fuelFromFormula)
+        {
+            fuel.AFRatio = gas.Unburnt.StoichiometricAirFuelRatio();
+        }
 
+        if (!_gasolineFuel)
+        {
+            gas.Burnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
+        }
+        else
+        {
+            // Burnt at the equivalence ratio that puts the declared mixture's fuel in each
+            // kilogram of air. See ISSUES.md B95.
+            var equivalenceRatio = FuelMixture.EquivalenceRatio(fuel, gas.Unburnt.StoichiometricAirFuelRatio());
+
+            gas.Unburnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, equivalenceRatio, _engine.ForcedEgr);
+            gas.Burnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, equivalenceRatio, _engine.ForcedEgr);
+        }
+
+        // The heating value: the file's QFuel, which the burn is matched to under B95, or under
+        // B96 with none given the fuel's own, which the performance figures then take.
         if (fuel.Q > 0)
         {
-            gas.Unburnt.MatchHeatingValue(fuel.Q);
+            if (_gasolineFuel)
+            {
+                gas.Unburnt.MatchHeatingValue(fuel.Q);
+            }
+        }
+        else if (_fuelFromFormula)
+        {
+            fuel.Q = gas.Unburnt.TableHeatingValue();
         }
     }
 

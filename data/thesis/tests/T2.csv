@@ -1,28 +1,28 @@
 series,role,x,y
-Cam A air flow,measured,1492.0875,69.0476
-Cam A work per air,measured,1492.0875,931.0586
-Cam A air flow,measured,2008.9975,100.3871
-Cam A work per air,measured,2008.9975,960.1501
-Cam A air flow,measured,2503.545714,127.8127
-Cam A work per air,measured,2503.545714,963.4896
-Cam A air flow,measured,3003.2625,160.6672
-Cam A work per air,measured,3003.2625,973.4346
-Cam A air flow,measured,3505.64,198.9951
-Cam A work per air,measured,3505.64,949.1407
-Cam A air flow,measured,3793.463,208.7281
-Cam A work per air,measured,3793.463,979.2418
-Cam A air flow,measured,3804.914545,208.7281
-Cam A work per air,measured,3804.914545,979.2418
-Cam A air flow,measured,4001.077778,221.1042
-Cam A work per air,measured,4001.077778,967.9217
-Cam A air flow,measured,4509.3225,261.1485
-Cam A work per air,measured,4509.3225,900.7287
-Cam A air flow,measured,5001.902222,265.7283
-Cam A work per air,measured,5001.902222,875.9291
-Cam A air flow,measured,5300.92,259.3807
-Cam A work per air,measured,5300.92,875.8576
-Cam A air flow,measured,5502.781667,261.8640
-Cam A work per air,measured,5502.781667,843.3796
+Cam A air flow,measured,1492.0875,69.5475
+Cam A work per air,measured,1492.0875,924.3658
+Cam A air flow,measured,2008.9975,101.1140
+Cam A work per air,measured,2008.9975,953.2482
+Cam A air flow,measured,2503.545714,128.7381
+Cam A work per air,measured,2503.545714,956.5636
+Cam A air flow,measured,3003.2625,161.8305
+Cam A work per air,measured,3003.2625,966.4372
+Cam A air flow,measured,3505.64,200.4359
+Cam A work per air,measured,3505.64,942.3179
+Cam A air flow,measured,3793.463,210.2394
+Cam A work per air,measured,3793.463,972.2027
+Cam A air flow,measured,3804.914545,210.2394
+Cam A work per air,measured,3804.914545,972.2027
+Cam A air flow,measured,4001.077778,222.7051
+Cam A work per air,measured,4001.077778,960.9640
+Cam A air flow,measured,4509.3225,263.0393
+Cam A work per air,measured,4509.3225,894.2539
+Cam A air flow,measured,5001.902222,267.6523
+Cam A work per air,measured,5001.902222,869.6326
+Cam A air flow,measured,5300.92,261.2587
+Cam A work per air,measured,5300.92,869.5616
+Cam A air flow,measured,5502.781667,263.7600
+Cam A work per air,measured,5502.781667,837.3171
 Cam A air flow,thesis_model,1000,39.6468
 Cam A work per air,thesis_model,1000,790.3387
 Cam A air flow,thesis_model,1500,65.5612
@@ -49,28 +49,28 @@ Cam A air flow,thesis_model,5500,260.2004
 Cam A work per air,thesis_model,5500,855.2546
 Cam A air flow,thesis_model,6000,280.6020
 Cam A work per air,thesis_model,6000,803.0534
-Cam B air flow,measured,1503.83625,68.1210
-Cam B work per air,measured,1503.83625,917.2489
-Cam B air flow,measured,1998.758,89.5320
-Cam B work per air,measured,1998.758,1024.5207
-Cam B air flow,measured,2501.627143,109.2986
-Cam B work per air,measured,2501.627143,1088.0653
-Cam B air flow,measured,2800.235556,135.2817
-Cam B work per air,measured,2800.235556,1016.1404
-Cam B air flow,measured,3006.77,147.3997
-Cam B work per air,measured,3006.77,1027.2402
-Cam B air flow,measured,3504.108889,193.0104
-Cam B work per air,measured,3504.108889,987.3125
-Cam B air flow,measured,4001.198889,208.1794
-Cam B work per air,measured,4001.198889,1034.6521
-Cam B air flow,measured,4504.8825,262.4554
-Cam B work per air,measured,4504.8825,927.4612
-Cam B air flow,measured,5005.12125,269.1450
-Cam B work per air,measured,5005.12125,944.1507
-Cam B air flow,measured,5330.1425,270.9354
-Cam B work per air,measured,5330.1425,940.5936
-Cam B air flow,measured,5501.54875,278.5327
-Cam B work per air,measured,5501.54875,908.0615
+Cam B air flow,measured,1503.83625,68.6142
+Cam B work per air,measured,1503.83625,910.6554
+Cam B air flow,measured,1998.758,90.1803
+Cam B work per air,measured,1998.758,1017.1561
+Cam B air flow,measured,2501.627143,110.0900
+Cam B work per air,measured,2501.627143,1080.2439
+Cam B air flow,measured,2800.235556,136.2612
+Cam B work per air,measured,2800.235556,1008.8360
+Cam B air flow,measured,3006.77,148.4670
+Cam B work per air,measured,3006.77,1019.8560
+Cam B air flow,measured,3504.108889,194.4079
+Cam B work per air,measured,3504.108889,980.2153
+Cam B air flow,measured,4001.198889,209.6867
+Cam B work per air,measured,4001.198889,1027.2146
+Cam B air flow,measured,4504.8825,264.3557
+Cam B work per air,measured,4504.8825,920.7943
+Cam B air flow,measured,5005.12125,271.0937
+Cam B work per air,measured,5005.12125,937.3637
+Cam B air flow,measured,5330.1425,272.8971
+Cam B work per air,measured,5330.1425,933.8322
+Cam B air flow,measured,5501.54875,280.5494
+Cam B work per air,measured,5501.54875,901.5341
 Cam B air flow,thesis_model,1000,37.8492
 Cam B work per air,thesis_model,1000,758.3463
 Cam B air flow,thesis_model,1500,62.7084

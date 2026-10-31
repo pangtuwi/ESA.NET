@@ -12,9 +12,11 @@ Two kinds of file:
   of data/thesis/figures/ (series, role, x, y): air flow and brake work per kilogram of air,
   measured and as the 2002 model ran them.
 
-Air flow, measured, is fuel flow x lambda x 14.5, the AFRatio every case's .eng declares. The
-2002 model's is its mixture inducted (MIn) less its fuel, which is how ESA divides a charge;
-its runs were at lambda 1. Re-running this script must reproduce the committed files exactly.
+Air flow, measured, is fuel flow x lambda x the stoichiometric air-fuel ratio of the fuel ESA.NET
+burns in Corrected, Heywood's gasoline C8.26H15.5 (Table 4.11) against the model's own air, 14.605
+(ISSUES.md B96; until B96 it was the 14.5 every case's .eng declares). The 2002 model's is its
+mixture inducted (MIn) less its fuel, which is how ESA divides a charge; its runs were at lambda 1.
+Re-running this script must reproduce the committed files exactly.
 See CORRELATION.md, step 1, and data/thesis/README.md.
 """
 import csv
@@ -28,7 +30,13 @@ ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 SOURCE = os.path.join(ROOT, 'data', 'thesis', 'source')
 OUT = os.path.join(ROOT, 'data', 'thesis', 'tests')
 
-AFR = 14.5
+# Heywood's gasoline, C8.26H15.5 of molecular weight 114.8 (Heywood 1988, Table 4.11), burnt in
+# the model's air (ThermoTables.AirComposition and MolecularWeight): the stoichiometric ratio
+# GasPropertyModel.StoichiometricAirFuelRatio gives it, so that measured and modelled air flow are
+# divided out of the fuel flow by the same ratio (ISSUES.md B96).
+_AIR = {'O2': (0.2096, 31.9988), 'N2': (0.7811, 28.0134), 'Ar': (0.0093, 39.948)}
+_AIR_PER_O2 = sum(x * w for x, w in _AIR.values()) / _AIR['O2'][0]
+AFR = (8.26 + 15.5 / 4) * _AIR_PER_O2 / 114.8
 CYLINDERS = 4
 
 COLUMNS = ['rpm', 'torque_nm', 'torque_corrected_nm', 'power_kw', 'fuel_kg_h', 'sfc_g_kwh',

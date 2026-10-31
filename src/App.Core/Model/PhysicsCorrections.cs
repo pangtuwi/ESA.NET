@@ -365,6 +365,15 @@ public static class CorrectionCatalogue
         new("B95", "The fuel is Heywood's gasoline, burnt at the declared air-fuel ratio and heating value, not the C7H17 surrogate at its own");
 
     /// <summary>
+    /// ISSUES.md B96: the fuel is defined by its composition. Its stoichiometric air-fuel ratio
+    /// is the formula's, not the <c>AFRatio</c> input; its heating value is the fuel's own unless
+    /// the file gives <c>QFuel</c>; and a composition that borrows the petrol or diesel fit takes
+    /// its heat capacity per kilogram, not per mole.
+    /// </summary>
+    public static Correction FuelFromFormula { get; } =
+        new("B96", "The air-fuel ratio is the fuel formula's, the heating value the fuel's own unless QFuel is given, and a borrowed fit is scaled per kilogram");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -386,7 +395,7 @@ public static class CorrectionCatalogue
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
         MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay, CombustionWallShare,
         CombustionEfficiency, ValveFlowContinuity, ChokedDischargeContinuity, ExhaustTemperatureCelsius,
-        GasolineFuel,
+        GasolineFuel, FuelFromFormula,
     ];
 }
 
