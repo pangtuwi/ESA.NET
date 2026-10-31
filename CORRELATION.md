@@ -47,8 +47,10 @@ Against the five-valve engine's own test sheet (35.5 mm runners, at the test's s
 | 4500 rpm and above | +6 to +15 % | +8 to +28 %, rising with speed | about +27 % |
 
 The eight-valve engine is about 14 % short of air at every speed. Three ways out are closed:
-- **Heat transfer.** It is already above Woschni's own correlation, and neither `CWoshini` nor
-  the wall temperatures can close the gap without implausible values (F9).
+- **Heat transfer.** It is Woschni's correlation as the thesis gives it, and its heat share
+  agrees with Heywood's Woschni-based predictions (Fig. 12-25, Table 12.1) to within a few
+  points. Those few points are worth about 3 % of torque. Neither `CWoshini` nor the wall
+  temperatures can close the gap without implausible values (F9).
 - **Mixture strength.** λ moves torque by under 0.5 % (F8).
 - **Spark.** The 6.12 spark map is the test's own, and 6.14 now runs its tests' spark.
 
