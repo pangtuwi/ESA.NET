@@ -86,6 +86,37 @@ public sealed class Engine
     /// <summary>The mechanical friction model's inputs, from optional <c>[Friction]</c> keys (ISSUES.md B88).</summary>
     public FrictionInputs Friction { get; set; } = new();
 
+    /// <summary>
+    /// The crevice volume as a fraction of the clearance volume, from the optional
+    /// <c>[Crevices] VolumeFraction</c> key, or null for the default (ISSUES.md B97).
+    /// </summary>
+    public double? CreviceVolumeFraction { get; set; }
+
+    /// <summary>
+    /// Blow-by per cycle as a fraction of the trapped charge, from the optional
+    /// <c>[Crevices] BlowBy</c> key, or null for the default (ISSUES.md B97).
+    /// </summary>
+    public double? CreviceBlowBy { get; set; }
+
+    /// <summary>B97: the mass the crevices hold after the last step, kg. Zero without B97.</summary>
+    public double CreviceMass { get; set; }
+
+    /// <summary>B97: the most the crevices held during the current cycle, kg.</summary>
+    public double PeakCreviceMass { get; set; }
+
+    /// <summary>B97: the mass lost past the rings during the current cycle, kg.</summary>
+    public double BlowByMass { get; set; }
+
+    /// <summary>
+    /// The cycle's mass balance, kg: what came in through the inlet valve less what left
+    /// through the exhaust valve and, under B97, past the rings. The run converges when it is
+    /// small. Without B97 blow-by is zero and this is the original's difference exactly.
+    /// </summary>
+    public double MassImbalance => TotalMassInInletValve - TotalMassOutExhaustValve - BlowByMass;
+
+    /// <summary>B97: the trapped charge at the start of the current cycle's compression, cylinder and crevices, kg.</summary>
+    public double TrappedMass { get; set; }
+
     public SpeedKeyedTable SparkAngle { get; set; } = new();
 
     /// <summary>Oil viscosity, Delphi <c>VOil</c>.</summary>

@@ -111,7 +111,7 @@ public sealed class RunManifest
         Line("Trapped mass", Number(engine.TotalMass * 1e6, 2) + " mg");
 
         Line("Mass balance reached", Number(
-            Math.Abs(engine.TotalMassInInletValve - engine.TotalMassOutExhaustValve) * 1e6, 3) + " mg");
+            Math.Abs(engine.MassImbalance) * 1e6, 3) + " mg");
 
         // Lastcyc.txt keeps its HC column, byte for byte the original's format, but nothing
         // computes it: the equilibrium model has no unburnt fuel to report. Said here,

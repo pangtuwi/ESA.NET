@@ -509,6 +509,24 @@ public abstract class EngineDefinition
     /// <summary>Liner roughness factor, or null.</summary>
     public double? FrictionRingRoughnessFactor => GetOptionalDouble("Friction", "RingRoughness");
 
+    // ---------------------------------------------------------------------------
+    // Crevices. No ESA file has these keys: the original's cylinder has no crevices.
+    // ISSUES.md B97 reads them where they are given and defaults what is not, and nothing
+    // writes them, so every existing file stays byte-identical.
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// The crevice volume at cylinder pressure as a fraction of the clearance volume, or null
+    /// for the default (<c>CreviceStore.DefaultVolumeFraction</c>).
+    /// </summary>
+    public double? CreviceVolumeFraction => GetOptionalDouble("Crevices", "VolumeFraction");
+
+    /// <summary>
+    /// Blow-by per cycle as a fraction of the trapped charge, or null for the default
+    /// (<c>CreviceStore.DefaultBlowByShare</c>).
+    /// </summary>
+    public double? CreviceBlowBy => GetOptionalDouble("Crevices", "BlowBy");
+
     private double? GetOptionalDouble(string section, string key)
     {
         var raw = GetValue(section, key);

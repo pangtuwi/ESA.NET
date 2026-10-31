@@ -6,22 +6,24 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After B96 (and B66, B92 to B95, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
+After B97 (and B66, B92 to B96, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 10.2 to 16.0 % (+3 to +16) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 4.1 % (−0.6) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 19.1 % (+18.2) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 24.9 and 23.4 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 17.3 and 18.3 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 17.6 % | 5.8 % |
-| T1, T2 | work per kilogram of air | +7.0, +10.7 and +4.1 % bias (air +5.3, −12.8, −8.3) | |
+| 6.5 to 6.7 | 2.4 L Nissan | 8.5 to 11.3 % (−4.6 to +8.5) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 8.0 % (−7.0) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 11.5 % (+10.0) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 17.5 and 16.4 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 11.3 and 12.3 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 12.5 % | 5.8 % |
+| T1, T2 | work per kilogram of air | 0.0, +3.8 and −2.4 % bias (air +5.3, −12.8, −8.4) | |
 
 Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
 conversion excess. Step 3's combustion efficiency (B92) brought back about 3.5 points of it,
 from physics the model lacked. Taking B34 out of Corrected, because its "defect" is the
 thesis's own flame-geometry wall split (Table 2.1), gave about 1 point back.
+Crevices and blow-by (B97) then took about 8 points off every five-valve figure. The
+eight-valve engine (6.10), already short of air, went 7 % under.
 
 Legacy, the original's physics, is 5.3 % on 6.12. It sits close to the dynamometer only because
 its defects and its calibration offset each other (F6). Corrected removes the defects, so its
@@ -181,10 +183,17 @@ roughly constant to 4500 rpm on both engines, plus 5 to 10 points more above it.
   B88 at 5000 and 6000, worth 4 and 9 Nm, but that is extrapolation, not data, so it is no
   ground for a change. The step in the excess at 3250 rpm, where the inlet tuning comes in,
   points at the charge (step 4).
-- **Crevices** are part of the combustion efficiency above; Namazian and Heywood (SAE 820088) is
-  not needed separately.
-- **Blow-by.** The thesis left it out as negligible for an engine in good condition (§2.7.5). The
-  41 mm sheet measures it, in units it does not state, so it stays out until they are known.
+- **Crevices and blow-by — done (`ISSUES.md` B97), raised after the steps above.** This bullet
+  first said crevices were part of the combustion efficiency. That holds for the fuel that never
+  burns, but not for the timing: Heywood (§8.6, pp. 360-365) has 5 to 10 % of the charge in the
+  crevices at peak pressure, cooled to the wall, coming back during expansion when its energy
+  converts at about two-thirds of the efficiency, and about 1 % lost past the rings. The thesis
+  left blow-by out as negligible for an engine in good condition (§2.7.5). The cylinder now has a
+  crevice store at cylinder pressure and wall temperature, Table 8.1's 2.2 % of the clearance
+  volume, with 1 % of the charge lost as blow-by. It holds 8.8 to 10.4 % of the charge at peak
+  pressure and costs 6.4 to 7.9 % of torque, the largest single item found: 6.12 from 19.1 % rms
+  (+18.2) to 11.5 % (+10.0), T1's work per kilogram of air from +7.0 to 0.0 %. The 41 mm sheet
+  measures blow-by, in units it does not state, so it cannot yet check the 1 %.
 - **Fuel — done (`ISSUES.md` B95), raised after the steps above.** The original's C7H17 surrogate
   has a paraffin's hydrogen: its chemistry burnt a stoichiometric ratio of 15.4 and 44.9 MJ/kg
   where every engine declares 14.5 and 43, and the two nearly cancel per kilogram of air (2.92 MJ
@@ -318,7 +327,7 @@ So the correction convention is not where Corrected's excess comes from.
 |---|---|
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
-| 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause; the fuel (B95), not the cause either |
+| 3. Missing losses | Done: combustion efficiency (B92); crevices and blow-by (B97), about 7 % of torque; friction checked against Heywood Fig. 13-14a, not the cause; the fuel (B95), not the cause either |
 | 4. Charge error | In progress: B93 and B94 fixed (mass at the valves now conserved); waves 1.7 times too strong, damping model needs a source |
 | 5. Correction convention | Done: the figures are 80/1269/EEC-corrected and the five-valve cases already run at its reference; no change |
 | 6. Correctness fixes | Done: B66 fixed behind the switch |

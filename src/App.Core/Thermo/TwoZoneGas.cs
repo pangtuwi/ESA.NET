@@ -121,9 +121,17 @@ public sealed class TwoZoneGas
             gas.Xb = 0.99;
         }
 
+        if (BurnableMass is { } burnable)
+        {
+            // B97: the burn law burns the charge the cylinder holds, not what the crevices
+            // have taken, and gas they give back joins the burnt zone. The unburnt zone is
+            // the unburnt share of that charge and the burnt zone is the rest of the cylinder.
+            gas.Mu = (1 - gas.Xb) * burnable;
+            gas.Mb = gas.MGas - gas.Mu;
+        }
         // Always true after the clamps above, which pin xb into [0.01, 0.99]. Kept as
         // written. See ISSUES.md B28.
-        if (gas.Xb > 0 && gas.Xb < 1)
+        else if (gas.Xb > 0 && gas.Xb < 1)
         {
             gas.Mb = gas.Xb * gas.MGas;
             gas.Mu = (1 - gas.Xb) * gas.MGas;
@@ -142,8 +150,23 @@ public sealed class TwoZoneGas
         var burntGamma = Burnt.Gamma(gas.PGas, gas.Tb);
         gas.Gamma = ((1 - gas.Xb) * unburntGamma) + (gas.Xb * burntGamma);
 
-        gas.DmbDTheta = BurnRate(crankAngleRadians) * gas.MGas;
+        gas.DmbDTheta = BurnRate(crankAngleRadians) * (BurnableMass ?? gas.MGas);
     }
+
+    /// <summary>
+    /// ISSUES.md B97: the charge the burn law burns while the cylinder exchanges gas with its
+    /// crevices, kg, or null without them, when it is the whole cylinder. It is the unburnt
+    /// zone's mass over the unburnt fraction: unburnt gas the crevices take leaves the burnt
+    /// zone as it was, and the burn then finishes on what the cylinder holds. Set by the solver
+    /// at the start of combustion and as the crevices take unburnt gas, cleared as it ends.
+    /// </summary>
+    public double? BurnableMass { get; set; }
+
+    /// <summary>
+    /// ISSUES.md B97: the cycle's trapped charge, the cylinder's and the crevices', kg. The
+    /// fuel it carries burns in proportion to <see cref="BurnableMass"/>.
+    /// </summary>
+    public double TrappedMass { get; set; }
 
     /// <summary>
     /// Burnt down: one zone, all products. Port of <c>UpdateBD</c>, used through
