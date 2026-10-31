@@ -35,7 +35,8 @@ public sealed class PerformanceCalculator
         engine.TotalMass = engine.Cylinder.MGas;
 
         // Recomputed here from the final total, not carried over from the cycle.
-        fuel.M = 1 / fuel.Lambda * engine.TotalMassInInletValve / (fuel.AFRatio + 1);
+        fuel.M = FuelMixture.FuelMass(
+            fuel, engine.TotalMassInInletValve, physics?.IsOn(CorrectionCatalogue.GasolineFuel) ?? false);
 
         engine.ResidualFraction = (1 - (engine.TotalMassInInletValve / engine.TotalMass)) * 100;
 

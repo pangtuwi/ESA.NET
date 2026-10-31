@@ -186,12 +186,13 @@ public sealed class ManifoldSolver : IManifoldSource
 
         _plenumPressure = expressions.Evaluate(manifold.PlenumPressureFunction.Expression, rpm);
 
-        // Gauge kPa plus atmospheric, and the temperature raw: see the notes in
-        // CycleSolver.InitialiseExhaust and ISSUES.md B66.
+        // Gauge kPa plus atmospheric, and the temperature raw, or under B66 converted from
+        // the Celsius it is: see the notes in CycleSolver.InitialiseExhaust and ISSUES.md B66.
         var back = manifold.ExhaustBack;
         _backPressure = (LegacyInterpolation.AtSpeed(back.Rpm, back.Pressure, rpm) * 1000)
                         + engine.Atmosphere.PGas;
-        _backTemperature = LegacyInterpolation.AtSpeed(back.Rpm, back.Temperature, rpm);
+        _backTemperature = LegacyInterpolation.AtSpeed(back.Rpm, back.Temperature, rpm)
+                           + ((physics?.IsOn(CorrectionCatalogue.ExhaustTemperatureCelsius) ?? false) ? 273.15 : 0);
 
         _inletTuning = (
             Forward: InletForwardTuning(manifold, expressions, rpm),

@@ -39,6 +39,19 @@ public sealed class GasPropertyModel
     private double _userFuelMolecularWeight;
 
     private int _fuelType;
+
+    /// <summary>
+    /// The fuel type of Heywood's gasoline, C8.26H15.5 (Heywood 1988, Table 4.11), beyond the
+    /// original's six. No Delphi counterpart: ISSUES.md B95.
+    /// </summary>
+    public const int HeywoodGasoline = 7;
+
+    /// <summary>
+    /// ISSUES.md B95: a shift to the fuel's formation enthalpy, J/kmol, that brings its fit's
+    /// heating value to the engine's declared one. Zero unless <see cref="MatchHeatingValue"/>
+    /// has set it, so the original's fuel is untouched.
+    /// </summary>
+    private double _fuelFormationShift;
     private double _n;
     private double _m;
     private double _l;
@@ -137,6 +150,13 @@ public sealed class GasPropertyModel
             }
 
             _userFuelMolecularWeight = (_n * 12.0112) + (_m * 1.008) + (_l * 15.9994) + (_k * 14.0067);
+        }
+        else if (fuelType == HeywoodGasoline)
+        {
+            _n = ThermoTables.HeywoodGasolineCarbon;
+            _m = ThermoTables.HeywoodGasolineHydrogen;
+            _l = 0;
+            _k = 0;
         }
         else
         {
@@ -542,6 +562,14 @@ public sealed class GasPropertyModel
 
     private double FuelSpecificHeat(double gasTemperature)
     {
+        if (_fuelType == HeywoodGasoline)
+        {
+            // Heywood eq. 4.42, cal/(gmol K), to J/(kmol K).
+            var a = ThermoTables.HeywoodGasoline;
+            var k = gasTemperature / 1000;
+            return (a[0] + (a[1] * k) + (a[2] * k * k) + (a[3] * k * k * k) + (a[4] / (k * k))) * 4184;
+        }
+
         var row = FuelThermoRow();
         var t = gasTemperature;
 
@@ -550,13 +578,92 @@ public sealed class GasPropertyModel
 
     private double FuelEnthalpy(double gasTemperature)
     {
+        if (_fuelType == HeywoodGasoline)
+        {
+            // Heywood eq. 4.43 on the 298.15 K datum, kcal/gmol, to J/kmol.
+            var a = ThermoTables.HeywoodGasoline;
+            var k = gasTemperature / 1000;
+            var heywood = (a[0] * k) + (a[1] * k * k / 2) + (a[2] * k * k * k / 3)
+                          + (a[3] * k * k * k * k / 4) - (a[4] / k) + a[5];
+            return (heywood * 4.184e6) + _fuelFormationShift;
+        }
+
         var row = FuelThermoRow();
         var t = gasTemperature;
 
         var value = row[1] + (row[2] * t / 2) + (row[3] * t * t / 3) + (row[6] / t);
         value += (row[4] * t * t * t / 4) + (row[5] * t * t * t * t / 5);
 
-        return value * ThermoTables.UniversalGasConstant * t;
+        return (value * ThermoTables.UniversalGasConstant * t) + _fuelFormationShift;
+    }
+
+    /// <summary>The reference temperature heating values are defined at, 298.15 K.</summary>
+    internal const double HeatingValueTemperature = 298.15;
+
+    /// <summary>
+    /// The lower heating value the fuel's fit implies, J/kg: the enthalpy of the fuel and the
+    /// oxygen for its complete combustion less that of the carbon dioxide, water vapour and
+    /// nitrogen it gives, all at 298.15 K, over the fuel's molecular weight (Heywood 1988,
+    /// section 3.5.3, eq. 3.22a, with water as vapour). No Delphi counterpart: ISSUES.md B95.
+    /// </summary>
+    /// <remarks>
+    /// The species are evaluated on their 300 to 1000 K fits at 298.15 K itself, rather than
+    /// through the property routines, which clamp below 300 K. The C7H17 surrogate's fit implies
+    /// 44.88 MJ/kg and Heywood's gasoline 43.66.
+    /// </remarks>
+    internal double TableHeatingValue()
+    {
+        const double T = HeatingValueTemperature;
+
+        static double AtReference(int species)
+        {
+            var a = ThermoTables.LowTemperature;
+            var value = a[species, 1] + (a[species, 2] * T / 2) + (a[species, 3] * T * T / 3)
+                        + (a[species, 4] * T * T * T / 4) + (a[species, 5] * T * T * T * T / 5)
+                        + (a[species, 6] / T);
+            return value * ThermoTables.UniversalGasConstant * T;
+        }
+
+        var oxygen = _n + (_m / 4) - (_l / 2);
+        var released = FuelEnthalpy(T) + (oxygen * AtReference((int)Species.O2))
+                       - (_n * AtReference((int)Species.CO2))
+                       - (_m / 2 * AtReference((int)Species.H2O))
+                       - (_k / 2 * AtReference((int)Species.N2));
+
+        return released / FuelMolecularWeight();
+    }
+
+    /// <summary>
+    /// Shifts the fuel's formation enthalpy so that <see cref="TableHeatingValue"/> is
+    /// <paramref name="heatingValue"/>. Only the fuel's chemical energy moves: its sensible
+    /// enthalpy, specific heat and every derivative are unchanged. No Delphi counterpart:
+    /// ISSUES.md B95.
+    /// </summary>
+    /// <param name="heatingValue">The declared lower heating value, J/kg, Delphi <c>Fuel.Q</c>.</param>
+    public void MatchHeatingValue(double heatingValue)
+    {
+        _fuelFormationShift = 0;
+        _fuelFormationShift = (heatingValue - TableHeatingValue()) * FuelMolecularWeight();
+    }
+
+    /// <summary>
+    /// The stoichiometric air-fuel mass ratio of the fuel set up, against the model's own air
+    /// (<see cref="ThermoTables.AirComposition"/>): <c>(n + m/4 - l/2)</c> moles of oxygen with
+    /// their share of the other constituents, over the fuel's molecular weight (Heywood 1988,
+    /// eq. 3.6 in general form). No Delphi counterpart: ISSUES.md B95.
+    /// </summary>
+    public double StoichiometricAirFuelRatio()
+    {
+        var air = ThermoTables.AirComposition;
+        var airMass = 0.0;
+
+        for (var i = 1; i <= EsaLimits.SpeciesCount; i++)
+        {
+            airMass += air[i] * ThermoTables.MolecularWeight[i];
+        }
+
+        var airPerOxygen = airMass / air[(int)Species.O2];
+        return (_n + (_m / 4) - (_l / 2)) * airPerOxygen / FuelMolecularWeight();
     }
 
     private double[] FuelThermoRow()
@@ -576,8 +683,12 @@ public sealed class GasPropertyModel
         return row;
     }
 
-    private double FuelMolecularWeight() =>
-        _fuelType == 0 ? _userFuelMolecularWeight : ThermoTables.FuelMolecularWeight[_fuelType];
+    private double FuelMolecularWeight() => _fuelType switch
+    {
+        0 => _userFuelMolecularWeight,
+        HeywoodGasoline => ThermoTables.HeywoodGasolineMolecularWeight,
+        _ => ThermoTables.FuelMolecularWeight[_fuelType],
+    };
 
     // ---------------------------------------------------------------------------
     // Residual and mixture composition

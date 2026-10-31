@@ -6,17 +6,17 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After B94 (and B92, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
+After B95 (and B66, B92 to B94, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 10.4 to 15.4 % (+3 to +15) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 3.8 % (−0.8) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 18.5 % (+17.6) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 22.2 and 20.8 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 16.7 and 17.9 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 17.3 % | 5.8 % |
-| T1, T2 | work per kilogram of air | +5.5, +9.3 and +2.8 % bias | |
+| 6.5 to 6.7 | 2.4 L Nissan | 10.5 to 16.7 % (+3 to +17) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 4.2 % (−0.7) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 19.3 % (+18.5) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 25.2 and 23.7 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 17.1 and 18.1 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 17.8 % | 5.8 % |
+| T1, T2 | work per kilogram of air | +6.0, +9.9 and +3.2 % bias | |
 
 Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
 conversion excess. Step 3's combustion efficiency (B92) brought back about 3.5 points of it,
@@ -183,6 +183,14 @@ roughly constant to 4500 rpm on both engines, plus 5 to 10 points more above it.
   not needed separately.
 - **Blow-by.** The thesis left it out as negligible for an engine in good condition (§2.7.5). The
   41 mm sheet measures it, in units it does not state, so it stays out until they are known.
+- **Fuel — done (`ISSUES.md` B95), raised after the steps above.** The original's C7H17 surrogate
+  has a paraffin's hydrogen: its chemistry burnt a stoichiometric ratio of 15.4 and 44.9 MJ/kg
+  where every engine declares 14.5 and 43, and the two nearly cancel per kilogram of air (2.92 MJ
+  against 2.97). Corrected now burns Heywood's gasoline (Table 4.11, C8.26H15.5) at the declared
+  ratio and heating value. A first attempt matched only the heating value and appeared to close
+  T1's work per air to +0.4 %; it did so by leaving the charge 5 to 7 % short of any gasoline's
+  energy per kilogram of air, and was withdrawn. Done properly the fuel moves Corrected 0.1 to
+  0.7 points further over the dynamometer: the fuel is not the over-prediction.
 
 ### 4. The charge error
 
@@ -255,20 +263,44 @@ The pipe's only loss is quasi-steady wall friction, and it has no heat transfer.
 needs a published unsteady-friction or pipe heat-transfer model to cite, not a factor fitted to
 6.8. That is the next decision in this step.
 
-### 5. The dynamometer's correction convention
+### 5. The dynamometer's correction convention — *done: consistent, no change*
 
-The figures plot torque corrected to a standard atmosphere (the sheets' `CorrFact` is 0.98 to
-0.985). Each case runs at its own ambient (25 °C, 101.325 kPa). Establish the standard's
-reference conditions from a source and run the cases at them. Likely 1 to 2 %, systematic, and
-cheap to settle.
+**The standard.** The five-valve sheets' `CorrFact` is Directive 80/1269/EEC's factor for a naturally
+aspirated spark-ignition engine (as amended to 25 July 1989, Annex I, 6.2 and 6.4.1):
+`αa = (99/Ps)^1.2 (T/298)^0.6`, with `Ps` the dry pressure in kPa, barometric less water vapour,
+and reference conditions of 298 K and 99 kPa dry (a total of 100 kPa with 1 kPa of vapour). With
+the vapour pressure from each row's humidity and air temperature (Buck's saturation curve) it
+reproduces `CorrFact` on every row of both sheets to 1e-5, which is also what "replaced with new
+PH2O" in their header means. The 41 mm sheet calls its corrected column `Torque ECE`.
 
-### 6. Correctness fixes that will not move the correlation
+**What the figures plot.** The corrected torque: Figure 6.14's measured curves are the sheets'
+`TorqueDI` and `Torque ECE` to 0.01 Nm on average, against 2.0 and 2.5 Nm from the raw `Torque`.
 
-- **B66.** The `.exh` temperatures are the dynamometer's measured exhaust temperatures in
-  Celsius: `ChinaBora98.exh` matches the 35.5 mm sheet's TExh, 674 at 3250 rpm in both. The
-  original reads them as kelvin. Reading them as Celsius moves 6.10, 6.12 and 6.14 by under half
-  a point of bias each, measured. Fix it behind the switch for correctness.
-- **`validation/README.md`.** "A bias of −3.3 Nm" should read −3.3 %.
+**What the cases run at.** Already the reference: every five-valve case sets its plenum to
+`FPlenumP=(99000)`, the standard's dry pressure, at `TAtm=25`, and the eight-valve's
+`PlenumP=99` is the same in its older schema's kPa. The model's air is dry, so 99 kPa of it is
+the reference charge. The thesis set its runs to the standard; the plan's premise that each case
+ran at its own ambient was wrong. The one remaining difference is `PAtm=101.325`, which sets the
+exhaust's absolute back pressure and B88's plenum-to-atmosphere ratio where the standard's total is
+100 kPa: measured on the baseline engine in Corrected, 100 kPa raises torque 0.64, 0.28, 0.12,
+0.24 and 0.40 % at 2000 to 6000 rpm, away from the dynamometer and inside every figure's noise,
+so the cases are left as they are.
+
+**The Nissan cases** (6.5 to 6.8) have no correction factor in `ModellingPerformance_Final.xls`;
+`Test Config Data.xls` gives 25 °C and 1013 mbar as their conditions, and their plenum is a curve
+in speed (`FPlenumP`, about 94 to 99 kPa). Whether their torque was corrected is not recorded.
+
+So the correction convention is not where Corrected's excess comes from.
+
+### 6. Correctness fixes that will not move the correlation — *done*
+
+- **B66 — done.** The `.exh` temperatures are the dynamometer's measured exhaust temperatures in
+  Celsius: `ChinaBora98.exh` is within 10 degrees of the 35.5 mm sheet's `TExh` at every speed from
+  1750 rpm, and its back pressure within 0.2 kPa to 5250. Fixed behind the switch. Most figures
+  move half a point or less (6.12 18.6 %, +17.8); 6.11's cam difference improves from 13.4 to
+  6.4 Nm, and 6.13's timing loops worsen from 22.2 and 20.8 % to 24.6 and 23.1 %. So it did move
+  one figure, the compression-ratio loops at 4000 rpm, by two points.
+- **`validation/README.md`** — already right: it reads "a bias of -3.3 %".
 
 ### Not on the path
 
@@ -282,7 +314,7 @@ cheap to settle.
 |---|---|
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
-| 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause |
+| 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause; the fuel (B95), not the cause either |
 | 4. Charge error | In progress: B93 and B94 fixed (mass at the valves now conserved); waves 1.7 times too strong, damping model needs a source |
-| 5. Correction convention | Not started |
-| 6. Correctness fixes | Not started |
+| 5. Correction convention | Done: the figures are 80/1269/EEC-corrected and the five-valve cases already run at its reference; no change |
+| 6. Correctness fixes | Done: B66 fixed behind the switch |
