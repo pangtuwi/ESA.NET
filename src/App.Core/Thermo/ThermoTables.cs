@@ -62,6 +62,25 @@ internal static class ThermoTables
     };
 
     /// <summary>
+    /// Heywood's gasoline: the vapour-phase fit of Heywood (1988) Table 4.11, p. 133, for the
+    /// gasoline of formula C8.26H15.5 and molecular weight 114.8, fitted to the chemical analysis
+    /// of a typical petroleum-based fuel. Coefficients <c>A1</c> to <c>A6</c> of eqs. 4.42 and
+    /// 4.43: specific heat in cal/(gmol K) and enthalpy in kcal/gmol, with <c>t = T/1000</c> and
+    /// the elements' enthalpy zero at 298.15 K, the datum of the species fits above. No Delphi
+    /// counterpart: ISSUES.md B95.
+    /// </summary>
+    public static readonly double[] HeywoodGasoline = [-24.078, 256.63, -201.68, 64.750, 0.5808, -27.562];
+
+    /// <summary>Heywood's gasoline's carbon atoms, Table 4.11.</summary>
+    public const double HeywoodGasolineCarbon = 8.26;
+
+    /// <summary>Heywood's gasoline's hydrogen atoms, Table 4.11.</summary>
+    public const double HeywoodGasolineHydrogen = 15.5;
+
+    /// <summary>Heywood's gasoline's molecular weight, Table 4.11.</summary>
+    public const double HeywoodGasolineMolecularWeight = 114.8;
+
+    /// <summary>
     /// Elemental composition of each library fuel, C H O N. Delphi <c>FuelComp</c>.
     /// Row 0 is the user-specified fuel; row 5 is the C7H17 gasoline surrogate every
     /// shipped engine runs on.
