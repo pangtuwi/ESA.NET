@@ -48,6 +48,9 @@ public sealed class CycleSolver
     /// <summary>B66: the <c>.exh</c> temperature is Celsius, converted to kelvin on reading.</summary>
     private readonly bool _exhaustCelsius;
 
+    /// <summary>B95: Heywood's gasoline, burnt at the declared air-fuel ratio and heating value.</summary>
+    private readonly bool _gasolineFuel;
+
     /// <summary>
     /// B77: update the gas at the angle the step finished at, and integrate work and heat
     /// by the trapezoid of the step's two ends.
@@ -118,6 +121,7 @@ public sealed class CycleSolver
         _updateIvcReference = physics?.IsOn(CorrectionCatalogue.IvcReference) ?? false;
         _computeManifoldGammas = physics?.IsOn(CorrectionCatalogue.ManifoldGammas) ?? false;
         _exhaustCelsius = physics?.IsOn(CorrectionCatalogue.ExhaustTemperatureCelsius) ?? false;
+        _gasolineFuel = physics?.IsOn(CorrectionCatalogue.GasolineFuel) ?? false;
         _endOfStepState = physics?.IsOn(CorrectionCatalogue.EndOfStepState) ?? false;
         _resetBurntVolume = physics?.IsOn(CorrectionCatalogue.BurntVolumeReset) ?? false;
         _countValveFlowsOnce = physics?.IsOn(CorrectionCatalogue.OverlapValveTotals) ?? false;
@@ -385,8 +389,29 @@ public sealed class CycleSolver
     {
         var fuel = gas.State.Fuel;
 
-        gas.Unburnt.Setup(0, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
-        gas.Burnt.Setup(0, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
+        if (!_gasolineFuel)
+        {
+            gas.Unburnt.Setup(0, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
+            gas.Burnt.Setup(0, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
+            return;
+        }
+
+        // Under B95 the C7H17 surrogate, which no file stores and the original's form always
+        // reset to, is Heywood's gasoline; a fuel a file does give keeps its own formula. Either
+        // is burnt at the equivalence ratio that puts the declared mixture's fuel in each
+        // kilogram of air, and releases the declared heating value. See ISSUES.md B95.
+        var type = fuel is { C: 7, H: 17, O: 0, N: 0 } ? GasPropertyModel.HeywoodGasoline : 0;
+
+        gas.Unburnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, 1 / fuel.Lambda, _engine.ForcedEgr);
+        var equivalenceRatio = FuelMixture.EquivalenceRatio(fuel, gas.Unburnt.StoichiometricAirFuelRatio());
+
+        gas.Unburnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, equivalenceRatio, _engine.ForcedEgr);
+        gas.Burnt.Setup(type, fuel.C, fuel.H, fuel.O, fuel.N, equivalenceRatio, _engine.ForcedEgr);
+
+        if (fuel.Q > 0)
+        {
+            gas.Unburnt.MatchHeatingValue(fuel.Q);
+        }
     }
 
     private void InitialiseMasses()
@@ -402,8 +427,7 @@ public sealed class CycleSolver
         engine.TotalMassInInletValve = charge;
         engine.TotalMass = charge;
 
-        cylinder.Fuel.M = 1 / cylinder.Fuel.Lambda * engine.TotalMassInInletValve
-                          / (cylinder.Fuel.AFRatio + 1);
+        cylinder.Fuel.M = FuelMixture.FuelMass(cylinder.Fuel, engine.TotalMassInInletValve, _gasolineFuel);
 
         engine.AtmosphericMass = engine.Plenum.PGas / engine.Plenum.RGas / engine.Plenum.Tu
                                  * Geometry.Volume(Math.PI);
@@ -850,7 +874,7 @@ public sealed class CycleSolver
         engine.TotalMassInInletValve = 0;
         engine.TotalMassOutExhaustValve = 0;
 
-        fuel.M = 1 / fuel.Lambda * engine.NewAirMass / (fuel.AFRatio + 1);
+        fuel.M = FuelMixture.FuelMass(fuel, engine.NewAirMass, _gasolineFuel);
     }
 
     /// <summary>

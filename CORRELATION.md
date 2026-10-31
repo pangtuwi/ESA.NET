@@ -6,17 +6,17 @@ behind `ISSUES.md` F8 and F9. `CORRECTIONS.md` governs any physics change it lea
 
 ## Where Corrected stands
 
-After B66 (and B92 to B94, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
+After B95 (and B66, B92 to B94, with B34 out of Corrected), the validation suite in Corrected gives (rms against the dynamometer, bias in brackets):
 
 | Figure | Engine | Corrected | 2002 model |
 |---|---|---|---|
-| 6.5 to 6.7 | 2.4 L Nissan | 10.0 to 15.6 % (+3 to +16) | 0.4 to 2 % |
-| 6.10 | 1.6 L eight-valve | 4.2 % (−0.9) | 2.4 % |
-| 6.12 | 1.6 L five-valve, baseline | 18.6 % (+17.8) | 6.6 % |
-| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 24.6 and 23.1 % | 1.4 and 0.6 % |
-| 6.14 | the same, 35.5 and 41 mm runners | 16.8 and 17.8 % | 4.9 and 5.0 % |
-| 6.15 | the same, final build | 17.3 % | 5.8 % |
-| T1, T2 | work per kilogram of air | +5.6, +9.3 and +2.8 % bias | |
+| 6.5 to 6.7 | 2.4 L Nissan | 10.5 to 16.7 % (+3 to +17) | 0.4 to 2 % |
+| 6.10 | 1.6 L eight-valve | 4.2 % (−0.7) | 2.4 % |
+| 6.12 | 1.6 L five-valve, baseline | 19.3 % (+18.5) | 6.6 % |
+| 6.13 | the same, CR 9.3 and 10.3, 4000 rpm timing loops | 25.2 and 23.7 % | 1.4 and 0.6 % |
+| 6.14 | the same, 35.5 and 41 mm runners | 17.1 and 18.1 % | 4.9 and 5.0 % |
+| 6.15 | the same, final build | 17.8 % | 5.8 % |
+| T1, T2 | work per kilogram of air | +6.0, +9.9 and +3.2 % bias | |
 
 Step 2 (A40) moved these away from the dynamometer by removing a late burn that had offset a
 conversion excess. Step 3's combustion efficiency (B92) brought back about 3.5 points of it,
@@ -183,6 +183,14 @@ roughly constant to 4500 rpm on both engines, plus 5 to 10 points more above it.
   not needed separately.
 - **Blow-by.** The thesis left it out as negligible for an engine in good condition (§2.7.5). The
   41 mm sheet measures it, in units it does not state, so it stays out until they are known.
+- **Fuel — done (`ISSUES.md` B95), raised after the steps above.** The original's C7H17 surrogate
+  has a paraffin's hydrogen: its chemistry burnt a stoichiometric ratio of 15.4 and 44.9 MJ/kg
+  where every engine declares 14.5 and 43, and the two nearly cancel per kilogram of air (2.92 MJ
+  against 2.97). Corrected now burns Heywood's gasoline (Table 4.11, C8.26H15.5) at the declared
+  ratio and heating value. A first attempt matched only the heating value and appeared to close
+  T1's work per air to +0.4 %; it did so by leaving the charge 5 to 7 % short of any gasoline's
+  energy per kilogram of air, and was withdrawn. Done properly the fuel moves Corrected 0.1 to
+  0.7 points further over the dynamometer: the fuel is not the over-prediction.
 
 ### 4. The charge error
 
@@ -306,7 +314,7 @@ So the correction convention is not where Corrected's excess comes from.
 |---|---|
 | 1. Measured channels | Done: T1, T2 |
 | 2. MBT | Done: B90 off in Corrected (A40); A41 fixed on the way |
-| 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause |
+| 3. Missing losses | Done: combustion efficiency (B92); friction checked against Heywood Fig. 13-14a, not the cause; the fuel (B95), not the cause either |
 | 4. Charge error | In progress: B93 and B94 fixed (mass at the valves now conserved); waves 1.7 times too strong, damping model needs a source |
 | 5. Correction convention | Done: the figures are 80/1269/EEC-corrected and the five-valve cases already run at its reference; no change |
 | 6. Correctness fixes | Done: B66 fixed behind the switch |

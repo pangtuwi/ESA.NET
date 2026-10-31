@@ -355,6 +355,16 @@ public static class CorrectionCatalogue
         new("B66", "The .exh exhaust temperature is read as the Celsius its header says, not used as kelvin");
 
     /// <summary>
+    /// ISSUES.md B95: the fuel is Heywood's gasoline, C8.26H15.5 with its own vapour fit, not
+    /// the C7H17 surrogate, and it is burnt at the declared air-fuel ratio and heating value.
+    /// The surrogate's hydrogen gives it a stoichiometric ratio of 15.4 against the 14.5 every
+    /// engine declares and a heating value of 44.9 MJ/kg against the declared 43, and the
+    /// chemistry used the surrogate's figures while the performance figures used the declared.
+    /// </summary>
+    public static Correction GasolineFuel { get; } =
+        new("B95", "The fuel is Heywood's gasoline, burnt at the declared air-fuel ratio and heating value, not the C7H17 surrogate at its own");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -376,6 +386,7 @@ public static class CorrectionCatalogue
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
         MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay, CombustionWallShare,
         CombustionEfficiency, ValveFlowContinuity, ChokedDischargeContinuity, ExhaustTemperatureCelsius,
+        GasolineFuel,
     ];
 }
 
