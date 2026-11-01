@@ -88,7 +88,8 @@ public sealed class PhysicsCorrectionsTests
         Assert.Equal("B66", CorrectionCatalogue.ExhaustTemperatureCelsius.Entry);
         Assert.Equal("B95", CorrectionCatalogue.GasolineFuel.Entry);
         Assert.Equal("B96", CorrectionCatalogue.FuelFromFormula.Entry);
-        Assert.Equal(43, CorrectionCatalogue.All.Count);
+        Assert.Equal("B97", CorrectionCatalogue.CreviceFlow.Entry);
+        Assert.Equal(44, CorrectionCatalogue.All.Count);
 
         Assert.Equal("Legacy, no corrections on", new PhysicsCorrections { Mode = PhysicsMode.Legacy }.Describe());
         Assert.Equal(

@@ -98,7 +98,7 @@ public sealed partial class SimulationResultsViewModel : ObservableObject
         Cycles = $"{cyclesRun} / {requestedCycles}";
 
         MassBalance = Fixed(
-            Math.Abs(engine.TotalMassInInletValve - engine.TotalMassOutExhaustValve) * 1e6, 1);
+            Math.Abs(engine.MassImbalance) * 1e6, 1);
 
         Speed = Fixed(engine.Rpm, 0);
         Torque = Fixed(engine.Torque, 1);

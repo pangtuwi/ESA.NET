@@ -374,6 +374,15 @@ public static class CorrectionCatalogue
         new("B96", "The air-fuel ratio is the fuel formula's, the heating value the fuel's own unless QFuel is given, and a borrowed fit is scaled per kilogram");
 
     /// <summary>
+    /// ISSUES.md B97: the cylinder has crevices. Gas at cylinder pressure and wall temperature
+    /// fills the volumes around the piston rings, spark plug and gasket as the pressure rises
+    /// and returns as it falls, and a share of it leaves past the rings as blow-by (Heywood
+    /// 1988, section 8.6). The original's cylinder is a single sealed volume.
+    /// </summary>
+    public static Correction CreviceFlow { get; } =
+        new("B97", "Gas fills and leaves the crevices at wall temperature, and some is lost as blow-by; the original has no crevices");
+
+    /// <summary>
     /// ISSUES.md B86: whether the mass-balance test may stop a run that has completed
     /// <paramref name="completedCycles"/> cycles. The original tests from the first; under
     /// B86 not until the first cycle after the single-zone warm-up has run, and never on a
@@ -395,7 +404,7 @@ public static class CorrectionCatalogue
         AreaJunctions, FreshValveThroat, ThroatSolveFromZero, WarmUpConvergence, NetWorkTorque,
         MechanicalFriction, WiebeBurn, SonicMachBracket, FlameDevelopmentDelay, CombustionWallShare,
         CombustionEfficiency, ValveFlowContinuity, ChokedDischargeContinuity, ExhaustTemperatureCelsius,
-        GasolineFuel, FuelFromFormula,
+        GasolineFuel, FuelFromFormula, CreviceFlow,
     ];
 }
 

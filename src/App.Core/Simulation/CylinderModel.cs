@@ -152,8 +152,11 @@ public sealed class CylinderModel
         }
 
         var fuel = Cylinder.State.Fuel;
+        var loss = -(1 - CombustionEfficiency) * fuel.M * fuel.Q * Cylinder.BurnRate(crankAngleRadians);
 
-        return -(1 - CombustionEfficiency) * fuel.M * fuel.Q * Cylinder.BurnRate(crankAngleRadians);
+        // B97: the burn law burns the cylinder's charge, not the fuel the crevices hold; that
+        // fuel loses its share as it comes back (CycleSolver.ExchangeWithCrevices).
+        return Cylinder.BurnableMass is { } burnable ? loss * burnable / Cylinder.TrappedMass : loss;
     }
 
     /// <summary>The current crank-angle state, Delphi <c>State</c>.</summary>
@@ -278,6 +281,13 @@ public sealed class CylinderModel
 
         return (linerRatio * LinerUpper) + ((1 - linerRatio) * LinerLower);
     }
+
+    /// <summary>
+    /// ISSUES.md B97: the temperature the crevice gas is held at, the mean of the piston's and
+    /// the upper liner's, the two walls the ring crevices lie between. Heywood's Problem 8.7
+    /// (p. 368) takes the crevice gas as close to the wall temperature, about 450 K.
+    /// </summary>
+    internal double CreviceWallTemperature => 0.5 * (Piston + LinerUpper);
 
     private double Head => LegacyInterpolation.AtSpeed(
         _wallTemperatures.Rpm, _wallTemperatures.HeadTemperature, Rpm);

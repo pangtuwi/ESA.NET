@@ -69,6 +69,9 @@ public sealed class CycleSolver
     /// <summary>B79: count each flow through overlap's valves once in the cycle totals.</summary>
     private readonly bool _countValveFlowsOnce;
 
+    /// <summary>B97: the cylinder's crevices, or null without them.</summary>
+    private readonly CreviceStore? _crevices;
+
     /// <summary>B37: which zones the cylinder holds, as of the current overlap step.</summary>
     private OverlapPhase _overlapPhase;
 
@@ -181,7 +184,18 @@ public sealed class CycleSolver
                 ? engine.Cylinder.Fuel.CombustionEfficiency ?? CombustionLoss.DefaultEfficiency
                 : 1,
         };
+
+        if (physics?.IsOn(CorrectionCatalogue.CreviceFlow) ?? false)
+        {
+            _crevices = new CreviceStore(
+                (engine.CreviceVolumeFraction ?? CreviceStore.DefaultVolumeFraction) * Geometry.Volume(0),
+                Cylinder.CreviceWallTemperature,
+                engine.CreviceBlowBy ?? CreviceStore.DefaultBlowByShare);
+        }
     }
+
+    /// <summary>B97: the cylinder's crevices, or null without them.</summary>
+    public CreviceStore? Crevices => _crevices;
 
     /// <summary>The engine being simulated. Mutated in place, as the original mutated its global.</summary>
     public Engine Engine => _engine;
@@ -595,6 +609,9 @@ public sealed class CycleSolver
 
         AccumulateWorkAndHeat();
 
+        // After the step's work: the crevices exchange gas at the volume the step ended at.
+        ExchangeWithCrevices();
+
         StepCompleted?.Invoke(this);
     }
 
@@ -664,6 +681,7 @@ public sealed class CycleSolver
                 _cylinder.Burnt.Equilibrium!.Frozen = false;
                 ResetCycleAccumulators();
                 TakeIvcReference();
+                StartCreviceCycle();
 
                 // The original's mass block has no case for the closed states, so these
                 // keep the last intake step's value and the previous cycle's last exhaust
@@ -695,6 +713,13 @@ public sealed class CycleSolver
                 {
                     engine.Integration.Y[0] = 0;
                 }
+
+                // B97: the burn law burns what the cylinder holds as the burn starts.
+                if (_crevices is not null)
+                {
+                    _cylinder.BurnableMass = cylinder.MGas;
+                }
+
                 break;
 
             case EngineState.Expansion:
@@ -705,6 +730,7 @@ public sealed class CycleSolver
                     CylinderModel.Zero);
 
                 _cylinder.Burnt.Equilibrium!.Frozen = false;
+                _cylinder.BurnableMass = null;
                 cylinder.Mb = cylinder.MGas;
                 cylinder.Mu = 0;
                 cylinder.Vb = cylinder.VGas;
@@ -1362,6 +1388,49 @@ public sealed class CycleSolver
         unburntEnergy += freshCharge * engine.Plenum.Hu;
         unburntEnergy += (cylinder.Mu - unburntBefore - freshCharge) * unburnt.Enthalpy(pressure, unburntTemperature);
 
+        var settled = SettleZones(
+            volume, pressure, burntVolume, burntTemperature, unburntTemperature, burntEnergy, unburntEnergy,
+            cylinder.Mb, cylinder.Mu);
+
+        y[0] = settled.BurntVolume;
+        y[1] = settled.Pressure;
+        y[2] = settled.BurntTemperature;
+        y[3] = settled.UnburntTemperature;
+
+        _overlapPhase = cylinder.Mu <= 0 ? OverlapPhase.BurntOnly
+            : cylinder.Mb <= 0 ? OverlapPhase.UnburntOnly
+            : OverlapPhase.TwoZone;
+
+        RefreshGasFromIntegrator();
+    }
+
+    /// <summary>
+    /// B37 and B97: settles the cylinder's zones, at the masses they now hold and the energies
+    /// given, to a common pressure in the cylinder's fixed volume.
+    /// </summary>
+    /// <param name="volume">The cylinder volume, m^3.</param>
+    /// <param name="pressure">The pressure before the flows, Pa.</param>
+    /// <param name="burntVolume">The burnt zone's volume before the flows, m^3.</param>
+    /// <param name="burntTemperature">The burnt zone's temperature before, and the first guess, K.</param>
+    /// <param name="unburntTemperature">The unburnt zone's temperature before, and the first guess, K.</param>
+    /// <param name="burntEnergy">The burnt zone's internal energy plus the enthalpy its flows carried, J.</param>
+    /// <param name="unburntEnergy">The same for the unburnt zone, J.</param>
+    /// <param name="burntMass">The burnt zone's mass after the flows, kg.</param>
+    /// <param name="unburntMass">The unburnt zone's mass after the flows, kg.</param>
+    private (double BurntVolume, double Pressure, double BurntTemperature, double UnburntTemperature) SettleZones(
+        double volume,
+        double pressure,
+        double burntVolume,
+        double burntTemperature,
+        double unburntTemperature,
+        double burntEnergy,
+        double unburntEnergy,
+        double burntMass,
+        double unburntMass)
+    {
+        var burnt = _cylinder.Burnt;
+        var unburnt = _cylinder.Unburnt;
+
         // The zones settle at a common pressure P' in the cylinder's volume, each doing
         // work on the other at the mean pressure Pm, so for each zone
         //     m u(T') = E - Pm (V' - V),   V' = m R T' / P'.
@@ -1382,20 +1451,20 @@ public sealed class CycleSolver
             var meanPressure = 0.5 * (pressure + newPressure);
             var workFactor = meanPressure / newPressure;
 
-            if (cylinder.Mb > 0)
+            if (burntMass > 0)
             {
                 newBurntTemperature = SettledTemperature(
-                    burnt, cylinder.Mb, burntEnergy + (meanPressure * burntVolume), workFactor,
+                    burnt, burntMass, burntEnergy + (meanPressure * burntVolume), workFactor,
                     newPressure, newBurntTemperature);
-                burntGas = cylinder.Mb * burnt.GasConstant(newPressure, newBurntTemperature) * newBurntTemperature;
+                burntGas = burntMass * burnt.GasConstant(newPressure, newBurntTemperature) * newBurntTemperature;
             }
 
-            if (cylinder.Mu > 0)
+            if (unburntMass > 0)
             {
                 newUnburntTemperature = SettledTemperature(
-                    unburnt, cylinder.Mu, unburntEnergy + (meanPressure * unburntVolume), workFactor,
+                    unburnt, unburntMass, unburntEnergy + (meanPressure * unburntVolume), workFactor,
                     newPressure, newUnburntTemperature);
-                unburntGas = cylinder.Mu * unburnt.GasConstant(newPressure, newUnburntTemperature) * newUnburntTemperature;
+                unburntGas = unburntMass * unburnt.GasConstant(newPressure, newUnburntTemperature) * newUnburntTemperature;
             }
 
             var lastPressure = newPressure;
@@ -1411,19 +1480,199 @@ public sealed class CycleSolver
 
         if (!double.IsFinite(newPressure) || newPressure <= 0)
         {
-            throw new EngineException("Overlap flows left the cylinder with no pressure.");
+            throw new EngineException("Gas crossing into or out of the cylinder left it with no pressure.");
         }
 
-        y[0] = newBurntVolume;
-        y[1] = newPressure;
-        y[2] = newBurntTemperature;
-        y[3] = newUnburntTemperature;
+        return (newBurntVolume, newPressure, newBurntTemperature, newUnburntTemperature);
+    }
 
-        _overlapPhase = cylinder.Mu <= 0 ? OverlapPhase.BurntOnly
-            : cylinder.Mb <= 0 ? OverlapPhase.UnburntOnly
-            : OverlapPhase.TwoZone;
+    /// <summary>
+    /// B97: brings the crevices to the cylinder's pressure after a step, and puts what they
+    /// took or gave back into the cylinder's zones.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Runs through the closed period and exhaust of every two-zone cycle; through overlap and
+    /// intake the crevices keep what they hold, at about the pressure they will start
+    /// compression at. Gas enters from the unburnt zone through compression and combustion and
+    /// from the burnt gas after, and comes back into the unburnt zone through compression and
+    /// into the burnt zone after, where unburnt mixture burns. Heywood has the flame reach the
+    /// crevices late in the burn, and the pressure falling by then, so nothing burnt enters
+    /// during combustion in practice.
+    /// </para>
+    /// <para>
+    /// Energy is conserved as gas crosses at the cylinder's fixed volume, as overlap's valve
+    /// flows are (<see cref="ApplyOverlapFlows"/>): a zone loses the enthalpy of the gas it
+    /// gives up and gains the enthalpy of what it receives. The crevices hold their gas at the
+    /// wall temperature, so gas entering gives the walls its enthalpy less its internal energy
+    /// there, and gas leaving takes its flow work from them; both are heat loss. Unburnt
+    /// mixture returning to the burnt zone burns at the combustion efficiency, as the rest of
+    /// the charge does (B92), and blow-by takes its own enthalpy out of the engine.
+    /// </para>
+    /// </remarks>
+    private void ExchangeWithCrevices()
+    {
+        var store = _crevices;
+        var engine = _engine;
+
+        if (store is null
+            || engine.ZoneCount != 2
+            || engine.State is not (EngineState.Compression or EngineState.Combustion
+                or EngineState.Expansion or EngineState.Exhaust))
+        {
+            return;
+        }
+
+        var cylinder = engine.Cylinder;
+        var y = engine.Integration.Y;
+        var burnt = _cylinder.Burnt;
+        var unburnt = _cylinder.Unburnt;
+        var pressure = y[1];
+        var wall = store.Temperature;
+        var compression = engine.State == EngineState.Compression;
+        var burning = engine.State == EngineState.Combustion;
+        var admitBurnt = !compression && !burning;
+
+        var exchange = store.Exchange(
+            pressure,
+            unburnt.GasConstant(pressure, wall),
+            burnt.GasConstant(pressure, wall),
+            admitBurnt,
+            maximumAdmission: 0.5 * (admitBurnt ? cylinder.Mb : cylinder.Mu),
+            engine.TrappedMass,
+            blowBy: !compression);
+
+        engine.CreviceMass = store.Mass;
+        engine.PeakCreviceMass = store.PeakMass;
+        engine.BlowByMass = store.BlowBy;
+
+        var burntTemperature = cylinder.Tb;
+        var unburntTemperature = cylinder.Tu;
+        var burntBefore = cylinder.Mb;
+        var unburntBefore = cylinder.Mu;
+
+        var burntEnergyBefore = burntBefore > 0 ? burntBefore * burnt.InternalEnergy(pressure, burntTemperature) : 0;
+        var unburntEnergyBefore = unburntBefore > 0 ? unburntBefore * unburnt.InternalEnergy(pressure, unburntTemperature) : 0;
+        var burntEnergy = burntEnergyBefore;
+        var unburntEnergy = unburntEnergyBefore;
+
+        // Heat to the gas from the crevice walls, negative as a loss is.
+        var heat = 0.0;
+
+        if (exchange.AdmittedUnburnt > 0)
+        {
+            var enthalpy = unburnt.Enthalpy(pressure, unburntTemperature);
+            unburntEnergy -= exchange.AdmittedUnburnt * enthalpy;
+            heat -= exchange.AdmittedUnburnt * (enthalpy - unburnt.InternalEnergy(pressure, wall));
+        }
+
+        if (exchange.AdmittedBurnt > 0)
+        {
+            var enthalpy = burnt.Enthalpy(pressure, burntTemperature);
+            burntEnergy -= exchange.AdmittedBurnt * enthalpy;
+            heat -= exchange.AdmittedBurnt * (enthalpy - burnt.InternalEnergy(pressure, wall));
+        }
+
+        if (exchange.Released + exchange.Blown > 0)
+        {
+            var unburntEnthalpy = unburnt.Enthalpy(pressure, wall);
+            var burntEnthalpy = burnt.Enthalpy(pressure, wall);
+
+            heat += ((exchange.ReleasedUnburnt + exchange.BlownUnburnt)
+                     * (unburntEnthalpy - unburnt.InternalEnergy(pressure, wall)))
+                    + ((exchange.ReleasedBurnt + exchange.BlownBurnt)
+                       * (burntEnthalpy - burnt.InternalEnergy(pressure, wall)));
+
+            var returned = (exchange.ReleasedUnburnt * unburntEnthalpy) + (exchange.ReleasedBurnt * burntEnthalpy);
+
+            if (compression)
+            {
+                unburntEnergy += returned;
+            }
+            else
+            {
+                var fuel = cylinder.Fuel;
+                returned -= (1 - Cylinder.CombustionEfficiency) * exchange.ReleasedUnburnt
+                            * fuel.M / engine.TrappedMass * fuel.Q;
+                burntEnergy += returned;
+            }
+        }
+
+        cylinder.MGas += exchange.Released - exchange.Admitted;
+
+        switch (engine.State)
+        {
+            case EngineState.Compression:
+                cylinder.Mu = cylinder.MGas;
+                cylinder.Mb = 0;
+                break;
+
+            case EngineState.Combustion:
+                // Unburnt gas the crevices took leaves the burnt zone as it was, and what they
+                // gave back joins it.
+                cylinder.Mu = unburntBefore - exchange.AdmittedUnburnt;
+                cylinder.Mb = cylinder.MGas - cylinder.Mu;
+                _cylinder.BurnableMass = cylinder.Mu / (1 - cylinder.Xb);
+                break;
+
+            default:
+                cylinder.Mb = cylinder.MGas;
+                cylinder.Mu = 0;
+                break;
+        }
+
+        // The flows' effect is the zones settled with them less the zones settled without:
+        // the integrated state need not sit exactly on the ideal gas law, and settling it
+        // whole would move it there, a change that is no part of the crevices' (ISSUES.md F10).
+        var volume = cylinder.VGas;
+        var burntVolume = burning ? y[0] : compression ? 0 : volume;
+
+        var with = SettleZones(
+            volume, pressure, burntVolume, burntTemperature, unburntTemperature,
+            burntEnergy, unburntEnergy, cylinder.Mb, cylinder.Mu);
+
+        var without = SettleZones(
+            volume, pressure, burntVolume, burntTemperature, unburntTemperature,
+            burntEnergyBefore, unburntEnergyBefore, burntBefore, unburntBefore);
+
+        y[1] += with.Pressure - without.Pressure;
+
+        if (burning)
+        {
+            y[0] += with.BurntVolume - without.BurntVolume;
+            y[2] += with.BurntTemperature - without.BurntTemperature;
+            y[3] += with.UnburntTemperature - without.UnburntTemperature;
+        }
+        else if (compression)
+        {
+            y[3] += with.UnburntTemperature - without.UnburntTemperature;
+        }
+        else
+        {
+            y[2] += with.BurntTemperature - without.BurntTemperature;
+        }
+
+        engine.HeatLoss += heat;
 
         RefreshGasFromIntegrator();
+    }
+
+    /// <summary>B97: starts a cycle's crevice books at inlet valve closing.</summary>
+    private void StartCreviceCycle()
+    {
+        if (_crevices is not { } store)
+        {
+            return;
+        }
+
+        var engine = _engine;
+
+        store.StartCycle();
+        engine.TrappedMass = engine.Cylinder.MGas + store.Mass;
+        engine.CreviceMass = store.Mass;
+        engine.PeakCreviceMass = store.PeakMass;
+        engine.BlowByMass = 0;
+        _cylinder.TrappedMass = engine.TrappedMass;
     }
 
     /// <summary>
@@ -1499,7 +1748,7 @@ public sealed class CycleSolver
                 engine.ZoneCount = 1;
             }
 
-            if (Math.Abs(engine.TotalMassInInletValve - engine.TotalMassOutExhaustValve) * 1E6
+            if (Math.Abs(engine.MassImbalance) * 1E6
                 < settings.MassBalance
                 && CorrectionCatalogue.MayConverge(
                     settings.Physics, cycle - 1, twoZone ? settings.OneZoneCycleCount : 0))

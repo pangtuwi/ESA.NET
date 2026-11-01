@@ -167,6 +167,10 @@ public sealed class EngineLoader : IEngineLoader
             RingTensionRatio = definition.FrictionRingTensionRatio,
             RingRoughnessFactor = definition.FrictionRingRoughnessFactor,
         };
+
+        // Optional [Crevices] keys; absent, the crevice model defaults them (ISSUES.md B97).
+        engine.CreviceVolumeFraction = definition.CreviceVolumeFraction;
+        engine.CreviceBlowBy = definition.CreviceBlowBy;
     }
 
     private static void ApplyExpressions(Engine engine, EngineDefinition definition)

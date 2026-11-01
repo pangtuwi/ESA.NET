@@ -129,7 +129,7 @@ public sealed class SimulationRunner
                 cycle,
                 requested,
                 s.Engine.CrankAngle,
-                Math.Abs(s.Engine.TotalMassInInletValve - s.Engine.TotalMassOutExhaustValve) * 1e6));
+                Math.Abs(s.Engine.MassImbalance) * 1e6));
         };
 
         engine.ZoneCount = 1;
@@ -142,7 +142,7 @@ public sealed class SimulationRunner
             }
 
             var balance =
-                Math.Abs(engine.TotalMassInInletValve - engine.TotalMassOutExhaustValve) * 1e6;
+                Math.Abs(engine.MassImbalance) * 1e6;
 
             // Convergence is tested at the top of each cycle against the totals the
             // previous one left, so a converged run stops before doing the work. Under B86
